@@ -429,7 +429,10 @@ setInterval(() => {
   const x = Math.round(vector.x * 50) / 50;
   const y = Math.round(vector.y * 50) / 50;
   const changed = x !== state.lastSent.x || y !== state.lastSent.y;
-  if (!changed && (x === 0 || Date.now() - state.lastSentAt < 500)) return;
+  const idle = x === 0 && y === 0;
+  // Marche verticale : x vaut 0, donc l'ancien test « x === 0 » coupait le
+  // renvoi périodique et le serveur arrêtait le joueur au bout de 1,5 s.
+  if (!changed && (idle || Date.now() - state.lastSentAt < 500)) return;
   state.lastSent = { x, y };
   state.lastSentAt = Date.now();
   state.conn.send({ t: 'input', dx: x, dy: y });
