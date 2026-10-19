@@ -1,0 +1,17 @@
+{
+  "name": "pixel-village-mmo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Mini MMO RPG en pixel art, jouable dans le navigateur (Node.js + WebSocket).",
+  "scripts": {
+    "dev": "node --watch server/index.js",
+    "start": "node server/index.js"
+  },
+  "engines": {
+    "node": ">=20 <26"
+  },
+  "optionalDependencies": {
+    "ws": "^8.18.0"
+  }
+}

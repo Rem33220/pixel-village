@@ -1,0 +1,11 @@
+# Déploiement Render de Pixel Village.
+# Sur Render : New + → Blueprint → choisis ce dépôt → Deploy Blueprint.
+services:
+  - type: web
+    name: pixel-village
+    runtime: node
+    plan: free
+    region: frankfurt
+    buildCommand: npm install
+    startCommand: node server/index.js
+    healthCheckPath: /healthz

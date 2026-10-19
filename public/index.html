@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pixel Village — mini MMO RPG</title>
+  <meta name="description" content="Mini MMO RPG en pixel art, jouable directement dans le navigateur." />
+  <link rel="stylesheet" href="./style.css" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%232c7a42'/%3E%3Crect x='2' y='5' width='12' height='9' fill='%2366b862'/%3E%3Crect x='5' y='2' width='6' height='6' fill='%23e8d6a4'/%3E%3C/svg%3E" />
+</head>
+<body>
+  <canvas id="screen" aria-label="Monde du jeu"></canvas>
+
+  <div id="hud">
+    <span class="chip" id="hud-name">Aventurier</span>
+    <span class="chip" id="hud-players">…</span>
+  </div>
+
+  <div id="status" class="hidden">
+    <span id="status-text"></span>
+    <button type="button" id="reconnect-btn" class="mini-btn hidden">Reconnecter</button>
+  </div>
+
+  <p id="hint">ZQSD / WASD / flèches · Entrée : chat</p>
+
+  <section id="chat" aria-label="Chat">
+    <div id="chat-log"></div>
+    <form id="chat-form" autocomplete="off">
+      <input id="chat-input" type="text" maxlength="120" placeholder="Entrée pour parler…" />
+    </form>
+  </section>
+
+  <div id="login">
+    <div class="panel">
+      <h1>PIXEL VILLAGE</h1>
+      <p class="tagline">Mini MMO RPG — un village, des joueurs, du pixel.</p>
+
+      <form id="login-form" autocomplete="off">
+        <label for="name-input">Nom du personnage</label>
+        <input id="name-input" class="text-input" type="text" maxlength="14" value="Aventurier" spellcheck="false" />
+
+        <span class="field-label">Couleur du personnage</span>
+        <div id="color-list" role="group" aria-label="Couleur du personnage"></div>
+
+        <button type="submit" class="btn">Entrer dans le village</button>
+      </form>
+
+      <button type="button" id="solo-btn" class="btn ghost">Jouer en solo (hors ligne)</button>
+
+      <p class="hint-panel">
+        Le mode en ligne a besoin du petit serveur Node fourni dans le projet.
+        Sans serveur, le jeu démarre en solo.
+      </p>
+    </div>
+  </div>
+
+  <script type="module" src="./js/main.js"></script>
+</body>
+</html>
