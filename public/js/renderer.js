@@ -315,9 +315,14 @@ export class Renderer {
       ctx.ellipse(px, py + 2, 5, 2.5, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      const frame = p.moving ? Math.floor(now / 150) % 2 : 0;
+      // Pose de marche pilotée par la distance parcourue (4 poses), avec un
+      // rebond de 1 px sur les poses de passage. Au repos, léger balancement.
+      const frame = p.moving ? Math.floor(p.phase || 0) % 4 : 0;
+      const bob = p.moving
+        ? (frame % 2 === 1 ? -1 : 0)
+        : (Math.floor(now / 900) % 2 === 0 ? 0 : -1);
       const sprite = getPlayerSprite(p.color, p.dir, frame);
-      ctx.drawImage(sprite, px - 6, py - 15, 12, 16);
+      ctx.drawImage(sprite, px - 6, py - 15 + bob, 12, 16);
     }
     ctx.restore();
 

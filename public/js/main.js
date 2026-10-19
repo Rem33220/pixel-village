@@ -3,7 +3,7 @@ import { CONFIG } from './config.js';
 import { generateWorld, isSolid } from './map.js';
 import { Renderer } from './renderer.js';
 import { initInput, moveVector, isTyping } from './input.js';
-import { createConnection } from './net.js';
+import { createConnection, websocketUrl } from './net.js';
 
 const world = generateWorld();
 
@@ -49,9 +49,19 @@ function makePlayer(id, name, color, x, y) {
     ry: y,
     dir: 'down',
     moving: false,
+    phase: 0,
     chatText: '',
     chatUntil: 0
   };
+}
+
+// Une pose complète tous les ~0,55 tuile parcourue : l'animation suit la
+// vitesse réelle du personnage au lieu d'un rythme fixe.
+const WALK_POSE_PER_TILE = 1 / 0.55;
+
+function advanceWalk(player, distance) {
+  if (!distance) return;
+  player.phase = (player.phase + distance * WALK_POSE_PER_TILE) % 4;
 }
 
 function canStand(x, y) {
@@ -199,7 +209,14 @@ function handleConnectionLost(error) {
   if (state.mode === 'online') {
     startSolo('Connexion perdue — tu joues en solo.');
   } else if (state.mode === 'connecting') {
-    startSolo('Serveur injoignable — tu joues en solo.');
+    let target = '';
+    try {
+      target = ` (${websocketUrl()})`;
+    } catch {
+      /* pas d'URL exploitable : le message de l'erreur suffit */
+    }
+    const detail = error?.message ? ` : ${error.message}` : '';
+    startSolo(`Serveur injoignable${target}${detail} — tu joues en solo.`);
   }
 }
 
@@ -306,7 +323,10 @@ function updateLocal(dt) {
     } else {
       me.dir = vector.y < 0 ? 'up' : 'down';
     }
+    const beforeX = me.rx;
+    const beforeY = me.ry;
     moveWithCollision(me, vector.x * CONFIG.speed * dt, vector.y * CONFIG.speed * dt);
+    advanceWalk(me, Math.hypot(me.rx - beforeX, me.ry - beforeY));
   }
 
   if (state.mode === 'solo') {
@@ -334,8 +354,11 @@ function updateRemotes(dt) {
   for (const player of state.players.values()) {
     if (player.id === state.selfId) continue;
     const k = Math.min(1, dt * 11);
+    const beforeX = player.rx;
+    const beforeY = player.ry;
     player.rx += (player.x - player.rx) * k;
     player.ry += (player.y - player.ry) * k;
+    if (player.moving) advanceWalk(player, Math.hypot(player.rx - beforeX, player.ry - beforeY));
     if (Math.hypot(player.x - player.rx, player.y - player.ry) > 3) {
       player.rx = player.x;
       player.ry = player.y;
@@ -414,6 +437,7 @@ setInterval(() => {
 
 // --- Démarrage -------------------------------------------------------------
 
+window.__pixelVillageReady = true;
 state.renderer = new Renderer(els.canvas, world);
 state.renderer.centerOn(world.spawn.x, world.spawn.y);
 initInput();

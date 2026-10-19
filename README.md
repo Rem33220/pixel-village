@@ -7,107 +7,95 @@ réel, un chat et un mode solo de secours.
 - Client : HTML + Canvas 2D, **aucune étape de build**, aucun asset à télécharger.
 - Serveur : Node.js + WebSocket, la carte et les collisions sont simulées
   côté serveur.
-- **Aucune dépendance obligatoire** : le WebSocket est intégré au projet
-  (`server/websocket.js`), donc pas de `npm install` à faire. Le paquet `ws`
-  reste utilisé automatiquement s'il est installé.
+- **Zéro dépendance, zéro npm** : le WebSocket est intégré au projet
+  (`server/websocket.js`). Il n'y a rien à installer et aucune commande `npm`
+  à taper : `node server/index.js` ou un double-clic sur `Lancer le jeu.bat`.
 
 ---
 
-## 1. Lancer le jeu dans VS Code
+## 1. Lancer le jeu sur ton PC (double-clic, sans npm)
 
-### Prérequis
+Le projet **n'utilise plus npm du tout** : aucune dépendance à installer, aucune
+commande à taper. Le serveur embarque son propre WebSocket
+(`server/websocket.js`).
 
-- [Node.js](https://nodejs.org) **20 ou plus** (version LTS conseillée) : c'est
-  le seul logiciel à installer, il contient déjà npm.
-- [VS Code](https://code.visualstudio.com).
+### Le plus simple : `Lancer le jeu.bat`
 
-> **Aucun `npm install` n'est nécessaire.** Le serveur embarque son propre
-> WebSocket (`server/websocket.js`) et n'utilise le paquet `ws` que s'il est déjà
-> présent. Une fois Node.js installé, le jeu démarre avec une seule commande.
+1. Ouvre le dossier du projet (celui qui contient `server` et `public`).
+2. Double-clique sur **[Lancer le jeu.bat](Lancer%20le%20jeu.bat)**.
+3. Une fenêtre noire s'ouvre, puis ton navigateur se lance sur le jeu.
+4. Pour arrêter : ferme la fenêtre noire (ou `Ctrl+C` dedans).
 
-### Étapes
+Ce fichier fait tout le travail :
 
-1. Dans VS Code : **Fichier → Ouvrir le dossier…** et choisis le dossier du projet.
-2. Ouvre un terminal : **Terminal → Nouveau terminal** (ou `` Ctrl+` ``).
-3. Vérifie que Node répond :
+- il cherche `node.exe` partout où Windows peut l'avoir installé, **même quand
+  la commande `node` n'est pas reconnue dans le terminal** ;
+- s'il ne le trouve pas, il propose d'installer Node.js (une question O/N : rien
+  n'est installé sans ton accord) ;
+- il démarre le serveur et ouvre `http://localhost:3000` ;
+- si le serveur plante, la fenêtre reste ouverte pour afficher la cause.
 
-   ```powershell
-   node -v
-   ```
+> **npm n'est jamais utilisé**, ni pour jouer, ni pour mettre le jeu en ligne.
+> Si `npm` reste introuvable sur ton PC, ce n'est plus un problème : seul
+> **Node.js** est nécessaire.
 
-   Tu dois voir `v20.x.x` ou plus. Si la commande est inconnue, va voir la
-   section « npm / node n'est pas reconnu » juste en dessous.
+### Vérifier que Node.js est là
 
-4. Démarre le serveur :
+Dans le terminal de VS Code, ou dans Invite de commandes :
 
-   ```powershell
-   node server/index.js
-   ```
+```powershell
+node -v
+```
 
-   (ou `npm run dev` si npm fonctionne : le serveur redémarre alors tout seul
-   quand tu modifies un fichier de `server/`.)
+Tu dois voir `v18.x`, `v20.x`, `v22.x`… Si la commande est inconnue, Node.js
+n'est pas installé (voir juste en dessous).
 
-5. Ouvre <http://localhost:3000> dans ton navigateur.
-6. Pour tester le multijoueur : ouvre un **deuxième onglet** sur la même adresse,
-   choisis un autre nom et une autre couleur, puis bouge dans le village.
+### Si Node.js manque
 
-Au démarrage, le serveur affiche `Pixel Village prêt : http://localhost:3000`
-suivi du moteur WebSocket utilisé (`paquet ws` ou `WebSocket intégré`). Pour
-arrêter le serveur : `Ctrl+C` dans le terminal.
+- Le plus simple : relance `Lancer le jeu.bat` et réponds **O** à la question.
+- Ou installe-le depuis <https://nodejs.org/fr/download> : version **LTS**,
+  laisse cochée l'option **Add to PATH**.
+- Ou en ligne de commande :
 
-### « npm » ou « node » n'est pas reconnu (Windows)
+  ```powershell
+  winget install OpenJS.NodeJS.LTS --source winget
+  ```
 
-Cette erreur veut dire que **Node.js n'est pas installé**, ou que VS Code a été
-ouvert avant l'installation et garde l'ancienne liste de programmes.
+Après une installation manuelle, **ferme toutes les fenêtres de VS Code** (pas
+« Recharger la fenêtre ») : un terminal déjà ouvert ne voit jamais un programme
+installé après son démarrage. Le `.bat` n'a pas ce problème, il relit le disque
+à chaque lancement.
 
-1. **Vérifie** dans un terminal PowerShell de VS Code :
+### « npm n'est pas reconnu » : pourquoi, et pourquoi ce n'est plus grave
 
-   ```powershell
-   node -v
-   npm -v
-   ```
+`npm` n'est pas un programme séparé : il est livré **avec** Node.js. L'erreur
+`npm : commande introuvable` signifie donc que Node.js n'est pas installé, ou
+que le terminal garde l'ancienne liste de programmes. Comme le jeu n'utilise
+aucun paquet npm, il n'y a rien à réparer : il suffit que `node` fonctionne.
 
-2. **Installe Node.js** si les deux commandes échouent. Le plus simple :
+### Si tu préfères le terminal
 
-   ```powershell
-   winget install OpenJS.NodeJS.LTS --source winget
-   ```
+```powershell
+node server/index.js
+```
 
-   Ou télécharge l'installateur **LTS** sur <https://nodejs.org> et laisse
-   cochée l'option **Add to PATH**.
+puis <http://localhost:3000>. Ouvre un **deuxième onglet** sur la même adresse
+pour tester le multijoueur (autre nom, autre couleur).
 
-3. **Ferme complètement VS Code** (toutes les fenêtres, pas juste « Recharger la
-   fenêtre »), puis rouvre-le. Un terminal déjà ouvert ne voit jamais un
-   programme installé après son démarrage. En cas de doute, redémarre le PC.
+Au démarrage, le serveur affiche :
 
-4. Si `node -v` fonctionne mais pas `npm -v`, vérifie que ce dossier est bien
-   dans le `PATH` (Panneau de configuration → Variables d'environnement) :
-
-   ```text
-   C:\Program Files\nodejs\
-   ```
-
-5. Erreur du type *« npm.ps1 ne peut pas être chargé car l'exécution de scripts
-   est désactivée »* : c'est PowerShell, pas npm. Dans un terminal PowerShell :
-
-   ```powershell
-   Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
-   ```
-
-   Ou, sans rien changer au système, lance `npm.cmd install`, ou choisis
-   **Command Prompt** dans le menu `+` du terminal VS Code.
-
-6. Rien ne marche ? Ce n'est pas bloquant : si `node -v` répond, lance
-   directement `node server/index.js`. Le jeu n'a besoin d'aucun paquet npm.
+```text
+Pixel Village prêt : http://localhost:3000  [WebSocket intégré, zéro dépendance]
+```
 
 ### Commandes
 
-| Commande                | Effet                                             |
-| ----------------------- | ------------------------------------------------- |
-| `node server/index.js`  | démarre le jeu (aucune dépendance requise)        |
-| `npm run dev`           | idem, avec rechargement auto (si npm fonctionne)  |
-| `npm start`             | idem, sans rechargement (utilisé en production)   |
-| `npm install`           | optionnel : installe `ws` au lieu du WebSocket intégré |
+| Action                  | Commande                                                          |
+| ----------------------- | ----------------------------------------------------------------- |
+| Lancer le jeu           | double-clic sur **`Lancer le jeu.bat`**                            |
+| Lancer le serveur seul  | `node server/index.js`                                            |
+| Changer le port         | `set PORT=4000` puis `node server/index.js` (PowerShell : `$env:PORT=4000; node server/index.js`) |
+| Arrêter                 | `Ctrl+C` dans la fenêtre du serveur                               |
 
 ### Contrôles
 
@@ -127,7 +115,8 @@ donc aussi bien sur un clavier AZERTY que QWERTY.
 
 ```text
 .
-├── package.json          # scripts + dépendance optionnelle ws
+├── Lancer le jeu.bat     # double-clic : démarre le serveur + ouvre le navigateur
+├── package.json          # métadonnées Node uniquement, aucune dépendance
 ├── render.yaml           # déploiement Render en un clic (Blueprint)
 ├── server/
 │   ├── index.js          # serveur HTTP (fichiers) + WebSocket + boucle de jeu
@@ -205,7 +194,7 @@ même serveur que la page (`wss://…/ws`), donc le chat et le multijoueur march
 3. Sur la page du dépôt vide : **uploading an existing file**.
 4. Ouvre le dossier du projet dans l'explorateur Windows, puis glisse dans la
    page GitHub **tout le contenu** du dossier : `package.json`, `render.yaml`,
-   `README.md`, `server/` et `public/`.
+   `README.md`, `Lancer le jeu.bat`, `server/` et `public/`.
    - Glisse les **dossiers** (pas leur contenu) : GitHub recrée l'arborescence.
    - **Ne glisse pas** `node_modules` ni `.git` : inutiles ici.
    - `.gitignore` commence par un point, Windows le cache : peu importe.
@@ -233,7 +222,7 @@ même serveur que la page (`wss://…/ws`), donc le chat et le multijoueur march
    | **Region** | **Frankfurt** (le plus proche de la France) |
    | **Branch** | `main` |
    | **Root Directory** | laisser **vide** |
-   | **Build Command** | `npm install` |
+   | **Build Command** | `echo aucune dependance` (ou laisser vide) |
    | **Start Command** | `node server/index.js` |
    | **Instance Type / Compute plan** | **Free** |
 
@@ -241,15 +230,12 @@ même serveur que la page (`wss://…/ws`), donc le chat et le multijoueur march
    `/healthz` (le serveur expose déjà cette route).
 7. Clique sur **Deploy Web Service** (ou **Create Web Service**).
 
-Render installe puis démarre le serveur. Suis les logs dans l'onglet
-**Logs / Events** : au bout de 1 à 3 minutes tu dois voir
+Render démarre le serveur (aucune dépendance à installer, le déploiement prend
+moins d'une minute). Suis les logs dans l'onglet **Logs / Events**, tu dois voir :
 
 ```text
-Pixel Village prêt : http://localhost:10000  [paquet ws]
+Pixel Village prêt : http://localhost:10000  [WebSocket intégré, zéro dépendance]
 ```
-
-(le texte entre crochets indique le moteur WebSocket : `paquet ws` ou
-`WebSocket intégré (sans dépendance)` — les deux fonctionnent).
 
 Le port `10000` est normal : Render fournit son propre port via `process.env.PORT`
 (le jeu le lit déjà). Le statut passe à **Live** en vert.
@@ -287,28 +273,160 @@ service avec les bons réglages, sans formulaire à remplir.
 - Le disque est **éphémère** : pas de sauvegarde de fichier côté serveur. Les
   scores/positions sont en mémoire et repartent à zéro à chaque redémarrage.
 
-### Option B — itch.io pour la page de jeu + Render pour le serveur
+### Option B — itch.io (page de jeu) + Render (serveur)
 
-[itch.io](https://itch.io) est gratuit, sert de vitrine, et permet aux joueurs de
-lancer le jeu **dans le navigateur** (aucun téléchargement). Il n'exécute pas de
-Node : garde Render pour le serveur.
+Deux rôles différents, deux services :
 
-1. Déploie d'abord le serveur sur Render (option A) et note son URL.
-2. Dans `public/js/config.js`, renseigne :
+| Rôle | Service | Pourquoi |
+| --- | --- | --- |
+| Page publique, upload du client, bouton « jouer » dans le navigateur | **itch.io** | gratuit, sans carte, héberge des fichiers statiques et référence les jeux |
+| Serveur Node (WebSocket, joueurs, chat, collisions) | **Render** | itch.io n'exécute pas de Node : il ne peut pas garder un serveur en vie |
 
-   ```js
-   serverUrl: 'https://pixel-village.onrender.com',
-   ```
+Le joueur arrive sur `https://tonpseudo.itch.io/pixel-village`, itch.io charge
+`public/` dans une iframe, et ce client se connecte en `wss://` au serveur
+Render. Les deux restent gratuits, mais il y a **deux URL** et deux choses à
+mettre à jour séparément.
 
-   (ou ajoute `?server=https://pixel-village.onrender.com` à l'URL itch.io).
-3. Zippe **le contenu** de `public/` (pas le dossier lui-même) : `index.html`
-   doit être à la racine du zip.
-4. Sur itch.io : **Create new project → Kind of project: HTML**.
-5. Uploade le zip, coche **This file will be played in the browser**, puis
-   publie.
+#### Étape 1 — Render d'abord
 
-Limites itch.io pour un jeu HTML : 500 Mo décompressés, 200 Mo par fichier,
-1 000 fichiers. Le mode solo fonctionne même si le serveur est endormi.
+Suis l'option A. À la fin, note l'URL du service, par exemple
+`https://pixel-village.onrender.com`, et vérifie qu'elle affiche bien le jeu.
+C'est ce serveur qui alimentera le multijoueur.
+
+#### Étape 2 — Indiquer cette URL au client
+
+Ouvre `public/js/config.js` et renseigne, **sans slash final** :
+
+```js
+serverUrl: 'https://pixel-village.onrender.com',
+```
+
+Pourquoi c'est obligatoire : dans une iframe itch.io, la page n'a pas la même
+origine que le serveur. Sans cette ligne, le client chercherait un WebSocket sur
+le domaine d'itch.io et basculerait en solo.
+
+Le client transforme tout seul `https://` en `wss://` et `http://` en `ws://` :
+n'écris pas `wss://` toi-même dans `serverUrl`.
+
+Cette URL est **ignorée quand tu joues en local** (`localhost` / `127.0.0.1`) :
+le client parle alors au serveur qui a servi la page, donc double-cliquer sur
+`Lancer le jeu.bat` continue de fonctionner normalement. Elle ne sert que
+lorsque le client est hébergé ailleurs (itch.io).
+
+#### Étape 3 — Préparer le zip
+
+- Sélectionne le **contenu** de `public/`, pas le dossier `public` lui-même.
+- Le zip doit ressembler exactement à ceci :
+
+```text
+index.html
+style.css
+js/config.js
+js/main.js
+js/map.js
+js/net.js
+js/renderer.js
+js/sprites.js
+js/input.js
+```
+
+- `index.html` doit être **à la racine du zip**, jamais dans un sous-dossier
+  `public/`.
+- Ne mets ni `server/`, ni `package.json`, ni `README.md` : itch.io n'en a pas
+  besoin.
+- Windows : sélectionne les fichiers → clic droit → **Envoyer vers → Dossier
+  compressé**, puis ouvre le zip pour vérifier qu'`index.html` apparaît dès
+  l'ouverture (et non `public\index.html`).
+
+#### Étape 4 — Créer le projet itch.io
+
+1. <https://itch.io> → **Register** (gratuit, sans carte bancaire).
+2. Menu de ton compte (en haut à droite) → **Upload new project**.
+3. Remplis :
+
+   | Champ | Valeur |
+   | --- | --- |
+   | **Title** | `Pixel Village` |
+   | **Project URL** | `pixel-village` → donne `tonpseudo.itch.io/pixel-village` |
+   | **Short description** | « Un mini MMO RPG en pixel art, jouable dans le navigateur. » |
+   | **Classification** | **Games** |
+   | **Kind of project** | **HTML** |
+   | **Pricing** | **No payments** (gratuit, sans don) |
+   | **Uploads** | ton fichier `.zip` |
+
+4. Après l'upload, coche **This file will be played in the browser** : c'est ce
+   qui transforme le zip en jeu intégré à la page.
+
+#### Étape 5 — Régler l'affichage (embed)
+
+Les champs apparaissent une fois la case cochée :
+
+| Réglage | Valeur conseillée | Pourquoi |
+| --- | --- | --- |
+| **Embed options / dimensions** | `960 × 540` (ou `1280 × 720`) | le jeu occupe toute la fenêtre ; ces tailles tiennent dans la page |
+| **Fullscreen button** | coché | en plein écran, le clavier reste capté par le jeu |
+| **Mobile friendly** | décoché | le jeu se joue au clavier (ZQSD / flèches) |
+| **Orientation** | paysage | — |
+
+#### Étape 6 — Tester avant de publier
+
+1. Garde la visibilité **Draft** et ouvre l'URL secrète proposée par itch.io.
+2. **Clique une fois dans la zone de jeu** : sans ce clic, l'iframe ne reçoit pas
+   les touches.
+3. Vérifie que le HUD affiche le nombre de joueurs et que le chat répond. Si tu
+   vois « Serveur injoignable — tu joues en solo », c'est que `serverUrl` est mal
+   renseigné, ou que le serveur Render dort encore.
+4. Ouvre la page dans un second onglet pour confirmer que les deux personnages
+   se voient.
+
+#### Étape 7 — Publier
+
+Passe la visibilité sur **Public**, puis **Save**. Le lien
+`https://tonpseudo.itch.io/pixel-village` est partageable : les joueurs cliquent
+sur **Run game**, sans rien télécharger.
+
+#### Étape 8 — Mettre à jour
+
+- **Client modifié** (HTML/CSS/JS) : refais le zip, uploade-le, coche à nouveau
+  **This file will be played in the browser**, supprime l'ancien upload, sauvegarde.
+- **Serveur modifié** : envoie sur GitHub, Render redéploie tout seul.
+- **URL du serveur changée** : mets à jour `config.js` **et** refais le zip.
+
+#### Les pièges de l'option B
+
+- **Le menu reste figé, les boutons ne réagissent pas** : le JavaScript du jeu
+  n'a pas été chargé. Dans ce cas, le jeu affiche maintenant un **bandeau rouge
+  en bas de l'écran** avec le fichier introuvable (par exemple
+  `…/js/main.js`). Cause habituelle : le zip ne contient pas le dossier `js/`,
+  ou l'upload n'a pas été refait après une modification. Recrée le zip en
+  sélectionnant **tout** le contenu de `public/`, dossier `js/` compris, puis
+  remplace l'upload sur itch.io.
+
+- **Le serveur Render s'endort** après 15 min sans visite. Le premier joueur
+  arrive sur un serveur endormi : la page se charge, la connexion WebSocket
+  échoue au bout de 5 s et le jeu passe en solo. Ouvre d'abord
+  `https://pixel-village.onrender.com` (30 à 60 s de réveil), puis reviens sur la
+  page itch.io — ou clique sur **Reconnecter** une fois le serveur réveillé.
+- **Deux URL, deux mises à jour** : c'est le prix de l'option B. L'option A
+  (tout sur Render) évite cette gymnastique.
+- **HTTPS obligatoire** : `serverUrl` doit être en `https://`, sinon le
+  navigateur bloque la connexion (contenu mixte).
+- **itch.io n'exécute pas Node** : n'y uploade jamais le dossier `server/`.
+- **Le mode solo fonctionne toujours**, même serveur éteint : on peut se
+  promener dans le village sans connexion.
+
+Limites d'upload itch.io pour un jeu HTML : 500 Mo décompressés, 200 Mo par
+fichier, 1 000 fichiers — très au-dessus de ce projet (moins de 100 Ko).
+
+#### Pourquoi choisir l'option B ?
+
+- tu veux une **vraie page de jeu** : captures, description, commentaires,
+  devlog, référencement interne d'itch.io ;
+- tu veux pouvoir **mettre à jour le client sans redéployer** le serveur (et
+  inversement) ;
+- tu acceptes deux services et deux URL.
+
+Pour jouer avec des amis, l'option A suffit et reste plus simple.
 
 ### Option C — autres hébergeurs (état en octobre 2026)
 
@@ -336,15 +454,15 @@ Sources : [Render — déployer gratuitement](https://render.com/docs/free),
 
 | Problème                                   | Solution                                                                 |
 | ------------------------------------------ | ------------------------------------------------------------------------ |
-| `npm : commande introuvable`               | Node.js absent ou VS Code ouvert avant l'installation : voir la section dédiée. |
-| `Cannot find package 'ws'`                 | Normal : le WebSocket intégré prend le relais. `npm install` si tu veux `ws`. |
-| `node : commande introuvable`              | Node.js n'est pas installé, ou pas dans le `PATH` (rouvrir VS Code).     |
-| « Serveur injoignable — tu joues en solo » | Vérifie que `npm run dev` tourne et que l'URL/port sont bons.            |
-| Le port 3000 est occupé                    | PowerShell : `$env:PORT=4000; npm run dev` puis <http://localhost:4000>. |
+| `npm : commande introuvable`               | **Sans importance** : le jeu n'utilise pas npm. Utilise `Lancer le jeu.bat`. |
+| `node : commande introuvable`              | Node.js n'est pas installé : double-clique sur `Lancer le jeu.bat` et réponds **O**. |
+| Le `.bat` se ferme aussitôt                | Ouvre-le depuis le dossier du projet (à côté de `server/`) ; il affiche la cause. |
+| « Serveur injoignable — tu joues en solo » | Le serveur n'est pas lancé : double-clique sur `Lancer le jeu.bat`.        |
+| Le port 3000 est occupé                    | PowerShell : `$env:PORT=4000; node server/index.js` puis <http://localhost:4000>. |
 | Le serveur Render met du temps à répondre  | Il était endormi : attends 30 à 60 secondes et recharge.                 |
 | Render : *No repositories found*           | Dans Render, **Configure account** puis autorise l'accès au dépôt GitHub. |
-| Render : le build échoue sur `npm install` | Remplace **Build Command** par `echo aucune dependance` : le jeu n'a besoin d'aucun paquet. |
-| Render : statut *Live* mais page 502       | **Start Command** doit être `node server/index.js` (pas `npm run dev`).   |
+| Render : build en échec                | **Build Command** = `echo aucune dependance` (ou vide) : le jeu n'a aucun paquet à installer. |
+| Render : statut *Live* mais page 502       | **Start Command** doit être `node server/index.js` (le `.bat` ne sert qu'en local). |
 | Render : le chat ne marche pas en ligne    | Vérifie l'onglet **Logs** ; le client utilise automatiquement `wss://` de la page. |
 | Sur itch.io, le chat reste en solo         | `serverUrl` doit être en **https** (donc `wss://` automatiquement).      |
 | Les sprites sont flous                     | Garde `image-rendering: pixelated` (déjà dans `style.css`).              |

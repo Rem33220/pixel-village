@@ -4,6 +4,7 @@ export const CONFIG = {
   // URL du serveur Node quand le client est hébergé ailleurs (ex. itch.io).
   // Exemple : 'https://pixel-village.onrender.com'. Vide = même origine que la page.
   // Astuce : on peut aussi passer ?server=https://mon-serveur.onrender.com dans l'URL.
+  // Cette valeur doit rester DANS les accolades, sinon elle est ignorée.
   serverUrl: 'https://pixel-village-pixel-village-onrender-com.onrender.com',
 
   // Chemin WebSocket sur le serveur.

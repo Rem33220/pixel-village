@@ -6,18 +6,11 @@ import { fileURLToPath } from 'node:url';
 import { generateWorld, isSolid } from '../public/js/map.js';
 import { CONFIG } from '../public/js/config.js';
 
-// WebSocket : on utilise le paquet « ws » s'il est présent, sinon le mini
-// serveur intégré (server/websocket.js). Résultat : « node server/index.js »
-// fonctionne même sans « npm install ».
-let WebSocketServer;
-let wsBackend;
-try {
-  ({ WebSocketServer } = await import('ws'));
-  wsBackend = 'paquet ws';
-} catch {
-  ({ WebSocketServer } = await import('./websocket.js'));
-  wsBackend = 'WebSocket intégré (sans dépendance)';
-}
+// WebSocket maison (server/websocket.js) : aucune dépendance, donc aucun
+// « npm install » à faire. « node server/index.js » suffit.
+import { WebSocketServer } from './websocket.js';
+
+const wsBackend = 'WebSocket intégré, zéro dépendance';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = path.resolve(__dirname, '..', 'public');

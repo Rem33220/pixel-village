@@ -54,6 +54,50 @@
     </div>
   </div>
 
+  <script>
+    // Diagnostic affiché dans le jeu : ce script classique s'exécute même si les
+    // modules ES ne se chargent pas (cas des hébergements qui renvoient un
+    // mauvais type MIME ou un 404). Utile pour l'intégration itch.io.
+    (function () {
+      var shown = false;
+      function report(text) {
+        if (shown) return;
+        shown = true;
+        var box = document.createElement('div');
+        box.setAttribute('role', 'alert');
+        box.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:9999;padding:12px 14px;' +
+          'background:#4a1e19;color:#ffe9e2;border-top:2px solid #d8836f;' +
+          'font:12px/1.5 ui-monospace,Consolas,monospace;white-space:pre-wrap;';
+        box.textContent = text;
+        document.body.appendChild(box);
+      }
+      window.__pixelVillageReport = report;
+
+      window.addEventListener('error', function (event) {
+        var el = event.target;
+        if (el && el !== window && el.tagName) {
+          report('Fichier introuvable : ' + (el.src || el.href) +
+            '\nVerifie que index.html et le dossier js/ sont bien a la racine du zip.');
+        } else if (event.message) {
+          report('Erreur JavaScript : ' + event.message +
+            (event.filename ? '\n' + event.filename + ':' + event.lineno : ''));
+        }
+      }, true);
+
+      window.addEventListener('unhandledrejection', function (event) {
+        var reason = event.reason;
+        report('Erreur JavaScript : ' + (reason && reason.message ? reason.message : String(reason)));
+      });
+
+      window.addEventListener('load', function () {
+        setTimeout(function () {
+          if (window.__pixelVillageReady) return;
+          report("Le script du jeu ne s'est pas execute.\nOuvre la console (F12) : elle indique le fichier en cause.");
+        }, 4000);
+      });
+    })();
+  </script>
+
   <script type="module" src="./js/main.js"></script>
 </body>
 </html>

@@ -1,15 +1,23 @@
 // Petite surcouche WebSocket : connexion, envoi JSON, gestion des erreurs.
 import { CONFIG } from './config.js';
 
-function websocketUrl() {
+export function websocketUrl() {
   const fromQuery = new URLSearchParams(window.location.search).get('server');
-  const configured = (fromQuery || CONFIG.serverUrl || '').trim();
+  // En local (double-clic sur le lanceur), on parle toujours au serveur qui a
+  // servi la page : serverUrl ne sert qu'à l'hébergement distant (itch.io).
+  const local = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(window.location.hostname);
+  const configured = (fromQuery || (local ? '' : CONFIG.serverUrl) || '').trim();
 
   let origin;
   if (configured) {
     const url = new URL(configured.includes('://') ? configured : `https://${configured}`);
     origin = url.origin;
   } else {
+    // Page chargée dans une iframe (itch.io) : le serveur n'est pas sur la même
+    // origine, donc sans serverUrl la connexion ne peut pas aboutir.
+    if (window.self !== window.top) {
+      throw new Error('serverUrl est vide dans config.js');
+    }
     origin = window.location.origin;
     if (!/^https?:/.test(origin)) throw new Error('Origine locale inconnue');
   }

@@ -1,6 +1,10 @@
 // Sprites des personnages : du pixel art dessiné en "ASCII" puis peint dans des
 // petits canvas. Aucune image à télécharger, et on peut modifier le personnage
 // en éditant simplement les lignes ci-dessous (12 x 16 pixels).
+//
+// Cycle de marche : 4 poses (contact gauche, passage, contact droit, passage).
+// Le corps fait 12 lignes, les jambes 4 lignes ; le rendu applique un rebond
+// d'un pixel sur les poses de passage pour donner du poids au pas.
 
 const BASE_PALETTE = {
   k: '#1b1424',
@@ -59,33 +63,81 @@ const SIDE_BASE = [
   '...bBBbb....'
 ];
 
-const DOWN_LEGS_A = [
+// --- Jambes, vue de face (down) et de dos (up) ------------------------------
+
+// Pose 0 : jambe gauche posée, jambe droite levée.
+const DOWN_LEGS_0 = [
+  '..pppppppp..',
+  '..pppppppp..',
+  '..pppp.ppp..',
+  '..ooo..oo...'
+];
+
+// Pose 1 : passage, jambes resserrées mais toujours distinctes.
+const DOWN_LEGS_1 = [
+  '..pppppppp..',
+  '...pppppp...',
+  '...pp.ppp...',
+  '...oo.ooo...'
+];
+
+// Pose 2 : jambe droite posée, jambe gauche levée.
+const DOWN_LEGS_2 = [
+  '..pppppppp..',
+  '..pppppppp..',
+  '..ppp.pppp..',
+  '...oo..ooo..'
+];
+
+// Pose 3 : second passage, identique à la pose 1 (marche symétrique).
+const DOWN_LEGS_3 = [
+  '..pppppppp..',
+  '...pppppp...',
+  '...pp.ppp...',
+  '...oo.ooo...'
+];
+
+// --- Jambes, vue de profil ------------------------------------------------
+
+// Pose 0 : grande foulée, pied avant à droite.
+const SIDE_LEGS_0 = [
+  '...pppppp...',
   '..pppppppp..',
   '..ppp..ppp..',
+  '.ooo....ooo.'
+];
+
+// Pose 1 : passage, jambes serrées sous le corps.
+const SIDE_LEGS_1 = [
+  '...pppppp...',
+  '...pppppp...',
+  '....pppp....',
+  '....oooo....'
+];
+
+// Pose 2 : foulée inverse, pieds plus proches.
+const SIDE_LEGS_2 = [
+  '...pppppp...',
+  '..pppppppp..',
   '..ppp..ppp..',
   '..ooo..ooo..'
 ];
 
-const DOWN_LEGS_B = [
-  '..pppppppp..',
-  '..p.pppp.p..',
-  '..p.pppp.p..',
-  '..o.oooo.o..'
+// Pose 3 : second passage, identique à la pose 1.
+const SIDE_LEGS_3 = [
+  '...pppppp...',
+  '...pppppp...',
+  '....pppp....',
+  '....oooo....'
 ];
 
-const SIDE_LEGS_A = [
-  '...pppppp...',
-  '...ppp.ppp..',
-  '...ppp.ppp..',
-  '...ooo.ooo..'
-];
+const LEGS = {
+  down: [DOWN_LEGS_0, DOWN_LEGS_1, DOWN_LEGS_2, DOWN_LEGS_3],
+  up: [DOWN_LEGS_0, DOWN_LEGS_1, DOWN_LEGS_2, DOWN_LEGS_3],
+  side: [SIDE_LEGS_0, SIDE_LEGS_1, SIDE_LEGS_2, SIDE_LEGS_3]
+};
 
-const SIDE_LEGS_B = [
-  '...pppppp...',
-  '....ppp.pp..',
-  '....ppp.pp..',
-  '....ooo.oo..'
-];
+const FRAME_COUNT = 4;
 
 const cache = new Map();
 
@@ -119,9 +171,12 @@ function shade(hex, amount) {
   return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`;
 }
 
+// `frame` va de 0 à 3 ; toute autre valeur retombe sur la pose de repos.
 export function getPlayerSprite(color, direction, frame) {
   const dir = direction === 'left' || direction === 'right' ? 'side' : direction;
-  const key = `${color}|${dir}|${frame}|${direction === 'left' ? 'l' : 'r'}`;
+  const step = Number.isInteger(frame) ? ((frame % FRAME_COUNT) + FRAME_COUNT) % FRAME_COUNT : 0;
+  const flip = direction === 'left' ? 'l' : 'r';
+  const key = `${color}|${dir}|${step}|${flip}`;
   const cached = cache.get(key);
   if (cached) return cached;
 
@@ -131,9 +186,7 @@ export function getPlayerSprite(color, direction, frame) {
     B: shade(color, -42)
   };
   const base = dir === 'up' ? UP_BASE : dir === 'side' ? SIDE_BASE : DOWN_BASE;
-  const legs = dir === 'side'
-    ? frame ? SIDE_LEGS_B : SIDE_LEGS_A
-    : frame ? DOWN_LEGS_B : DOWN_LEGS_A;
+  const legs = LEGS[dir][step];
 
   const sprite = canvas(12, 16);
   paint(sprite.getContext('2d'), [...base, ...legs], palette);
