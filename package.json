@@ -5,7 +5,8 @@
   "type": "module",
   "description": "Mini MMO RPG en pixel art, jouable dans le navigateur. Zéro dépendance : ni npm, ni build.",
   "scripts": {
-    "start": "node server/index.js"
+    "start": "node server/index.js",
+    "publier": "node tools/publier.mjs"
   },
   "engines": {
     "node": ">=18.11"

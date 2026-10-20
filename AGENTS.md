@@ -16,15 +16,32 @@ changement : la section concernée, la table de correspondance en fin de guide,
 et la ligne « Le jeu actuel correspond au commit … ». Retirer aussi de la
 section « Ce qui n'existe pas encore » ce qui vient d'être ajouté.
 
-## Avant de publier
+## Publication : chaque modification part directement
+
+Le jeu officiel suit `main`, et Render redéploie à chaque `git push`.
+**Toute modification validée est donc publiée dans la même foulée**, sans
+demander confirmation : c'est l'autorisation permanente du projet.
 
 1. `node --check` sur les fichiers JS modifiés.
-2. `node tests/houses.test.mjs` (doit sortir en code 0).
+2. `node tests/houses.test.mjs` (doit sortir en code 0) et les deux autres
+   tests (`dungeons`, `shop`).
 3. Tester le parcours réel dans le navigateur (`node server/index.js`, puis
-   <http://localhost:3000>) : connexion, déplacement, entrée dans une maison,
-   épreuve, inventaire, paramètres.
-4. `git add` des seuls fichiers concernés, commit, `git push origin main` —
-   Render redéploie automatiquement.
+   <http://localhost:3000>) quand le changement touche le client : connexion,
+   déplacement, entrée dans une maison, épreuve, inventaire, paramètres.
+4. Publier en une commande :
+
+   ```bash
+   node tools/publier.mjs "Message du commit"
+   ```
+
+   Le script vérifie la syntaxe de tous les modules, lance les trois tests,
+   refuse de publier si l'un échoue, `git add -A`, commit, mise à jour en
+   avance rapide depuis `origin/main`, puis `git push origin main`. Il ne fait
+   jamais de `reset` ni de `--force` : en cas d'échec, le jeu officiel reste
+   intact. Double-clic équivalent : `Publier sur GitHub.bat`.
+5. Vérifier le déploiement une à deux minutes plus tard sur
+   <https://pixel-village-pixel-village-onrender-com.onrender.com> : le
+   changement doit être servi, pas seulement poussé.
 
 ## Conventions
 

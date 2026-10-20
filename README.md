@@ -108,6 +108,8 @@ Pixel Village prêt : http://localhost:3000  [WebSocket intégré, zéro dépend
 | Tester les épreuves     | `node tests/houses.test.mjs` (épreuves et sceaux des maisons)     |
 | Tester les donjons      | `node tests/dungeons.test.mjs`                                     |
 | Tester l'échoppe et la carte | `node tests/shop.test.mjs`                                    |
+| Publier une modification | `node tools/publier.mjs "Message du commit"` (ou double-clic sur **`Publier sur GitHub.bat`**) |
+| Vérifier tout + publier | le script lance `node --check` et les trois tests avant d'envoyer |
 
 ### Contrôles
 
@@ -488,6 +490,12 @@ Le port `10000` est normal : Render fournit son propre port via `process.env.POR
 
 À chaque modification envoyée sur GitHub (nouvel upload, **Commit changes**, ou
 `git push`), Render redéploie tout seul. Rien d'autre à faire.
+
+Pour que ce soit **une seule commande**, `node tools/publier.mjs "message"`
+vérifie la syntaxe de tous les modules, lance les trois tests, refuse d'envoyer
+si l'un échoue, commit, se met à jour depuis GitHub puis pousse sur `main`.
+Le double-clic **`Publier sur GitHub.bat`** fait la même chose en demandant le
+message. Un échec laisse le jeu officiel intact.
 
 #### Option encore plus rapide : le Blueprint
 
