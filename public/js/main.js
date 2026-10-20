@@ -52,8 +52,7 @@ import {
   nextRoom,
   openChest,
   playerStats,
-  roomCount,
-  roomNumber,
+  roomLabel,
   sanitizeVault,
   updateRun
 } from './dungeons.js';
@@ -695,7 +694,7 @@ function dungeonCard(dungeon) {
   const info = document.createElement('p');
   info.className = 'portal-danger';
   info.textContent = `${dungeon.danger} · ${totals.rooms} salle${totals.rooms > 1 ? 's' : ''}${
-    totals.secret ? ' (+ 1 secrète)' : ''
+    totals.secrets ? ` (+ ${totals.secrets} secrète${totals.secrets > 1 ? 's' : ''})` : ''
   } · ${totals.monsters} monstre${totals.monsters > 1 ? 's' : ''} · ${totals.chests} coffre${
     totals.chests > 1 ? 's' : ''
   }`;
@@ -785,7 +784,7 @@ function updateDungeonPanel(force = false) {
   if (!run) return;
   const opened = run.chests.filter((chest) => chest.opened).length;
   const alive = run.monsters.filter((monster) => monster.alive).length;
-  const where = `salle ${roomNumber(run)}/${roomCount(run)}${run.inSecret ? ' secrète' : ''}`;
+  const where = roomLabel(run);
   const status = run.phase === 'won'
     ? `Donjon nettoyé (${where}) ! Sors par l’escalier (E) ou avec Échap.`
     : `${where} · ${opened}/${run.chests.length} coffre${run.chests.length > 1 ? 's' : ''} ouvert${
@@ -803,7 +802,7 @@ function refreshRunPanel(run = state.run) {
   els.challengeTitle.textContent = run.inSecret
     ? `Salle secrète — ${run.dungeon.name}`
     : `${run.dungeon.name} — niveau ${run.dungeon.level}`;
-  els.challengeGoal.textContent = `${spec.name} (${roomNumber(run)}/${roomCount(run)}) — ${spec.intro}`;
+  els.challengeGoal.textContent = `${spec.name} (${roomLabel(run)}) — ${spec.intro}`;
   dungeonStatus = '';
   updateDungeonPanel(true);
 }
@@ -938,12 +937,13 @@ function handleRunInteract() {
   }
 
   if (crackNear(run, me)) {
-    enterSecretRoom(run);
+    const secret = enterSecretRoom(run);
+    if (!secret) return;
     placeRunPlayer(run.room.spawn);
     refreshRunPanel();
     updatePvHud(true);
     playSound('rune');
-    pushChat(`La fissure cède : tu entres dans ${run.secret.spec.name} !`, 'system');
+    pushChat(`La fissure cède : tu entres dans ${secret.spec.name} !`, 'system');
     return;
   }
 

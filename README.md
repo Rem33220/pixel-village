@@ -339,13 +339,19 @@ l'intérieur » : il ne connaît ni les monstres, ni les PV, ni le butin, et rie
 de tout cela ne peut donc désynchroniser les autres joueurs.
 
 **Une expédition** (`createRun`) construit toutes les salles d'un coup : chaque
-entrée de `dungeon.rooms` donne une salle de 21 × 17 (`buildRoom`), plus une
-salle secrète de 15 × 11 tirée de `dungeon.secret`. L'escalier du bas mène à la
-salle suivante (`nextRoom`) ; celui de la dernière salle sort du donjon. Une
-**fissure** est placée dans une salle ordinaire tirée avec la graine
-(`secretRoomIndex`) : `crackNear` la détecte, `enterSecretRoom` et
-`leaveSecretRoom` font l'aller-retour sans perdre l'état de la salle d'origine.
-Le module ne touche pas au DOM : tout est testable avec `node` seul.
+entrée de `dungeon.rooms` donne une salle de 21 × 17 (`buildRoom`), et chaque
+entrée de `dungeon.secrets` une salle secrète de 15 × 11. L'escalier du bas
+mène à la salle suivante (`nextRoom`) ; celui de la dernière salle sort du
+donjon. Chaque salle secrète possède **sa propre fissure** : `createRun` choisit
+des salles ordinaires distinctes (jamais la dernière) et y place les murs
+déclarés par `dungeon.cracks`. `crackNear` détecte la fissure de la salle
+courante, `enterSecretRoom` et `leaveSecretRoom` font l'aller-retour sans
+perdre l'état de la salle d'origine. Le module ne touche pas au DOM : tout est
+testable avec `node` seul.
+
+**Le nombre de salles croît avec le niveau** : 2, 3, 4, 5, 6 puis 7, et les
+salles secrètes suivent (1, 2, 3, 4, 5, 6). Un test vérifie ces deux croissances
+et que le donjon de niveau N est plus long que le précédent.
 
 Quand toutes les salles ordinaires sont vidées, `updateRun` passe `run.phase` à
 `won` et renvoie `events.finished` : `main.js` appelle alors `conquerDungeon`,
@@ -369,7 +375,7 @@ Tout se règle en haut du fichier :
 
 | Réglage | Où | Effet |
 | ------- | -- | ----- |
-| `DUNGEONS` | `dungeons.js` | salles (`rooms`), salle secrète (`secret`), monstres, coffres, butin de chaque salle |
+| `DUNGEONS` | `dungeons.js` | salles (`rooms`), salles secrètes (`secrets`), fissures (`cracks`), monstres, coffres, butin |
 | `MONSTERS` | `dungeons.js` | PV, dégâts, vitesse et taille de chaque monstre |
 | `requires`, `dungeonUnlocked` | `dungeons.js` | chaîne de déblocage des expéditions avancées |
 | `LOOT` | `dungeons.js` | armes et armures : bonus, rareté, couleur d'icône |
@@ -378,19 +384,21 @@ Tout se règle en haut du fichier :
 | `SWING_TIME`, `swingAngle` | `dungeons.js` | durée et trajectoire du coup |
 | `WEAPON_ARTS`, `paintWeapon` | `dungeons.js`, `weapons.js` | silhouettes d'armes tenues en main |
 | `LAYOUTS`, `ROOM_W`, `ROOM_H` | `dungeons.js` | tailles, piliers et places des salles et de la salle secrète |
-| `SECRET_RANGE`, `CRACK_TILE`, `CRACK_APPROACH` | `dungeons.js` | position et portée de la fissure |
+| `SECRET_RANGE`, `CRACK_SPOTS` | `dungeons.js` | portée de la fissure et ses dix emplacements de mur (haut, bas, milieu, gauche, droite) |
 
 Pour ajouter une salle : une entrée dans `rooms` (nom, intro, monstres,
 nombre de coffres, butin), et c'est tout — la descente, le panneau et les
-tests la prennent automatiquement. Pour ajouter un donjon : une entrée dans
-`DUNGEONS` avec au moins deux salles et une `secret`, plus un `requires` si
-l'expédition doit rester fermée au départ. Un monstre inédit demande une
-entrée dans `MONSTERS` **et** une branche dans `drawMonster` (le dessin est
-fait au canvas, sans image). Les tests vérifient que
-chaque salle (secrète comprise) est atteignable à pied depuis son arrivée, que
-les coffres et les monstres sont sur du sol libre, que le butin vient bien de
-la salle, que la fissure est atteignable et qu'une même graine redonne la même
-expédition.
+tests la prennent automatiquement. Pour ajouter une salle secrète : une entrée
+dans `secrets` **et** une clé de `CRACK_SPOTS` dans `cracks` (une par secrète,
+sur des murs différents). Pour ajouter un donjon : une entrée dans `DUNGEONS`
+avec au moins deux salles et une `secrets`, plus un `requires` si l'expédition
+doit rester fermée au départ. Un monstre inédit demande une entrée dans
+`MONSTERS` **et** une branche dans `drawMonster` (le dessin est fait au canvas,
+sans image). Les tests vérifient que chaque salle (secrète comprise) est
+atteignable à pied depuis son arrivée, que les coffres et les monstres sont sur
+du sol libre, que le butin vient bien de la salle, que chaque fissure est
+atteignable et occupe une salle distincte, que les deux croissances (salles et
+secrètes) tiennent, et qu'une même graine redonne la même expédition.
 
 L'arme équipée est **visible dans la main** du personnage. Son identifiant vient
 de l'inventaire (`equippedWeapon`), la silhouette est peinte par

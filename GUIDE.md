@@ -8,9 +8,11 @@ d'installation ni de code : pour ça, voir [README.md](README.md).
 > jouables et doit être mis à jour à chaque nouveauté (voir la dernière section).
 > État décrit : celui du commit `20d1442` — portail, donjons et combat, butin
 > et équipement, arme tenue en main et animation de frappe, donjons à plusieurs
-> salles, salles secrètes, butin légendaire et mythique, maisons scellées par
-> leur donjon, expéditions avancées qui se débloquent dans l'ordre, échoppe du
-> colporteur avec sa bourse, et réinitialisation du personnage. Les
+> salles dont le nombre croît avec le niveau, plusieurs salles secrètes par
+> donjon sur des murs différents, butin légendaire et mythique, maisons
+> scellées par leur donjon, expéditions avancées qui se débloquent dans
+> l'ordre, échoppe du colporteur avec sa bourse, et réinitialisation du
+> personnage. Les
 > commits qui ne touchent que la documentation ne changent rien à ce guide.
 
 ---
@@ -233,26 +235,36 @@ statistiques montent immédiatement. Le bouton devient **Retirer**.
 | Épée courte | +4 ATQ | Commun | Crypte — 2e salle |
 | Hache de pierre | +6 ATQ | Rare | Galerie — salles 1 et 2 |
 | Lame des brumes | +9 ATQ | Épique | Galerie — 2e salle, ou salle secrète de la Crypte |
-| Épée du gardien | +13 ATQ | Épique | Antre — salles 2 et 3, ou salle secrète de la Galerie |
-| Trident des abysses | +17 ATQ | Épique | Abysses — salles 1 et 2, puis Forge et Trône |
+| Épée du gardien | +13 ATQ | Épique | Antre — salles 2 à 4, ou salle secrète de la Galerie |
+| Lance des ombres | +16 ATQ | Épique | Salle secrète de la Galerie |
+| Trident des abysses | +17 ATQ | Épique | Abysses — salles 1 à 5, puis Forge et Trône |
 | Lame d’ombre | +18 ATQ | Légendaire | Salle secrète de l’Antre |
-| Marteau des cendres | +20 ATQ | Épique | Forge — salles 1 à 3, ou Trône — salles 1 et 3 |
+| Marteau des cendres | +20 ATQ | Épique | Forge — salles 1 à 6, ou Trône |
 | Lame des abysses | +22 ATQ | Mythique | Salle secrète des Abysses |
-| Épée du néant | +23 ATQ | Épique | Trône — salles 1 à 3 |
+| Épée du néant | +23 ATQ | Épique | Trône — salles 1 à 7 |
+| Harpon des abysses | +25 ATQ | Mythique | Salle secrète des Abysses |
 | Fléau des cendres | +27 ATQ | Mythique | Salle secrète de la Forge |
+| Épée des cendres | +30 ATQ | Mythique | Salle secrète de la Forge |
 | Lame du néant | +34 ATQ | Mythique | Salle secrète du Trône |
+| Sceptre du néant | +36 ATQ | Mythique | Salle secrète du Trône |
 
 | Armure | Bonus | Rareté | Où |
 | ------ | ----- | ------ | -- |
 | Tunique de cuir | +1 DÉF | Commun | Crypte — salles 1 et 2 |
-| Cotte de mailles | +3 DÉF | Rare | Galerie — salles 1 et 2 |
+| Cotte de mailles | +3 DÉF | Rare | Galerie — salles 1 à 3 |
+| Gantelets de pierre | +4 DÉF | Rare | Antre — salles 1 à 4 |
 | Plastron runique | +5 DÉF | Rare | Galerie — 1re salle |
-| Gantelets de pierre | +4 DÉF | Rare | Antre — salles 1 et 2 |
-| Armure du gardien | +8 DÉF | Épique | Antre — salles 2 et 3 |
+| Armure du gardien | +8 DÉF | Épique | Antre — salles 2 à 4 |
+| Broche du gardien | +9 DÉF | Épique | Salle secrète de l’Antre |
 | Cape d’ombre | +10 DÉF | Légendaire | Salle secrète de l’Antre |
+| Casque de cendres | +11 DÉF | Mythique | Salle secrète de la Forge |
 | Cuirasse abyssale | +12 DÉF | Mythique | Salle secrète des Abysses |
+| Gantelets de cendres | +12 DÉF | Mythique | Salle secrète de la Forge |
+| Épaulières abyssales | +13 DÉF | Mythique | Salle secrète des Abysses |
 | Bouclier de cendres | +14 DÉF | Mythique | Salle secrète de la Forge |
 | Couronne du néant | +17 DÉF | Mythique | Salle secrète du Trône |
+| Voile du néant | +18 DÉF | Mythique | Salle secrète du Trône |
+| Masque du néant | +20 DÉF | Mythique | Salle secrète du Trône |
 
 La **rareté** est écrite dans la fiche de chaque objet : *Commun*, *Rare*,
 *Épique*, *Légendaire* (en violet) ou *Mythique* (en rose). Les objets
@@ -448,9 +460,14 @@ en appuyant sur `Échap` (qui quitte le donjon à tout moment).
 
 ### Une descente de salle en salle
 
-Chaque donjon enchaîne **plusieurs salles** (2 pour la Crypte et la Galerie, 3
-pour l'Antre et les trois expéditions avancées), plus une salle secrète
-facultative. Le panneau de droite indique toujours où tu en es : `salle 2/3`.
+Chaque donjon enchaîne **plusieurs salles**, et le nombre grandit avec le
+niveau : 2 pour la Crypte, 3 pour la Galerie, 4 pour l'Antre, 5 pour les
+Abysses, 6 pour la Forge et 7 pour le Trône. À chaque salle s'ajoutent des
+**salles secrètes** (1, 2, 3, 4, 5 puis 6), cachées derrière les fissures.
+
+Le panneau de droite indique toujours où tu en es : `salle 2/4` pour une salle
+ordinaire, `salle secrète 3/6` pour une salle secrète (elles ont leur propre
+numérotation, puisqu'on y entre par les fissures et dans n'importe quel ordre).
 
 - L'**escalier** au bas de chaque salle est marqué d'une flèche. **Flèche vers
   le bas** : `E` descend dans la salle suivante (le panneau affiche alors
@@ -466,32 +483,37 @@ facultative. Le panneau de droite indique toujours où tu en es : `salle 2/3`.
 
 ### Les salles secrètes
 
-Une **fissure** est cachée dans l'une des salles ordinaires, à chaque
-expédition (sa salle change d'une descente à l'autre). Elle se trouve dans le
-**mur de droite**, à mi-hauteur, et pulse d'une lueur violette.
+Chaque salle secrète est cachée derrière sa **propre fissure**, et chaque
+donjon plante les siennes **à des endroits différents** : la Crypte n'a qu'une
+fissure dans le mur de droite, l'Antre en a trois (mur de droite en haut, mur
+de gauche en bas, mur du bas à gauche), le Trône en a six réparties sur tous
+les murs. Les fissures d'un même donjon se trouvent toujours dans **des salles
+ordinaires distinctes**, et l'ordre change à chaque expédition.
 
 1. Approche-toi du mur : l'invite **« Fissure — entrer dans la salle
-   secrète »** apparaît.
+   secrète »** apparaît. La fissure pulse d'une lueur violette, sur le mur
+   même (haut, bas, gauche ou droite selon les donjons).
 2. Appuie sur `E` : tu passes derrière le mur. La salle est plus petite, les
-   monstres y sont plus coriaces, et ses coffres contiennent un butin qu'on ne
-trouve **nulle part ailleurs** (épique, légendaire ou mythique).
+   monstres y sont au moins aussi coriaces que dehors, et ses coffres
+   contiennent un butin qu'on ne trouve **nulle part ailleurs** (épique,
+   légendaire ou mythique).
 3. L'escalier de la salle secrète te ramène dans la salle d'où tu viens, juste
    devant la fissure. Tu peux y retourner autant de fois que tu veux : les
    coffres déjà ouverts le restent.
 
-Elle est **facultative** : le donjon est considéré comme nettoyé sans elle.
+Toutes sont **facultatives** : le donjon est considéré comme nettoyé sans elles.
 
 ### Les trois donjons
 
 | Donjon | Niveau | Salles | Monstres | Coffres | Butin possible |
 | ------ | ------ | ------ | -------- | ------- | -------------- |
-| Crypte des brumes | 1 | 2 + secrète | 5 baveux, 1 araignée en tout | 5 + 1 | dague, tunique de cuir, épée courte ; lame des brumes dans la salle secrète |
-| Galerie des échos | 2 | 2 + secrète | 3 squelettes, 2 baveux, 1 spectre en tout | 6 + 1 | hache de pierre, cotte de mailles, plastron runique, lame des brumes ; épée du gardien dans la salle secrète |
-| Antre du gardien | 3 | 3 + secrète | 4 golems, 1 squelette, 2 araignées, 1 spectre en tout | 8 + 2 | gantelets, plastron, cotte de mailles, armure et épée du gardien ; lame et cape d’ombre dans la salle secrète |
+| Crypte des brumes | 1 | 2 + 1 secrète | 4 baveux, 1 araignée | 5 + 1 | dague, tunique de cuir, épée courte ; lame des brumes dans la salle secrète |
+| Galerie des échos | 2 | 3 + 2 secrètes | 4 squelettes, 3 baveux, 2 spectres | 9 + 2 | hache, cotte de mailles, plastron, lame des brumes ; épée du gardien et lance des ombres dans les salles secrètes |
+| Antre du gardien | 3 | 4 + 3 secrètes | 5 golems, 3 araignées, 2 squelettes, 2 spectres | 11 + 5 | gantelets, plastron, cotte de mailles, armure et épée du gardien ; lame et cape d’ombre, broche du gardien dans les salles secrètes |
 
-Chaque donjon est **rejouable** : la disposition, le contenu des coffres et la
-place de la fissure changent à chaque entrée, ce qui permet de récupérer un
-objet manqué.
+Chaque donjon est **rejouable** : la disposition, le contenu des coffres et
+l'emplacement des fissures changent à chaque entrée, ce qui permet de récupérer
+un objet manqué.
 
 ### Les expéditions avancées
 
@@ -503,9 +525,9 @@ expédition verrouillée, et sa carte grise indique précisément ce qui manque
 
 | Expédition | Niveau | Salles | Débloquée par | Monstres | Butin possible |
 | ---------- | ------ | ------ | ------------- | -------- | -------------- |
-| Abysses noyées | 4 | 3 + secrète | Crypte, Galerie et Antre | noyés, spectres, ombres | trident des abysses, lame des brumes, plastron, épée du gardien, armure du gardien ; lame et cuirasse abyssales dans la salle secrète |
-| Forge des cendres | 5 | 3 + secrète | Abysses noyées | gargouilles, golems, ombres | marteau des cendres, trident des abysses, plastron, armure du gardien ; fléau et bouclier de cendres dans la salle secrète |
-| Trône du néant | 6 | 3 + secrète | Forge des cendres | gargouilles, spectres, ombres, seigneur du néant | épée du néant, marteau des cendres, trident des abysses, armure du gardien ; lame et couronne du néant dans la salle secrète |
+| Abysses noyées | 4 | 5 + 4 secrètes | Crypte, Galerie et Antre | 9 noyés, 4 spectres, 2 ombres | trident des abysses, lame des brumes, plastron, armure et épée du gardien ; lame, cuirasse, harpon et épaulières abyssaux dans les salles secrètes |
+| Forge des cendres | 5 | 6 + 5 secrètes | Abysses noyées | 8 golems, 7 gargouilles, 3 ombres | marteau des cendres, trident des abysses, plastron, armure du gardien ; fléau, bouclier, casque, gantelets et épée des cendres dans les salles secrètes |
+| Trône du néant | 6 | 7 + 6 secrètes | Forge des cendres | 6 gargouilles, 6 spectres, 6 ombres, 1 seigneur | épée du néant, marteau des cendres, trident des abysses, armure du gardien ; lame, couronne, voile, masque et sceptre du néant dans les salles secrètes |
 
 À chaque victoire, le chat annonce l'expédition qui vient de s'ouvrir :
 « Nouveau donjon au portail : … ». La progression est enregistrée avec les

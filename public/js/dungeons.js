@@ -242,6 +242,104 @@ export const LOOT = {
     rarity: 'mythique',
     color: '#d6a8ff',
     detail: 'Personne ne sait si elle protège ou si elle dévore celui qui la porte.'
+  },
+  // Butin des salles secrètes ajoutées quand le donjon grandit (niveaux 3 à 6).
+  lance_ombres: {
+    name: 'Lance des ombres',
+    kind: 'arme',
+    art: 'epee',
+    attack: 16,
+    defense: 0,
+    rarity: 'epique',
+    color: '#b48cff',
+    detail: 'Sa pointe ne se trouve que là où la lumière ne va pas.'
+  },
+  casque_cendres: {
+    name: 'Casque de cendres',
+    kind: 'armure',
+    attack: 0,
+    defense: 11,
+    rarity: 'mythique',
+    color: '#e08a4a',
+    detail: 'Il ne fond pas, même au plus près de la fournaise.'
+  },
+  epee_cendres: {
+    name: 'Épée des cendres',
+    kind: 'arme',
+    art: 'epee',
+    glow: true,
+    attack: 30,
+    defense: 0,
+    rarity: 'mythique',
+    color: '#ffb27a',
+    detail: 'On dit qu’elle a été trempée dans le dernier souffle de la forge.'
+  },
+  harpon_abysses: {
+    name: 'Harpon des abysses',
+    kind: 'arme',
+    art: 'hache',
+    glow: true,
+    attack: 25,
+    defense: 0,
+    rarity: 'mythique',
+    color: '#3fa8c9',
+    detail: 'Trois crochets, une seule envie : ne jamais remonter à vide.'
+  },
+  voile_neant: {
+    name: 'Voile du néant',
+    kind: 'armure',
+    attack: 0,
+    defense: 18,
+    rarity: 'mythique',
+    color: '#8f6fd6',
+    detail: 'Il flotte derrière toi, et les coups semblent s’y perdre.'
+  },
+  sceptre_neant: {
+    name: 'Sceptre du néant',
+    kind: 'arme',
+    art: 'hache',
+    glow: true,
+    attack: 36,
+    defense: 0,
+    rarity: 'mythique',
+    color: '#ff5f7a',
+    detail: 'Le trône ne protège pas : il ordonne.'
+  },
+  broche_gardien: {
+    name: 'Broche du gardien',
+    kind: 'armure',
+    attack: 0,
+    defense: 9,
+    rarity: 'epique',
+    color: '#f6d34d',
+    detail: 'La pierre qu’elle tient s’illumine quand le danger approche.'
+  },
+  epaulieres_abysses: {
+    name: 'Épaulières abyssales',
+    kind: 'armure',
+    attack: 0,
+    defense: 13,
+    rarity: 'mythique',
+    color: '#4f9ec0',
+    detail: 'Elles portent la pression de l’eau noire sans jamais céder.'
+  },
+  gantelets_cendres: {
+    name: 'Gantelets de cendres',
+    kind: 'armure',
+    attack: 0,
+    defense: 12,
+    rarity: 'mythique',
+    color: '#ff9a5c',
+    detail: 'Ils tiennent chaud, même dans la neige du dehors.'
+  },
+  masque_neant: {
+    name: 'Masque du néant',
+    kind: 'armure',
+    attack: 0,
+    defense: 20,
+    rarity: 'mythique',
+    color: '#d6a8ff',
+    detail: 'Il ne cache pas ton visage : il retire celui que tu avais.'
   }
 };
 
@@ -398,6 +496,9 @@ export const DUNGEONS = [
     danger: 'Calme',
     accent: '#7ee08a',
     intro: 'Deux salles basses sous le village, et des murs qui craquent…',
+    // Où se trouvent les fissures : une par salle secrète, sur des murs
+    // différents d'un donjon à l'autre.
+    cracks: ['est_milieu'],
     rooms: [
       {
         name: 'Crypte des brumes',
@@ -414,13 +515,15 @@ export const DUNGEONS = [
         loot: ['epee_courte', 'tunique', 'dague']
       }
     ],
-    secret: {
-      name: 'Crypte oubliée',
-      intro: 'Derrière la fissure, une salle que personne n’a pillée.',
-      monsters: ['araignee', 'araignee'],
-      chests: 1,
-      loot: ['lame_brumes']
-    },
+    secrets: [
+      {
+        name: 'Crypte oubliée',
+        intro: 'Derrière la fissure, une salle que personne n’a pillée.',
+        monsters: ['araignee', 'araignee'],
+        chests: 1,
+        loot: ['lame_brumes']
+      }
+    ],
     loot: ['dague', 'tunique', 'epee_courte', 'lame_brumes']
   },
   {
@@ -430,6 +533,7 @@ export const DUNGEONS = [
     danger: 'Risqué',
     accent: '#8ff0f7',
     intro: 'Les squelettes ont entendu tes pas. Un puits descend dans le noir.',
+    cracks: ['ouest_milieu', 'nord_ouest'],
     rooms: [
       {
         name: 'Galerie des échos',
@@ -444,16 +548,32 @@ export const DUNGEONS = [
         monsters: ['squelette', 'spectre', 'baveux'],
         chests: 3,
         loot: ['lame_brumes', 'hache', 'mailles']
+      },
+      {
+        name: 'Passage des échos creux',
+        intro: 'Des voix qui ne sont pas les tiennes te suivent entre les piliers.',
+        monsters: ['spectre', 'squelette', 'baveux'],
+        chests: 3,
+        loot: ['plastron', 'hache', 'mailles']
       }
     ],
-    secret: {
-      name: 'Chambre des échos',
-      intro: 'Les murs y répètent chaque pas. Deux spectres gardent un coffre.',
-      monsters: ['spectre', 'spectre'],
-      chests: 1,
-      loot: ['epee_gardien']
-    },
-    loot: ['hache', 'mailles', 'plastron', 'lame_brumes', 'epee_gardien']
+    secrets: [
+      {
+        name: 'Chambre des échos',
+        intro: 'Les murs y répètent chaque pas. Deux spectres gardent un coffre.',
+        monsters: ['spectre', 'spectre'],
+        chests: 1,
+        loot: ['epee_gardien']
+      },
+      {
+        name: 'Réduit du collectionneur',
+        intro: 'Derrière le mur ouest : des trophées et une lance qui n’attend que toi.',
+        monsters: ['spectre', 'squelette'],
+        chests: 1,
+        loot: ['lance_ombres']
+      }
+    ],
+    loot: ['hache', 'mailles', 'plastron', 'lame_brumes', 'epee_gardien', 'lance_ombres']
   },
   {
     id: 'antre',
@@ -462,6 +582,7 @@ export const DUNGEONS = [
     danger: 'Mortel',
     accent: '#f6d34d',
     intro: 'Trois salles de plus en plus profondes. Le gardien n’est pas seul.',
+    cracks: ['est_haut', 'ouest_bas', 'sud_ouest'],
     rooms: [
       {
         name: 'Antre du gardien',
@@ -478,6 +599,13 @@ export const DUNGEONS = [
         loot: ['armure_gardien', 'epee_gardien', 'gantelets']
       },
       {
+        name: 'Salle des cristaux fêlés',
+        intro: 'La lumière s’y brise en éclats. Les cristaux cachent des coffres.',
+        monsters: ['araignee', 'squelette', 'spectre'],
+        chests: 3,
+        loot: ['mailles', 'plastron', 'gantelets']
+      },
+      {
         name: 'Cœur de l’antre',
         intro: 'Le fond de l’antre. Deux golems et une araignée veillent sur les derniers coffres.',
         monsters: ['golem', 'araignee', 'golem'],
@@ -485,14 +613,31 @@ export const DUNGEONS = [
         loot: ['epee_gardien', 'armure_gardien']
       }
     ],
-    secret: {
-      name: 'Antre oublié',
-      intro: 'L’ombre du gardien t’attend, seule dans le noir. Deux coffres légendaires.',
-      monsters: ['ombre'],
-      chests: 2,
-      loot: ['lame_ombre', 'cape_ombre']
-    },
-    loot: ['gantelets', 'plastron', 'mailles', 'armure_gardien', 'epee_gardien', 'lame_ombre', 'cape_ombre']
+    secrets: [
+      {
+        name: 'Antre oublié',
+        intro: 'L’ombre du gardien t’attend, seule dans le noir. Deux coffres légendaires.',
+        monsters: ['ombre'],
+        chests: 2,
+        loot: ['lame_ombre', 'cape_ombre']
+      },
+      {
+        name: 'Cachette du gardien',
+        intro: 'Un muret de pierre dissimule un troisième coffre, scellé depuis des années.',
+        monsters: ['ombre', 'araignee'],
+        chests: 1,
+        loot: ['cape_ombre']
+      },
+      {
+        name: 'Sanctuaire du gardien',
+        intro: 'Une broche d’or repose sur l’autel. L’ombre qui la garde ne dort jamais.',
+        monsters: ['ombre', 'golem'],
+        chests: 2,
+        loot: ['broche_gardien', 'cape_ombre']
+      }
+    ],
+    loot: ['gantelets', 'plastron', 'mailles', 'armure_gardien', 'epee_gardien',
+      'lame_ombre', 'cape_ombre', 'broche_gardien']
   },
   // --- Expéditions avancées ------------------------------------------------
   // `requires` liste les donjons à conquérir avant d'ouvrir celui-ci. Les trois
@@ -505,6 +650,7 @@ export const DUNGEONS = [
     accent: '#5fd0ff',
     requires: ['crypte', 'galerie', 'antre'],
     intro: 'Sous l’antre, l’eau noire monte. Il faut les trois sceaux pour y descendre.',
+    cracks: ['nord_ouest', 'sud_est', 'est_bas', 'ouest_haut'],
     rooms: [
       {
         name: 'Abysses noyées',
@@ -526,17 +672,54 @@ export const DUNGEONS = [
         monsters: ['noye', 'noye', 'spectre'],
         chests: 2,
         loot: ['armure_gardien', 'lame_brumes']
+      },
+      {
+        name: 'Salle des marées',
+        intro: 'L’eau monte et redescend au rythme d’une respiration.',
+        monsters: ['noye', 'spectre', 'noye'],
+        chests: 3,
+        loot: ['epee_gardien', 'trident_abysses', 'plastron']
+      },
+      {
+        name: 'Fosse des lampes',
+        intro: 'Des lampes flottent sur l’eau noire. Certaines bougent contre le courant.',
+        monsters: ['noye', 'ombre', 'spectre'],
+        chests: 3,
+        loot: ['armure_gardien', 'plastron', 'trident_abysses']
       }
     ],
-    secret: {
-      name: 'Cœur noyé',
-      intro: 'Sous la coque, l’eau est tiède et une ombre garde le trésor.',
-      monsters: ['ombre', 'noye'],
-      chests: 2,
-      loot: ['lame_abysses', 'cuirasse_abysses']
-    },
+    secrets: [
+      {
+        name: 'Cœur noyé',
+        intro: 'Sous la coque, l’eau est tiède et une ombre garde le trésor.',
+        monsters: ['ombre', 'noye'],
+        chests: 2,
+        loot: ['lame_abysses', 'cuirasse_abysses']
+      },
+      {
+        name: 'Alcôve des perles',
+        intro: 'Une faille du mur nord, un harpon planté dans le corail… et sa gardienne.',
+        monsters: ['ombre', 'noye'],
+        chests: 1,
+        loot: ['harpon_abysses']
+      },
+      {
+        name: 'Cachot du noyé',
+        intro: 'Derrière le mur sud : une cuirasse accrochée à un crochet de fer.',
+        monsters: ['ombre', 'noye'],
+        chests: 1,
+        loot: ['cuirasse_abysses']
+      },
+      {
+        name: 'Passage des lampes sourdes',
+        intro: 'Le mur ouest s’ouvre sur une galerie d’épaulières, noyées jusqu’au cou.',
+        monsters: ['ombre', 'noye'],
+        chests: 2,
+        loot: ['epaulieres_abysses', 'cuirasse_abysses']
+      }
+    ],
     loot: ['trident_abysses', 'armure_gardien', 'lame_brumes', 'plastron', 'epee_gardien',
-      'lame_abysses', 'cuirasse_abysses']
+      'lame_abysses', 'cuirasse_abysses', 'harpon_abysses', 'epaulieres_abysses']
   },
   {
     id: 'forge',
@@ -546,6 +729,7 @@ export const DUNGEONS = [
     accent: '#ff9a5c',
     requires: ['abysses'],
     intro: 'Les abysses n’étaient que l’entrée : la fournaise tourne encore, seule.',
+    cracks: ['ouest_haut', 'nord_est', 'sud_ouest', 'est_bas', 'nord_ouest'],
     rooms: [
       {
         name: 'Forge des cendres',
@@ -562,6 +746,27 @@ export const DUNGEONS = [
         loot: ['marteau_cendres', 'trident_abysses', 'plastron']
       },
       {
+        name: 'Atelier des lames',
+        intro: 'Des lames à moitié forgées pendent au plafond et claquent dans la chaleur.',
+        monsters: ['gargouille', 'gargouille', 'golem'],
+        chests: 3,
+        loot: ['marteau_cendres', 'armure_gardien', 'trident_abysses']
+      },
+      {
+        name: 'Bassin de trempe',
+        intro: 'L’eau y bout toute seule. Deux golems gardent les lingots.',
+        monsters: ['golem', 'ombre', 'golem'],
+        chests: 3,
+        loot: ['trident_abysses', 'plastron', 'marteau_cendres']
+      },
+      {
+        name: 'Passage de la braise',
+        intro: 'Le sol est tiède. Marche vite, ou brûle.',
+        monsters: ['gargouille', 'golem', 'ombre'],
+        chests: 3,
+        loot: ['marteau_cendres', 'trident_abysses', 'armure_gardien']
+      },
+      {
         name: 'Grande fournaise',
         intro: 'La chaleur plie l’air. Deux golems et une gargouille gardent deux coffres.',
         monsters: ['golem', 'gargouille', 'golem'],
@@ -569,15 +774,45 @@ export const DUNGEONS = [
         loot: ['marteau_cendres', 'trident_abysses']
       }
     ],
-    secret: {
-      name: 'Enclume des cendres',
-      intro: 'L’enclume d’origine : une ombre et une gargouille, deux coffres mythiques.',
-      monsters: ['ombre', 'gargouille'],
-      chests: 2,
-      loot: ['fleau_cendres', 'bouclier_cendres']
-    },
+    secrets: [
+      {
+        name: 'Enclume des cendres',
+        intro: 'L’enclume d’origine : une ombre et une gargouille, deux coffres mythiques.',
+        monsters: ['ombre', 'gargouille'],
+        chests: 2,
+        loot: ['fleau_cendres', 'bouclier_cendres']
+      },
+      {
+        name: 'Réserve de charbon',
+        intro: 'Une réserve close par un mur clair. Un casque repose sur les sacs.',
+        monsters: ['gargouille', 'ombre'],
+        chests: 1,
+        loot: ['casque_cendres']
+      },
+      {
+        name: 'Salle des éperons',
+        intro: 'Derrière le mur sud : des armures de travail, et une épée pour les vaincre.',
+        monsters: ['ombre', 'gargouille'],
+        chests: 1,
+        loot: ['epee_cendres']
+      },
+      {
+        name: 'Réduit du maître forgeur',
+        intro: 'Ses gantelets sont encore sur l’établi. Quelqu’un les garde.',
+        monsters: ['ombre', 'golem'],
+        chests: 2,
+        loot: ['gantelets_cendres', 'bouclier_cendres']
+      },
+      {
+        name: 'Fosse à scories',
+        intro: 'Le mur nord s’effondre sur une fosse pleine de ferraille brûlante.',
+        monsters: ['ombre', 'gargouille'],
+        chests: 2,
+        loot: ['epee_cendres', 'casque_cendres']
+      }
+    ],
     loot: ['marteau_cendres', 'armure_gardien', 'trident_abysses', 'plastron',
-      'fleau_cendres', 'bouclier_cendres']
+      'fleau_cendres', 'bouclier_cendres', 'casque_cendres', 'epee_cendres', 'gantelets_cendres']
   },
   {
     id: 'trone',
@@ -587,6 +822,7 @@ export const DUNGEONS = [
     accent: '#ff5f7a',
     requires: ['forge'],
     intro: 'Au-delà de la forge, un trône attend celui qui a tout vaincu.',
+    cracks: ['sud_ouest', 'est_milieu', 'ouest_bas', 'nord_ouest', 'sud_est', 'est_haut'],
     rooms: [
       {
         name: 'Marches du trône',
@@ -603,6 +839,34 @@ export const DUNGEONS = [
         loot: ['epee_neant', 'trident_abysses', 'plastron']
       },
       {
+        name: 'Galerie des portraits',
+        intro: 'Des visages peints te suivent du regard. Leurs cadres cachent des coffres.',
+        monsters: ['spectre', 'ombre', 'gargouille'],
+        chests: 3,
+        loot: ['epee_neant', 'marteau_cendres', 'trident_abysses']
+      },
+      {
+        name: 'Chambre des lames',
+        intro: 'Des lames plantées dans le sol, alignées comme une garde d’honneur.',
+        monsters: ['gargouille', 'gargouille', 'ombre'],
+        chests: 3,
+        loot: ['epee_neant', 'trident_abysses', 'armure_gardien']
+      },
+      {
+        name: 'Escalier du vide',
+        intro: 'On y monte sans voir le haut. Les spectres flottent à contre sens.',
+        monsters: ['spectre', 'spectre', 'ombre'],
+        chests: 3,
+        loot: ['epee_neant', 'marteau_cendres', 'plastron']
+      },
+      {
+        name: 'Salle du miroir brisé',
+        intro: 'Le miroir te rend ton reflet… et celui de deux ombres.',
+        monsters: ['ombre', 'gargouille', 'spectre'],
+        chests: 3,
+        loot: ['epee_neant', 'trident_abysses', 'marteau_cendres']
+      },
+      {
         name: 'Trône du néant',
         intro: 'Le seigneur du néant t’attend, seul, devant les derniers coffres.',
         monsters: ['seigneur'],
@@ -610,15 +874,52 @@ export const DUNGEONS = [
         loot: ['epee_neant', 'marteau_cendres']
       }
     ],
-    secret: {
-      name: 'Antichambre du néant',
-      intro: 'Derrière le trône : une ombre veille sur le seigneur endormi.',
-      monsters: ['ombre', 'seigneur'],
-      chests: 2,
-      loot: ['lame_neant', 'couronne_neant']
-    },
+    secrets: [
+      {
+        name: 'Antichambre du néant',
+        intro: 'Derrière le trône : une ombre veille sur le seigneur endormi.',
+        monsters: ['ombre', 'seigneur'],
+        chests: 2,
+        loot: ['lame_neant', 'couronne_neant']
+      },
+      {
+        name: 'Garderobe du souverain',
+        intro: 'Un voile noir pend au mur, et personne ne le porte… encore.',
+        monsters: ['seigneur', 'ombre'],
+        chests: 1,
+        loot: ['voile_neant']
+      },
+      {
+        name: 'Cachot des régents',
+        intro: 'Trois régents ont péri ici. Le sceptre est resté, lui.',
+        monsters: ['seigneur', 'ombre'],
+        chests: 1,
+        loot: ['sceptre_neant']
+      },
+      {
+        name: 'Dernier réduit',
+        intro: 'La dernière salle du monde, et son dernier trésor.',
+        monsters: ['ombre', 'seigneur'],
+        chests: 1,
+        loot: ['couronne_neant']
+      },
+      {
+        name: 'Salle du masque',
+        intro: 'Le mur est cache un masque de pourpre. Il te regarde déjà.',
+        monsters: ['seigneur', 'ombre'],
+        chests: 2,
+        loot: ['masque_neant', 'voile_neant']
+      },
+      {
+        name: 'Trésor du néant',
+        intro: 'Ce qu’il reste du royaume, derrière un dernier mur qui tremble.',
+        monsters: ['seigneur', 'seigneur'],
+        chests: 2,
+        loot: ['sceptre_neant', 'masque_neant']
+      }
+    ],
     loot: ['epee_neant', 'marteau_cendres', 'armure_gardien', 'trident_abysses', 'plastron',
-      'lame_neant', 'couronne_neant']
+      'lame_neant', 'couronne_neant', 'voile_neant', 'sceptre_neant', 'masque_neant']
   }
 ];
 
@@ -653,17 +954,19 @@ export function dungeonOfItem(id) {
   return DUNGEONS.find((dungeon) => dungeon.loot.includes(id)) ?? null;
 }
 
-// Compte les salles, monstres et coffres d'un donjon (salle secrète comprise) :
-// le panneau du portail affiche ces totaux.
+// Compte les salles, monstres et coffres d'un donjon (salles secrètes
+// comprises) : le panneau du portail affiche ces totaux.
 export function dungeonTotals(dungeon) {
   const rooms = dungeon?.rooms ?? [];
-  const secret = dungeon?.secret;
+  const secrets = dungeon?.secrets ?? [];
   return {
     rooms: rooms.length,
+    secrets: secrets.length,
     monsters: rooms.reduce((sum, room) => sum + room.monsters.length, 0)
-      + (secret?.monsters.length ?? 0),
-    chests: rooms.reduce((sum, room) => sum + room.chests, 0) + (secret?.chests ?? 0),
-    secret: Boolean(secret)
+      + secrets.reduce((sum, room) => sum + room.monsters.length, 0),
+    chests: rooms.reduce((sum, room) => sum + room.chests, 0)
+      + secrets.reduce((sum, room) => sum + room.chests, 0),
+    secret: secrets.length > 0
   };
 }
 
@@ -730,11 +1033,24 @@ export const ROOM_H = LAYOUTS.room.h;
 export const ROOM_SPAWN = { ...LAYOUTS.room.spawn };
 export const ROOM_EXIT = { x: LAYOUTS.room.exitX + 0.5, y: ROOM_H - 1 + 0.35 };
 
-// Fissure des salles ordinaires : dans le mur est, à mi-hauteur. On s'en
-// approche depuis l'intérieur de la salle (x = 19,4).
+// Fissures des salles ordinaires : chaque donjon choisit ses propres
+// emplacements. `tile` est la tuile de mur fissurée (dessinée et pulsante),
+// `approach` le point d'où l'on peut l'atteindre depuis l'intérieur.
+// Les noms servent de clé dans `dungeon.cracks`.
 export const SECRET_RANGE = 1.4;
-export const CRACK_TILE = { x: ROOM_W - 1, y: 8 };
-export const CRACK_APPROACH = { x: ROOM_W - 1.6, y: 8.5 };
+export const CRACK_SPOTS = {
+  est_milieu: { tile: { x: ROOM_W - 1, y: 8 }, approach: { x: ROOM_W - 1.6, y: 8.5 } },
+  est_haut: { tile: { x: ROOM_W - 1, y: 4 }, approach: { x: ROOM_W - 1.6, y: 4.5 } },
+  est_bas: { tile: { x: ROOM_W - 1, y: 12 }, approach: { x: ROOM_W - 1.6, y: 12.5 } },
+  ouest_milieu: { tile: { x: 0, y: 8 }, approach: { x: 1.6, y: 8.5 } },
+  ouest_haut: { tile: { x: 0, y: 4 }, approach: { x: 1.6, y: 4.5 } },
+  ouest_bas: { tile: { x: 0, y: 12 }, approach: { x: 1.6, y: 12.5 } },
+  nord_ouest: { tile: { x: 5, y: 0 }, approach: { x: 5.5, y: 1.6 } },
+  nord_est: { tile: { x: 14, y: 0 }, approach: { x: 14.5, y: 1.6 } },
+  sud_ouest: { tile: { x: 5, y: ROOM_H - 1 }, approach: { x: 5.5, y: ROOM_H - 2.5 } },
+  sud_est: { tile: { x: 14, y: ROOM_H - 1 }, approach: { x: 14.5, y: ROOM_H - 2.5 } }
+};
+export const CRACK_SPOT_KEYS = Object.keys(CRACK_SPOTS);
 
 function mulberry32(seed) {
   let a = seed >>> 0;
@@ -764,8 +1080,9 @@ function canStand(world, x, y, radius = PLAYER_RADIUS) {
 }
 
 // Salle commune : dalles de pierre, plaques de mousse, piliers, escalier au
-// milieu du mur du bas. `layoutName` vaut 'room' ou 'secret'.
-export function buildRoom(dungeon, seed = 1, layoutName = 'room') {
+// milieu du mur du bas. `layoutName` vaut 'room' ou 'secret'. `crackSpot` est
+// la clé de la fissure à placer dans ce mur (salles ordinaires seulement).
+export function buildRoom(dungeon, seed = 1, layoutName = 'room', crackSpot = null) {
   const layout = LAYOUTS[layoutName] ?? LAYOUTS.room;
   const w = layout.w;
   const h = layout.h;
@@ -786,6 +1103,7 @@ export function buildRoom(dungeon, seed = 1, layoutName = 'room') {
   // Escalier : vers la salle suivante, la sortie ou la salle d'origine.
   tiles[(h - 1) * w + layout.exitX] = T.DOOR_STONE;
 
+  const spot = layoutName === 'room' && crackSpot ? CRACK_SPOTS[crackSpot] : null;
   const room = {
     w,
     h,
@@ -794,8 +1112,9 @@ export function buildRoom(dungeon, seed = 1, layoutName = 'room') {
     spawn: { ...layout.spawn },
     exit: { x: layout.exitX + 0.5, y: h - 1 + 0.35 },
     // Point d'où l'on peut atteindre la fissure (salles ordinaires seulement).
-    crack: layoutName === 'room' ? { ...CRACK_APPROACH } : null,
-    crackTile: layoutName === 'room' ? { ...CRACK_TILE } : null,
+    crack: spot ? { ...spot.approach } : null,
+    crackTile: spot ? { ...spot.tile } : null,
+    crackSpot: spot ? crackSpot : null,
     hasCrack: false
   };
 
@@ -822,11 +1141,11 @@ function shuffled(list, random) {
 // Prépare une salle : tuiles, monstres, coffres et leur butin. Tout est tiré
 // une fois pour toutes, donc un même `seed` donne exactement la même
 // expédition (utile pour les tests).
-function createRoomEntry(dungeon, spec, seed, { hidden = false } = {}) {
+function createRoomEntry(dungeon, spec, seed, { hidden = false, crackSpot = null } = {}) {
   const layoutName = hidden ? 'secret' : 'room';
   const layout = LAYOUTS[layoutName];
   const random = mulberry32(seed ^ 0x9e3779b9);
-  const room = buildRoom(dungeon, seed, layoutName);
+  const room = buildRoom(dungeon, seed, layoutName, crackSpot);
 
   const chestSpots = shuffled(layout.chestSpots, random).slice(0, spec.chests);
   const lootPool = shuffled(spec.loot, random);
@@ -878,10 +1197,10 @@ function activateEntry(run, entry) {
   run.chests = entry.chests;
   run.cleared = entry.cleared;
   run.grace = ENTRY_GRACE;
-}
-
-// Prépare une expédition complète : toutes les salles du donjon, la salle
-// secrète, et la fissure cachée dans l'une des salles ordinaires.
+}// Prépare une expédition complète : toutes les salles du donjon, les salles
+// secrètes, et les fissures cachées dans des salles ordinaires distinctes.
+// Chaque salle secrète possède sa propre fissure, à l'emplacement déclaré par
+// le donjon (`cracks`) : elles ne sont donc jamais toutes au même mur.
 export function createRun(dungeonId, seed = 1) {
   const dungeon = getDungeon(dungeonId) ?? DUNGEONS[0];
   const random = mulberry32(seed ^ 0x51ed27);
@@ -889,24 +1208,50 @@ export function createRun(dungeonId, seed = 1) {
     createRoomEntry(dungeon, spec, seed + index * 7919)
   ));
 
-  // La fissure change de salle selon la graine : il faut explorer à chaque
-  // descente, mais une même graine redonne la même disposition (tests).
-  const secretRoomIndex = Math.floor(random() * rooms.length);
-  rooms[secretRoomIndex].hasCrack = true;
-  rooms[secretRoomIndex].room.hasCrack = true;
+  const secretSpecs = dungeon.secrets;
+  // Les murs fissurés viennent du donjon, mais l'ordre change avec la graine :
+  // une même expédition ne révèle donc pas toujours les mêmes murs.
+  const spotKeys = shuffled(
+    (dungeon.cracks?.length ? dungeon.cracks : CRACK_SPOT_KEYS).slice(),
+    random
+  );
 
-  const secretSpec = dungeon.secret ?? dungeon.rooms[dungeon.rooms.length - 1];
-  const secret = createRoomEntry(dungeon, secretSpec, seed ^ 0x7a3d11, { hidden: true });
+  // Les fissures occupent des salles ordinaires distinctes (toutes sauf la
+  // dernière, qu'on quitte par l'escalier). Les emplacements de mur viennent
+  // de `dungeon.cracks` : la première fissure du donjon n'est donc pas toujours
+  // au même endroit d'un donjon à l'autre.
+  const hostPool = shuffled(
+    rooms.map((_, index) => index).filter((index) => index < rooms.length - 1),
+    random
+  );
+  const secretRoomIndices = [];
+  secretSpecs.forEach((spec, index) => {
+    const roomIndex = hostPool[index % hostPool.length];
+    const spot = spotKeys[index % spotKeys.length];
+    const host = rooms[roomIndex];
+    host.hasCrack = true;
+    host.crackIndex = index;
+    host.room.hasCrack = true;
+    host.room.crack = { ...CRACK_SPOTS[spot].approach };
+    host.room.crackTile = { ...CRACK_SPOTS[spot].tile };
+    host.room.crackSpot = spot;
+    secretRoomIndices[roomIndex] = index;
+  });
+
+  const secrets = secretSpecs.map((spec, index) => (
+    createRoomEntry(dungeon, spec, seed ^ (0x7a3d11 + index * 7919), { hidden: true })
+  ));
 
   const run = {
     dungeon,
     seed,
     random,
     rooms,
-    secret,
-    secretRoomIndex,
-    secretFound: false,
-    inSecret: false,
+    secrets,
+    secretRoomIndices,
+    secretsFound: secretSpecs.map(() => false),
+    secretIndex: 0,
+
     secretReturn: null,
     roomIndex: 0,
     pv: BASE_STATS.pv,
@@ -927,13 +1272,23 @@ export function createRun(dungeonId, seed = 1) {
 
 // --- Progression entre salles ---------------------------------------------
 
-// Numéro affiché : la salle secrète vient après les salles ordinaires.
+// Numéro affiché : les salles secrètes viennent après les salles ordinaires,
+// dans l'ordre où elles ont été ouvertes.
 export function roomNumber(run) {
-  return run.inSecret ? run.rooms.length + 1 : run.roomIndex + 1;
+  return run.inSecret ? run.rooms.length + run.secretIndex + 1 : run.roomIndex + 1;
 }
 
 export function roomCount(run) {
-  return run.rooms.length + (run.dungeon.secret ? 1 : 0);
+  return run.rooms.length + (run.secrets?.length ?? 0);
+}
+
+// Libellé affiché dans le panneau : les salles secrètes ont leur propre
+// numérotation, puisqu'on y entre par les fissures et dans n'importe quel ordre.
+export function roomLabel(run) {
+  if (run.inSecret) {
+    return `salle secrète ${(run.secretIndex ?? 0) + 1}/${run.secrets?.length ?? 1}`;
+  }
+  return `salle ${run.roomIndex + 1}/${run.rooms.length}`;
 }
 
 export function isLastRoom(run) {
@@ -962,12 +1317,17 @@ export function nextRoom(run) {
 export function enterSecretRoom(run) {
   const entry = run.rooms[run.roomIndex];
   if (run.inSecret || !entry?.hasCrack) return null;
+  const index = entry.crackIndex ?? 0;
+  const secret = run.secrets?.[index];
+  if (!secret) return null;
   run.inSecret = true;
+  run.secretIndex = index;
+  if (run.secretsFound) run.secretsFound[index] = true;
   run.secretFound = true;
   run.secretReturn = { ...entry.room.crack };
-  activateEntry(run, run.secret);
-  run.message = run.secret.spec.intro;
-  return run.secret;
+  activateEntry(run, secret);
+  run.message = secret.spec.intro;
+  return secret;
 }
 
 // Ressort de la salle secrète vers la salle où se trouve la fissure.

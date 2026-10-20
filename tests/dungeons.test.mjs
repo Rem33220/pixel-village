@@ -14,6 +14,7 @@ import {
   WEAPON_ARTS,
   aimDirection,
   crackNear,
+  CRACK_SPOTS,
   dungeonTotals,
   dungeonUnlocked,
   enterSecretRoom,
@@ -98,9 +99,14 @@ function reachableFrom(room, start) {
     starterDungeons().length === 3 && DUNGEONS.filter((d) => d.requires?.length).length === 3);
   for (const dungeon of DUNGEONS) {
     const rooms = dungeon.rooms ?? [];
-    const specs = [...rooms, dungeon.secret].filter(Boolean);
+    const secrets = dungeon.secrets ?? [];
+    const specs = [...rooms, ...secrets];
     check(`donjon ${dungeon.id}: au moins deux salles + une secrète`,
-      rooms.length >= 2 && Boolean(dungeon.secret));
+      rooms.length >= 2 && secrets.length >= 1);
+    check(`donjon ${dungeon.id}: une fissure par salle secrète`,
+      (dungeon.cracks ?? []).length >= secrets.length
+      && new Set(dungeon.cracks).size === dungeon.cracks.length
+      && dungeon.cracks.every((key) => CRACK_SPOTS[key]));
     check(`donjon ${dungeon.id}: butin de chaque salle connu`,
       specs.every((spec) => spec.loot.every((id) => LOOT[id])));
     check(`donjon ${dungeon.id}: chaque coffre a un objet`,
@@ -114,20 +120,34 @@ function reachableFrom(room, start) {
     const totals = dungeonTotals(dungeon);
     check(`donjon ${dungeon.id}: totaux = somme des salles`,
       totals.rooms === rooms.length
+      && totals.secrets === secrets.length
       && totals.monsters === specs.reduce((sum, spec) => sum + spec.monsters.length, 0)
       && totals.chests === specs.reduce((sum, spec) => sum + spec.chests, 0)
       && totals.secret === true);
 
     const listed = new Set(dungeon.loot);
     const roomLoot = rooms.flatMap((spec) => spec.loot);
+    const secretLoot = secrets.flatMap((spec) => spec.loot);
     check(`donjon ${dungeon.id}: butin du portail complet`,
       roomLoot.every((id) => listed.has(id))
-      && dungeon.secret.loot.every((id) => listed.has(id)));
-    check(`donjon ${dungeon.id}: une salle secrète cachée`,
-      dungeon.secret.loot.some((id) => !roomLoot.includes(id)), dungeon.secret.loot.join(','));
+      && secretLoot.every((id) => listed.has(id)));
+    check(`donjon ${dungeon.id}: chaque salle secrète cache un butin nouveau`,
+      secrets.every((spec) => spec.loot.some((id) => !roomLoot.includes(id))),
+      secrets.map((spec) => spec.loot.join('+')).join(' | '));
   }
 
-  const allSpecs = DUNGEONS.flatMap((dungeon) => [...dungeon.rooms, dungeon.secret]);
+  // Plus le niveau monte, plus le donjon est long : salles ET secrètes.
+  const ordered = DUNGEONS.slice().sort((a, b) => a.level - b.level);
+  check('donjons: le nombre de salles croît avec le niveau',
+    ordered.every((dungeon, index) => index === 0
+      || dungeon.rooms.length > ordered[index - 1].rooms.length));
+  check('donjons: le nombre de salles secrètes croît avec le niveau',
+    ordered.every((dungeon, index) => index === 0
+      || dungeon.secrets.length > ordered[index - 1].secrets.length));
+  check('donjons: les fissures changent de mur d’un donjon à l’autre',
+    new Set(DUNGEONS.map((dungeon) => dungeon.cracks[0])).size === DUNGEONS.length);
+
+  const allSpecs = DUNGEONS.flatMap((dungeon) => [...dungeon.rooms, ...dungeon.secrets]);
   const items = new Set(DUNGEONS.flatMap((dungeon) => dungeon.loot));
   check('butin: tous les objets ont un type valide',
     [...items].every((id) => LOOT[id].kind === 'arme' || LOOT[id].kind === 'armure'));
@@ -148,7 +168,7 @@ function reachableFrom(room, start) {
   check('butin: les légendaires ne viennent que des salles secrètes',
     DUNGEONS.every((dungeon) => dungeon.loot
       .filter((id) => LOOT[id].rarity === 'legendaire')
-      .every((id) => dungeon.secret.loot.includes(id))));
+      .every((id) => dungeon.secrets.some((spec) => spec.loot.includes(id)))));
   check('butin: au moins un objet épique par donjon',
     DUNGEONS.every((dungeon) => dungeon.loot.some((id) => LOOT[id].rarity === 'epique')));
 
@@ -158,12 +178,12 @@ function reachableFrom(room, start) {
   check('monstres: les expéditions avancées ont leurs propres créatures',
     ['noye', 'gargouille', 'seigneur'].every((type) => (
       DUNGEONS.some((d) => d.requires?.length && d.loot
-        && [...d.rooms, d.secret].some((spec) => spec.monsters.includes(type)))
+        && [...d.rooms, ...d.secrets].some((spec) => spec.monsters.includes(type)))
     )));
   check('butin: rareté mythique réservée aux salles secrètes',
     DUNGEONS.every((dungeon) => dungeon.loot
       .filter((id) => LOOT[id].rarity === 'mythique')
-      .every((id) => dungeon.secret.loot.includes(id)))
+      .every((id) => dungeon.secrets.some((spec) => spec.loot.includes(id))))
     && Object.values(LOOT).some((item) => item.rarity === 'mythique'));
 
   // --- Déblocage progressif des expéditions ------------------------------
@@ -192,7 +212,7 @@ function reachableFrom(room, start) {
     DUNGEONS.every((dungeon) => {
       const pire = (types) => Math.max(...types.map((type) => MONSTERS[type].damage));
       const normal = dungeon.rooms.flatMap((room) => room.monsters);
-      return pire(dungeon.secret.monsters) >= pire(normal);
+      return dungeon.secrets.every((spec) => pire(spec.monsters) >= pire(normal));
     }));
 
 }
@@ -211,7 +231,7 @@ function reachableFrom(room, start) {
 // --- Salles praticables et accessibles ------------------------------------
 for (const dungeon of DUNGEONS) {
   const run = createRun(dungeon.id, 42);
-  const entries = [...run.rooms, run.secret];
+  const entries = [...run.rooms, ...run.secrets];
 
   for (const entry of entries) {
     const room = entry.room;
@@ -250,29 +270,36 @@ for (const dungeon of DUNGEONS) {
     check(`${label}: butin tiré de la salle`, ids.every((id) => entry.spec.loot.includes(id)));
   }
 
-  check(`${dungeon.id}: salle secrète plus petite`,
-    run.secret.room.w < run.rooms[0].room.w && run.secret.room.h < run.rooms[0].room.h);
+  check(`${dungeon.id}: salles secrètes plus petites`,
+    run.secrets.every((entry) => entry.room.w < run.rooms[0].room.w
+      && entry.room.h < run.rooms[0].room.h));
 
-  const host = run.rooms[run.secretRoomIndex];
-  check(`${dungeon.id}: une seule fissure par expédition`,
-    run.rooms.filter((entry) => entry.hasCrack).length === 1 && host.room.hasCrack);
+  const hosts = run.rooms.filter((entry) => entry.hasCrack);
+  check(`${dungeon.id}: une fissure par salle secrète`,
+    hosts.length === run.secrets.length
+    && new Set(hosts.map((entry) => entry.crackIndex)).size === run.secrets.length);
+  check(`${dungeon.id}: les fissures occupent des salles distinctes`,
+    new Set(hosts.map((entry) => run.rooms.indexOf(entry))).size === hosts.length);
   check(`${dungeon.id}: la fissure n’est pas un mur plein`,
-    Boolean(host.room.crack) && walkable(host.room, host.room.crack.x, host.room.crack.y));
-  const crackSeen = reachableFrom(host.room, {
-    x: Math.floor(host.room.spawn.x),
-    y: Math.floor(host.room.spawn.y)
-  });
-  check(`${dungeon.id}: fissure atteignable à pied`,
-    crackSeen.has(`${Math.floor(host.room.crack.x)},${Math.floor(host.room.crack.y)}`));
-  check(`${dungeon.id}: fissure hors de portée au départ`,
-    !crackNear({ ...run, roomIndex: run.secretRoomIndex }, host.room.spawn));
+    hosts.every((entry) => Boolean(entry.room.crack)
+      && walkable(entry.room, entry.room.crack.x, entry.room.crack.y)));
+  for (const entry of hosts) {
+    const crackSeen = reachableFrom(entry.room, {
+      x: Math.floor(entry.room.spawn.x),
+      y: Math.floor(entry.room.spawn.y)
+    });
+    check(`${dungeon.id}/${entry.room.crackSpot}: fissure atteignable à pied`,
+      crackSeen.has(`${Math.floor(entry.room.crack.x)},${Math.floor(entry.room.crack.y)}`));
+    check(`${dungeon.id}/${entry.room.crackSpot}: fissure hors de portée au départ`,
+      !crackNear({ ...run, roomIndex: run.rooms.indexOf(entry) }, entry.room.spawn));
+  }
 }
 
 // --- Déterminisme ---------------------------------------------------------
 {
   const signature = (run) => JSON.stringify({
-    crack: run.secretRoomIndex,
-    rooms: [...run.rooms, run.secret].map((entry) => ({
+    cracks: run.rooms.map((entry) => entry.room.crackSpot ?? null),
+    rooms: [...run.rooms, ...run.secrets].map((entry) => ({
       chests: entry.chests.map((chest) => [chest.x, chest.y, chest.item]),
       monsters: entry.monsters.map((m) => [m.type, m.x, m.y])
     }))
@@ -282,6 +309,9 @@ for (const dungeon of DUNGEONS) {
   check('génération: même graine = même expédition', signature(a) === signature(b));
   const c = createRun('galerie', 8);
   check('génération: graine différente = disposition différente', signature(a) !== signature(c));
+  check('génération: la fissure change de salle selon la graine',
+    a.rooms.findIndex((entry) => entry.hasCrack) !== c.rooms.findIndex((entry) => entry.hasCrack)
+    || a.rooms.some((entry, index) => entry.room.crackSpot !== c.rooms[index].room.crackSpot));
 }
 
 // --- Combat ---------------------------------------------------------------
@@ -387,7 +417,7 @@ for (const dungeon of DUNGEONS) {
 {
   const run = createRun('antre', 9);
   check('progression: départ dans la première salle',
-    roomNumber(run) === 1 && roomCount(run) === run.rooms.length + 1 && !run.inSecret);
+    roomNumber(run) === 1 && roomCount(run) === run.rooms.length + run.secrets.length && !run.inSecret);
   check('progression: l’escalier descend d’une salle', exitAction(run) === 'next');
   check('progression: nom de salle exposé', Boolean(run.roomEntry.spec.name));
 
@@ -407,31 +437,49 @@ for (const dungeon of DUNGEONS) {
 
 // --- Fissure et salle secrète --------------------------------------------
 {
-  const run = createRun('crypte', 42);
-  const hostIndex = run.secretRoomIndex;
-  const host = run.rooms[hostIndex];
+  // Le Trône a quatre salles secrètes : chacune possède sa propre fissure,
+  // sur un mur différent, et mène à sa propre salle.
+  const run = createRun('trone', 42);
+  const hosts = run.rooms
+    .map((entry, index) => ({ entry, index }))
+    .filter(({ entry }) => entry.hasCrack);
 
-  check('secret: la fissure est dans une seule salle',
-    run.rooms.filter((entry) => entry.hasCrack).length === 1 && host.hasCrack);
-  check('secret: pas de fissure dans les autres salles',
-    run.rooms.every((entry, index) => index === hostIndex || !entry.room.hasCrack));
-
-  while (run.roomIndex < hostIndex) nextRoom(run);
-  const away = { x: host.room.spawn.x, y: host.room.spawn.y };
-  check('secret: rien à faire loin du mur', !crackNear(run, away));
-  check('secret: détectée devant le mur', crackNear(run, host.room.crack));
+  check('secret: une fissure par salle secrète', hosts.length === run.secrets.length);
+  check('secret: fissures sur des murs différents',
+    new Set(hosts.map(({ entry }) => entry.room.crackSpot)).size === hosts.length);
   check('secret: portée cohérente', SECRET_RANGE > 0.8 && SECRET_RANGE < 2);
 
-  const secret = enterSecretRoom(run);
-  check('secret: salle secrète ouverte', secret === run.secret && run.inSecret
-    && run.secretFound && run.room === secret.room && run.monsters === secret.monsters);
-  check('secret: numérotée après les salles ordinaires', roomNumber(run) === run.rooms.length + 1);
-  check('secret: l’escalier remonte', exitAction(run) === 'secret');
-  check('secret: pas de nouvelle fissure à l’intérieur', !crackNear(run, { x: 1.5, y: 5.5 }));
+  const visited = [];
+  for (const { entry: host, index } of hosts) {
+    while (run.roomIndex < index) nextRoom(run);
+    const away = { x: host.room.spawn.x, y: host.room.spawn.y };
+    check(`secret/${host.room.crackSpot}: rien à faire loin du mur`, !crackNear(run, away));
+    check(`secret/${host.room.crackSpot}: détectée devant le mur`,
+      crackNear(run, host.room.crack));
 
-  const back = leaveSecretRoom(run);
-  check('secret: retour dans la salle d’origine',
-    back === host && !run.inSecret && run.room === host.room && run.monsters === host.monsters);
+    const secret = enterSecretRoom(run);
+    visited.push(secret);
+    check(`secret/${host.room.crackSpot}: salle secrète ouverte`,
+      secret === run.secrets[host.crackIndex] && run.inSecret && run.secretFound
+      && run.room === secret.room && run.monsters === secret.monsters);
+    check(`secret/${host.room.crackSpot}: l’escalier remonte`, exitAction(run) === 'secret');
+    check(`secret/${host.room.crackSpot}: pas de fissure à l’intérieur`,
+      !crackNear(run, { x: 1.5, y: 5.5 }));
+
+    const back = leaveSecretRoom(run);
+    check(`secret/${host.room.crackSpot}: retour dans la salle d’origine`,
+      back === host && !run.inSecret && run.room === host.room && run.monsters === host.monsters);
+  }
+  check('secret: chaque fissure mène à sa propre salle',
+    new Set(visited).size === hosts.length);
+
+  // La crypte (une seule secrète) numérote sa salle juste après les salles.
+  const simple = createRun('crypte', 42);
+  const simpleHost = simple.rooms.findIndex((entry) => entry.hasCrack);
+  while (simple.roomIndex < simpleHost) nextRoom(simple);
+  enterSecretRoom(simple);
+  check('secret: numérotée après les salles ordinaires',
+    roomNumber(simple) === simple.rooms.length + 1);
 
   // Une salle sans fissure ne s’ouvre pas.
   const other = createRun('crypte', 42);
