@@ -14,9 +14,24 @@ export const ENTER_RANGE = 1.8;
 export const EXIT_RANGE = 1.6;
 
 export const REWARDS = {
-  lampe: { name: 'Lampe du veilleur', detail: 'une lueur chaude t’accompagne' },
-  bottes: { name: 'Bottes de vent', detail: '25 % plus rapide' },
-  medaille: { name: 'Médaillon du sage', detail: 'le village te reconnaît' }
+  lampe: {
+    name: 'Lampe du veilleur',
+    detail: 'Ta lanterne éclaire les alentours.',
+    effect: 'halo de lumière autour du personnage',
+    house: 'Chaumière des runes'
+  },
+  bottes: {
+    name: 'Bottes de vent',
+    detail: 'Tes pas sont devenus plus légers.',
+    effect: 'vitesse +25 %',
+    house: 'Atelier des cristaux'
+  },
+  medaille: {
+    name: 'Médaillon du sage',
+    detail: 'Le village reconnaît tes exploits.',
+    effect: 'aura dorée au-dessus de la tête',
+    house: 'Maison du sage'
+  }
 };
 
 const HOUSE_SPECS = [

@@ -2,6 +2,7 @@
 // physiques fonctionnent aussi bien sur clavier AZERTY que QWERTY.
 
 const pressed = new Set();
+let enabled = true;
 
 const MOVE_CODES = new Set([
   'ArrowUp',
@@ -37,7 +38,18 @@ export function initInput() {
   });
 }
 
+// Coupe le déplacement sans toucher au clavier lui-même : utilisé quand un
+// panneau (inventaire) est ouvert, pour ne pas envoyer d'ordre au serveur.
+// On vide aussi les touches maintenues : sans cela, une direction encore
+// enfoncée repartirait toute seule à la fermeture du panneau.
+export function setInputEnabled(value) {
+  enabled = Boolean(value);
+  pressed.clear();
+}
+
 export function moveVector() {
+  if (!enabled) return { x: 0, y: 0 };
+
   let x = 0;
   let y = 0;
   if (pressed.has('ArrowLeft') || pressed.has('KeyA')) x -= 1;

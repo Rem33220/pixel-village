@@ -15,6 +15,7 @@
     <span class="chip" id="hud-name">Aventurier</span>
     <span class="chip" id="hud-players">…</span>
     <div id="hud-rewards" class="hidden"></div>
+    <button type="button" id="inventory-btn" class="chip chip-btn">Sac (I)</button>
   </div>
 
   <div id="status" class="hidden">
@@ -22,7 +23,7 @@
     <button type="button" id="reconnect-btn" class="mini-btn hidden">Reconnecter</button>
   </div>
 
-  <p id="hint">ZQSD / WASD / flèches · E : entrer, agir · Entrée : chat</p>
+  <p id="hint">ZQSD / WASD / flèches · E : entrer, agir · I : inventaire · Entrée : chat</p>
 
   <div id="prompt" class="hidden" aria-live="polite">
     <kbd>E</kbd>
@@ -43,6 +44,19 @@
       <input id="chat-input" type="text" maxlength="120" placeholder="Entrée pour parler…" />
     </form>
   </section>
+
+  <div id="inventory" class="hidden" role="dialog" aria-modal="true" aria-labelledby="inventory-title">
+    <div class="inventory-panel">
+      <div class="inventory-head">
+        <h2 id="inventory-title">Inventaire</h2>
+        <span id="inventory-count" class="inventory-count"></span>
+        <button type="button" id="inventory-close" class="inventory-close" aria-label="Fermer l’inventaire">✕</button>
+      </div>
+      <div id="inventory-grid" class="inventory-grid" role="group" aria-label="Objets"></div>
+      <div id="inventory-detail" class="inventory-detail"></div>
+      <p class="inventory-help">I ou Échap : fermer</p>
+    </div>
+  </div>
 
   <div id="login">
     <div class="panel">

@@ -105,9 +105,10 @@ Pixel Village prêt : http://localhost:3000  [WebSocket intégré, zéro dépend
 | ------------------------------ | ----------------------------- |
 | `ZQSD` / `WASD` / flèches      | se déplacer                   |
 | `E`                            | entrer dans une maison, sortir, agir |
+| `I`                            | ouvrir / fermer l'inventaire  |
 | `1` `2` `3`                    | répondre aux énigmes          |
 | `Entrée`                       | ouvrir le chat                |
-| `Échap`                        | fermer le chat, quitter une maison |
+| `Échap`                        | fermer le chat ou l'inventaire, quitter une maison |
 | Clic sur une pastille          | changer la couleur du personnage |
 
 Les touches sont lues via `event.code` : les touches **physiques** fonctionnent
@@ -132,6 +133,7 @@ donc aussi bien sur un clavier AZERTY que QWERTY.
         ├── config.js     # réglages partagés client/serveur
         ├── map.js        # génération de la carte + collisions
         ├── houses.js     # maisons, épreuves et récompenses
+        ├── inventory.js  # panneau d'inventaire (touche I) + icônes
         ├── sprites.js    # pixel art des personnages (dessiné en ASCII)
         ├── renderer.js   # caméra, tuiles, personnages, bulles de chat
         ├── input.js      # clavier
@@ -200,6 +202,20 @@ Les récompenses sont conservées dans le navigateur
 l'autre, sans compte. Un joueur qui refait une épreuve gagnée garde sa
 récompense. Si tu veux tout remettre à zéro, efface cette clé depuis la console
 (F12).
+
+### L'inventaire (touche I)
+
+`I`, ou le bouton **Sac (I)** en haut à gauche, ouvre l'inventaire : trois
+emplacements avec les icônes pixel art des objets, et pour chacun son origine,
+sa description et son effet. Les emplacements non gagnés restent visibles, avec
+« ? » et l'indice de la maison qui les contient — c'est aussi la liste des
+defis restants.
+
+Pendant que l'inventaire est ouvert, le personnage ne bouge plus (aucun ordre
+n'est envoyé au serveur) ; `I`, `Échap`, `Entrée` ou un clic à côté du panneau
+le referment. Les icônes sont dessinées en ASCII dans `public/js/inventory.js`,
+sur le même principe que les personnages : tu peux les redessiner sans
+logiciel.
 
 Le serveur reçoit seulement deux informations : *je suis à l'intérieur* (pour
 masquer l'avatar) et *ma vitesse* (pour rester aligné avec les Bottes de vent,

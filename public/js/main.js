@@ -2,8 +2,9 @@
 import { CONFIG } from './config.js';
 import { generateWorld, isSolid } from './map.js';
 import { Renderer } from './renderer.js';
-import { initInput, moveVector, isTyping } from './input.js';
+import { initInput, moveVector, isTyping, setInputEnabled } from './input.js';
 import { createConnection, websocketUrl } from './net.js';
+import { createInventory } from './inventory.js';
 import {
   buildHouses,
   buildInterior,
@@ -65,8 +66,15 @@ const els = {
   challengeTitle: document.getElementById('challenge-title'),
   challengeGoal: document.getElementById('challenge-goal'),
   challengeStatus: document.getElementById('challenge-status'),
-  challengeAnswers: document.getElementById('challenge-answers')
+  challengeAnswers: document.getElementById('challenge-answers'),
+  inventoryBtn: document.getElementById('inventory-btn')
 };
+
+// Inventaire : panneau modal, le déplacement est coupé pendant qu'il est ouvert.
+const inventory = createInventory({
+  getRewards: () => state.rewards,
+  onChange: (open) => setInputEnabled(!open)
+});
 
 // --- Personnages -----------------------------------------------------------
 
@@ -163,6 +171,7 @@ function grantReward(id) {
     applyRewards(state.players.get(state.selfId));
     syncGear();
     updateRewardsHud();
+    inventory.render();
   }
   return isNew;
 }
@@ -481,6 +490,7 @@ function enterWorld(online) {
   const name = (els.name.value || '').trim().slice(0, CONFIG.maxNameLength) || 'Aventurier';
   state.name = name;
   saveSettings();
+  setInputEnabled(true);
   els.login.classList.add('hidden');
   document.body.classList.add('playing');
   if (!online) {
@@ -586,7 +596,7 @@ function handleMessage(message) {
       if (state.inside) state.conn.send({ t: 'interior', inside: true });
       updateHud();
       setStatus(null);
-      pushChat('Bienvenue dans le village ! ZQSD / WASD pour bouger, E pour entrer dans une maison, Entrée pour discuter.', 'system');
+      pushChat('Bienvenue dans le village ! ZQSD / WASD pour bouger, E pour entrer dans une maison, I pour l’inventaire, Entrée pour discuter.', 'system');
       break;
     }
     case 'state': {
@@ -747,7 +757,28 @@ els.reconnect.addEventListener('click', () => {
   connect();
 });
 
+els.inventoryBtn.addEventListener('click', () => {
+  if (state.mode === 'menu' || state.mode === 'connecting') return;
+  inventory.toggle();
+});
+
 window.addEventListener('keydown', (event) => {
+  if (event.code === 'KeyI' && !isTyping(event)
+    && state.mode !== 'menu' && state.mode !== 'connecting') {
+    event.preventDefault();
+    inventory.toggle();
+    return;
+  }
+
+  // Inventaire ouvert : il capte Échap et Entrée, et bloque les autres touches.
+  if (inventory.isOpen()) {
+    if (event.code === 'Escape' || event.code === 'Enter') {
+      event.preventDefault();
+      inventory.close();
+    }
+    return;
+  }
+
   if (event.code === 'Enter' && !isTyping(event) && state.mode !== 'menu') {
     event.preventDefault();
     els.chatInput.focus();
