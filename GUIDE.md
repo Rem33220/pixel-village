@@ -208,9 +208,10 @@ touche physique « W » s'affiche « Z ».
   bulle au-dessus de ton personnage pendant quelques secondes.
 - Les joueurs qui entrent dans une maison **disparaissent de la carte** : leur
   intérieur est privé. Ils réapparaissent à leur place en sortant.
-- Si la connexion se coupe, le jeu passe automatiquement en solo avec un
-  bandeau, et tes récompenses sont conservées. Le bouton **Reconnecter**
-  apparaît quand le serveur est injoignable au démarrage.
+- Si la connexion se coupe ou si le serveur est injoignable au démarrage, le
+  jeu passe automatiquement en solo avec un bandeau, et tes récompenses sont
+  conservées. Le bouton **Reconnecter** du bandeau permet de retenter la
+  connexion sans quitter la partie.
 
 Les épreuves ne sont pas jouables à deux : chacun visite sa propre salle.
 
