@@ -6,10 +6,11 @@ d'installation ni de code : pour ça, voir [README.md](README.md).
 
 > **Note de maintenance** — ce fichier décrit *toutes* les fonctionnalités
 > jouables et doit être mis à jour à chaque nouveauté (voir la dernière section).
-> État décrit : celui du commit `15cc661` — portail, donjons et combat, butin
+> État décrit : celui du commit `b5ea1f7` — portail, donjons et combat, butin
 > et équipement, arme tenue en main et animation de frappe, donjons à plusieurs
-> salles, salles secrètes, butin légendaire et maisons scellées par leur donjon.
-> Les commits qui ne touchent que la documentation ne changent rien à ce guide.
+> salles, salles secrètes, butin légendaire, maisons scellées par leur donjon,
+> échoppe du colporteur avec sa bourse, et réinitialisation du personnage. Les
+> commits qui ne touchent que la documentation ne changent rien à ce guide.
 
 ---
 
