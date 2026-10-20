@@ -139,7 +139,7 @@ export function createInventory({ getRewards, onChange }) {
       selected = ITEM_ORDER.find((id) => owned.has(id)) ?? ITEM_ORDER[0];
     }
 
-    count.textContent = `${owned.size} / ${ITEM_ORDER.length} récompense${owned.size > 1 ? 's' : ''}`;
+    count.textContent = `${owned.size} / ${ITEM_ORDER.length} récompense${ITEM_ORDER.length > 1 ? 's' : ''}`;
     grid.replaceChildren();
 
     for (const id of ITEM_ORDER) {
