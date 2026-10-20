@@ -6,9 +6,9 @@ d'installation ni de code : pour ça, voir [README.md](README.md).
 
 > **Note de maintenance** — ce fichier décrit *toutes* les fonctionnalités
 > jouables et doit être mis à jour à chaque nouveauté (voir la dernière section).
-> État décrit : celui du commit `d3bf5f6`, plus les **donjons** (portail,
-> combat, butin et équipement) ajoutés ensuite. Les commits qui ne touchent que
-> la documentation ne changent rien à ce guide.
+> État décrit : celui du commit `6276e10` (portail, donjons, combat, butin et
+> équipement compris). Les commits qui ne touchent que la documentation ne
+> changent rien à ce guide.
 
 ---
 
