@@ -6,6 +6,7 @@ import { REWARDS } from './houses.js';
 import {
   LOOT,
   ITEM_ICONS,
+  coinsLabel,
   dungeonOfItem,
   isEquipped,
   itemCount,
@@ -117,11 +118,14 @@ function rewardIcon(id) {
   return paintIcon(ICONS[id], ICONS[id].palette);
 }
 
-function lootIcon(id) {
+// Icône d'un objet du butin, réutilisée par l'échoppe (voir shop.js).
+export function createLootIcon(id) {
   const item = LOOT[id];
   const icon = ITEM_ICONS[item.kind];
   return paintIcon(icon, { ...icon.palette, b: item.color });
 }
+
+const lootIcon = createLootIcon;
 
 function bonusLabel(item) {
   if (item.kind === 'arme') return `+${item.attack} ATQ`;
@@ -406,7 +410,7 @@ export function createInventory({ getRewards, getVault, onChange, onEquip }) {
     const owned = getRewards();
     const vault = getVault();
     const loot = ownedLoot().length;
-    count.textContent = `${owned.size} / ${ITEM_ORDER.length} récompenses · ${loot} butin`;
+    count.textContent = `${owned.size} / ${ITEM_ORDER.length} récompenses · ${loot} butin · ${coinsLabel(vault.coins)}`;
 
     renderEquipment();
     renderLoot();

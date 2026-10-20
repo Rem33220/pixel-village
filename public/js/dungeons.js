@@ -901,7 +901,13 @@ export function updateRun(run, player, dt, stats) {
 // --- Équipement ------------------------------------------------------------
 
 export function createVault() {
-  return { items: {}, equipped: { arme: null, armure: null } };
+  return { coins: 0, items: {}, equipped: { arme: null, armure: null } };
+}
+
+// Libellé de la bourse : « 1 pièce », « 24 pièces ».
+export function coinsLabel(coins) {
+  const value = Math.max(0, Math.floor(Number(coins) || 0));
+  return `${value} pièce${value > 1 ? 's' : ''}`;
 }
 
 export function ownsItem(vault, id) {
@@ -976,6 +982,8 @@ export function playerStats(vault) {
 export function sanitizeVault(raw) {
   const vault = createVault();
   if (!raw || typeof raw !== 'object') return vault;
+  const coins = Math.floor(Number(raw.coins));
+  if (Number.isFinite(coins) && coins > 0) vault.coins = Math.min(999999, coins);
   const items = raw.items && typeof raw.items === 'object' ? raw.items : {};
   for (const [id, count] of Object.entries(items)) {
     if (!LOOT[id]) continue;

@@ -5,6 +5,7 @@ import { Renderer } from './renderer.js';
 import { initInput, moveVector, isTyping, setInputEnabled } from './input.js';
 import { createConnection, websocketUrl } from './net.js';
 import { createInventory, equipmentSummary } from './inventory.js';
+import { createShopPanel, drawShop, nearShop, sellAll, sellItem } from './shop.js';
 import { createSettingsPanel, getBindings, labelFor } from './settings.js';
 import { playSound } from './audio.js';
 import {
@@ -31,6 +32,7 @@ import {
   addItem,
   attackRun,
   chestNear,
+  coinsLabel,
   crackNear,
   createRun,
   createVault,
@@ -117,6 +119,9 @@ const els = {
   hudPvFill: document.getElementById('hud-pv-fill'),
   hudPvText: document.getElementById('hud-pv-text'),
   hudGear: document.getElementById('hud-gear'),
+  hudCoins: document.getElementById('hud-coins'),
+  resetBtn: document.getElementById('reset-btn'),
+  resetNote: document.getElementById('reset-note'),
   portal: document.getElementById('portal'),
   portalList: document.getElementById('portal-list'),
   portalClose: document.getElementById('portal-close')
@@ -127,7 +132,7 @@ const DUNGEON_HELP = 'E : attaquer, ouvrir un coffre, sortir · Échap : quitter
 
 // Panneaux modaux : le déplacement est coupé tant que l'un d'eux est ouvert.
 function refreshInputState() {
-  setInputEnabled(!(inventory.isOpen() || settingsPanel.isOpen() || isPortalOpen()));
+  setInputEnabled(!(inventory.isOpen() || settingsPanel.isOpen() || isPortalOpen() || isShopOpen()));
 }
 
 const settingsPanel = createSettingsPanel({
@@ -148,6 +153,15 @@ const inventory = createInventory({
     playSound('click');
   },
   onEquip: (id) => toggleEquip(id)
+});
+
+const shopPanel = createShopPanel({
+  getVault: () => state.vault,
+  onChange: () => {
+    refreshInputState();
+    playSound('click');
+  },
+  onSell: (id, amount) => sellLoot(id, amount)
 });
 
 // --- Personnages -----------------------------------------------------------
@@ -348,6 +362,53 @@ function updateGearHud() {
   els.hudGear.classList.remove('hidden');
   els.hudGear.textContent = `ATQ ${stats.attack} · DÉF ${stats.defense}`;
   els.hudGear.title = equipmentSummary(state.vault) || 'Aucun équipement — ouvre les coffres des donjons.';
+}
+
+// --- Bourse et échoppe -----------------------------------------------------
+
+function updateCoinsHud() {
+  if (!els.hudCoins) return;
+  const coins = Math.max(0, Math.floor(state.vault.coins ?? 0));
+  els.hudCoins.textContent = coinsLabel(coins);
+  els.hudCoins.classList.remove('hidden');
+}
+
+function isShopOpen() {
+  return shopPanel.isOpen();
+}
+
+function nearShopCounter(me) {
+  return nearShop(world.shop, me);
+}
+
+function openShop() {
+  if (isShopOpen() || state.run || state.inside) return;
+  shopPanel.open();
+  pushChat('Le colporteur : « Montre-moi ce que tu as en trop. »', 'system');
+}
+
+// Vente : le panneau passe par ici pour que la sauvegarde, le HUD et
+// l'inventaire restent synchronisés.
+function sellLoot(id, amount) {
+  const before = state.vault.coins ?? 0;
+  const result = amount >= 99 ? sellAll(state.vault, id) : sellItem(state.vault, id, amount);
+  if (!result) return null;
+
+  saveVault();
+  applyGearToRun();
+  updateGearHud();
+  updatePvHud(true);
+  updateCoinsHud();
+  inventory.render();
+  playSound('pickup');
+
+  const item = LOOT[result.id];
+  const gained = (state.vault.coins ?? 0) - before;
+  pushChat(
+    `Vendu : ${item.name} ×${result.count} → +${gained} pièce${gained > 1 ? 's' : ''} (bourse : ${coinsLabel(state.vault.coins)}).`,
+    'system'
+  );
+  return result;
 }
 
 let pvText = '';
@@ -560,6 +621,47 @@ function exitHouse() {
   }
   playSound('click');
   updatePrompt(true);
+}
+
+// --- Réinitialisation du personnage ---------------------------------------
+
+// Ce qu'un personnage possède : récompenses, butin (pièces comprises) et
+// donjons conquis. Les réglages (son, touches) restent en place.
+const RESET_KEYS = [
+  'pixel-village:rewards',
+  'pixel-village:loot',
+  'pixel-village:dungeons',
+  'pixel-village:name',
+  'pixel-village:color'
+];
+
+function resetCharacter() {
+  if (state.mode !== 'menu') return false;
+
+  try {
+    for (const key of RESET_KEYS) localStorage.removeItem(key);
+  } catch {
+    /* stockage indisponible : l'état en mémoire est réinitialisé quand même */
+  }
+
+  state.rewards.clear();
+  state.conquered.clear();
+  state.vault = createVault();
+  state.name = 'Aventurier';
+  state.color = CONFIG.colors[0];
+
+  els.name.value = state.name;
+  updateSwatches();
+  saveSettings();
+  updateHud();
+  updateRewardsHud();
+  updateGearHud();
+  updateCoinsHud();
+  inventory.render();
+  shopPanel.render();
+  playSound('success');
+  els.resetNote.textContent = 'Personnage réinitialisé : récompenses, butin, pièces et donjons conquis effacés.';
+  return true;
 }
 
 // --- Portail et donjons ----------------------------------------------------
@@ -881,7 +983,7 @@ function tickDungeon(dt) {
   const run = state.run;
   if (!run) return;
   // Les panneaux mettent le donjon en pause : on ne meurt pas dans un menu.
-  if (inventory.isOpen() || settingsPanel.isOpen() || isPortalOpen()) return;
+  if (inventory.isOpen() || settingsPanel.isOpen() || isPortalOpen() || isShopOpen()) return;
 
   const me = state.players.get(state.selfId);
   if (!me) return;
@@ -931,6 +1033,11 @@ function interact() {
 
   if (nearPortal(me)) {
     openPortal();
+    return;
+  }
+
+  if (nearShopCounter(me)) {
+    openShop();
     return;
   }
 
@@ -1050,6 +1157,8 @@ function updatePrompt(force = false) {
       }
     } else if (nearPortal(me)) {
       text = 'Portail — choisir un donjon';
+    } else if (nearShopCounter(me)) {
+      text = 'Échoppe — vendre du butin';
     } else {
       const house = houseNear(me);
       if (house) {
@@ -1327,6 +1436,7 @@ function loop(now) {
     // Au village : le portail et le sceau de chaque maison.
     decor = (ctx, time) => {
       drawPortal(ctx, world.portal, time);
+      drawShop(ctx, world.shop, time);
       for (const house of houses) {
         drawHouseSeal(ctx, house, houseUnlocked(house, state.conquered), time);
       }
@@ -1390,6 +1500,32 @@ els.inventoryBtn.addEventListener('click', () => {
 
 els.settingsBtn.addEventListener('click', () => settingsPanel.toggle());
 els.settingsMenuBtn.addEventListener('click', () => settingsPanel.open());
+
+// Réinitialisation en deux temps : le premier clic demande confirmation, le
+// second efface le personnage. Passé cinq secondes, le bouton se désarme.
+let resetArmed = false;
+let resetTimer = 0;
+
+function disarmReset() {
+  resetArmed = false;
+  els.resetBtn.classList.remove('confirm');
+  els.resetBtn.textContent = 'Réinitialiser le personnage';
+}
+
+els.resetBtn.addEventListener('click', () => {
+  if (!resetArmed) {
+    resetArmed = true;
+    els.resetBtn.classList.add('confirm');
+    els.resetBtn.textContent = 'Confirmer : effacer mon personnage ?';
+    els.resetNote.textContent = 'Clique une seconde fois pour confirmer. Rien n’a encore été effacé.';
+    clearTimeout(resetTimer);
+    resetTimer = setTimeout(disarmReset, 5000);
+    return;
+  }
+  clearTimeout(resetTimer);
+  disarmReset();
+  resetCharacter();
+});
 els.portalClose.addEventListener('click', () => closePortal());
 els.portal.addEventListener('click', (event) => {
   if (event.target === els.portal) closePortal();
@@ -1415,12 +1551,13 @@ window.addEventListener('keydown', (event) => {
   }
 
   // Un panneau modal capte Échap et sa propre touche, et bloque le reste.
-  if (inventory.isOpen() || settingsPanel.isOpen() || isPortalOpen()) {
+  if (inventory.isOpen() || settingsPanel.isOpen() || isPortalOpen() || isShopOpen()) {
     if (event.code === 'Escape' || event.code === 'Enter') {
       event.preventDefault();
       inventory.close();
       settingsPanel.close();
       closePortal();
+      shopPanel.close();
     }
     return;
   }
@@ -1499,5 +1636,6 @@ updateSwatches();
 updateHud();
 updateRewardsHud();
 updateGearHud();
+updateCoinsHud();
 updateHint();
 requestAnimationFrame(loop);

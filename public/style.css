@@ -640,6 +640,109 @@ body:not(.playing) #challenge {
   filter: brightness(1.08);
 }
 
+/* --- Échoppe du colporteur ---------------------------------------------- */
+
+#shop {
+  position: fixed;
+  inset: 0;
+  z-index: 92;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(6, 10, 8, 0.78);
+  backdrop-filter: blur(2px);
+}
+
+.shop-panel {
+  width: min(520px, 100%);
+}
+
+.shop-coins {
+  margin-left: auto;
+  padding: 2px 8px;
+  font-size: 11px;
+  color: #241a05;
+  background: linear-gradient(#f3dd9f, #e0c176);
+  border: 2px solid #8a6f3a;
+}
+
+.shop-intro {
+  margin: 10px 0 0;
+  font-size: 11px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+.shop-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.shop-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  background: #0b120f;
+  border: 2px solid var(--line);
+}
+
+.shop-icon {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+}
+
+.shop-icon .item-icon {
+  width: 22px;
+  height: 22px;
+}
+
+.shop-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.shop-name {
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.shop-meta {
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.shop-price {
+  flex: 0 0 auto;
+  font-size: 12px;
+  color: #f6d34d;
+}
+
+.shop-price::after {
+  content: " ⛁";
+  font-size: 10px;
+}
+
+.shop-sell {
+  flex: 0 0 auto;
+  width: auto;
+  margin: 0;
+  padding: 6px 8px;
+  font-size: 10px;
+}
+
 /* --- Écran de connexion ------------------------------------------------- */
 
 #login {
@@ -757,6 +860,32 @@ label,
 .btn.ghost:hover {
   color: var(--text);
   border-color: var(--muted);
+}
+
+/* Réinitialisation du personnage : action destructive, donc discrète puis
+   rouge vif une fois armée. */
+.btn.ghost.danger {
+  color: #b98a80;
+  border-color: #4a2c26;
+}
+
+.btn.ghost.danger:hover {
+  color: #ffb4a4;
+  border-color: #7a3b34;
+}
+
+.btn.ghost.danger.confirm {
+  color: #ffe9e2;
+  background: #5c2a23;
+  border-color: #d8836f;
+}
+
+.reset-note {
+  margin: 8px 0 0;
+  font-size: 10px;
+  line-height: 1.5;
+  color: #6d8278;
+  text-align: center;
 }
 
 .btn:focus-visible,

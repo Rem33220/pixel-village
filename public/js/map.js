@@ -37,6 +37,11 @@ export const T = {
 // besoin (chaque donjon est une instance privée).
 export const PORTAL = { x: 30, y: 5.5 };
 
+// Échoppe du colporteur : au nord-est, à la place de l'ancien lac. Elle achète
+// le butin en trop contre des pièces. Comme les maisons et les donjons, c'est
+// une affaire de client : le serveur ignore tout des pièces.
+export const SHOP = { x: 43, y: 8, w: 7, h: 5 };
+
 // Tuiles qui bloquent le passage.
 export const SOLID_TILES = new Set([
   T.WATER,
@@ -92,19 +97,6 @@ export function generateWorld(seed = WORLD_SEED) {
     }
   }
 
-  // Lac au nord-est, avec une plage de sable.
-  const lakeX = 46;
-  const lakeY = 13;
-  const lakeRX = 9;
-  const lakeRY = 5;
-  for (let y = lakeY - lakeRY - 2; y <= lakeY + lakeRY + 2; y++) {
-    for (let x = lakeX - lakeRX - 2; x <= lakeX + lakeRX + 2; x++) {
-      const d = ((x - lakeX) / lakeRX) ** 2 + ((y - lakeY) / lakeRY) ** 2;
-      if (d <= 1) set(x, y, T.WATER);
-      else if (d <= 1.45) set(x, y, T.SAND);
-    }
-  }
-
   // Chemins : une grand-rue horizontale et une rue verticale qui se croisent.
   for (let x = 6; x <= 58; x++) {
     set(x, 21, T.PATH);
@@ -144,6 +136,30 @@ export function generateWorld(seed = WORLD_SEED) {
   house(19, 27, 6, 4);
   house(39, 26, 7, 5);
 
+  // Échoppe du colporteur, à la place de l'ancien lac : un bâtiment plus large
+  // que les maisons, avec un comptoir dessiné devant la porte (voir shop.js).
+  const shop = SHOP;
+  for (let y = 0; y < shop.h; y++) {
+    for (let x = 0; x < shop.w; x++) {
+      set(shop.x + x, shop.y + y, y < 2 ? T.ROOF : T.WALL);
+    }
+  }
+  const shopDoor = { x: shop.x + Math.floor(shop.w / 2), y: shop.y + shop.h - 1 };
+  set(shopDoor.x, shopDoor.y, T.DOOR);
+  set(shop.x + 1, shop.y + shop.h - 2, T.WINDOW);
+  set(shop.x + shop.w - 2, shop.y + shop.h - 2, T.WINDOW);
+
+  // Chemin de terre qui relie l'échoppe à la rue nord-sud, et petit parvis
+  // devant son comptoir : on doit pouvoir y aller sans traverser la forêt.
+  for (let x = 31; x <= shopDoor.x; x++) {
+    set(x, 14, T.PATH);
+    set(x, 15, T.PATH);
+  }
+  for (let y = shopDoor.y + 1; y <= shopDoor.y + 4; y++) {
+    for (let x = shopDoor.x - 2; x <= shopDoor.x + 2; x++) set(x, y, T.PATH);
+  }
+  for (let x = shopDoor.x - 2; x <= shopDoor.x + 2; x++) set(x, shopDoor.y + 1, T.PATH);
+
   // Seuil dégagé devant chaque porte (on y arrive toujours du Sud).
   for (const door of doors) {
     for (let dx = -1; dx <= 1; dx++) {
@@ -167,7 +183,7 @@ export function generateWorld(seed = WORLD_SEED) {
   // Zone juste devant une porte : on la garde libre pour pouvoir entrer.
   const nearDoorFront = (x, y) => doors.some((door) => (
     Math.abs(x - door.x) <= 1 && y > door.y && y <= door.y + 2
-  ));
+  )) || (Math.abs(x - shopDoor.x) <= 2 && y > shopDoor.y && y <= shopDoor.y + 4);
 
   const nearBuilding = (x, y) => {
     for (let j = -1; j <= 1; j++) {
@@ -215,6 +231,13 @@ export function generateWorld(seed = WORLD_SEED) {
     spawn: { x: 30.5, y: 24.5 },
     // Position du portail, sur la place au bout du chemin nord.
     portal: { ...PORTAL },
+    // Échoppe du colporteur : sa porte, son comptoir et le seuil où l'on
+    // s'arrête pour vendre.
+    shop: {
+      ...SHOP,
+      door: shopDoor,
+      stand: { x: shopDoor.x + 0.5, y: shopDoor.y + 1.6 }
+    },
     // Portes des maisons, renseignées par generateWorld pour que les deux
     // côtés (client et serveur) connaissent les mêmes coordonnées.
     doors

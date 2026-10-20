@@ -52,6 +52,11 @@ Double-clique sur **`Lancer le jeu.bat`** : il démarre le serveur et ouvre
 4. **Jouer en solo** : le jeu démarre sans serveur. Tout fonctionne (maisons,
    épreuves, récompenses, inventaire), sauf le chat et les autres joueurs.
 5. **Paramètres** : pour régler le son et les touches avant même de jouer.
+6. **Réinitialiser le personnage** : efface la progression de ce navigateur
+   (récompenses, butin, pièces, donjons conquis) et remet le nom et la couleur
+   par défaut. Le bouton demande **deux clics** : le premier l'arme pendant
+   cinq secondes, le second efface tout. Les réglages de son et de touches ne
+   sont pas touchés.
 
 Tu commences au milieu du village, sur la place herbeuse au croisement des deux
 chemins.
@@ -63,7 +68,7 @@ chemins.
 | Touche | Action |
 | ------ | ------ |
 | `ZQSD` / `WASD` / flèches | se déplacer (les diagonales fonctionnent) |
-| `E` | entrer dans une maison, sortir, lire le livre des énigmes, ouvrir le portail, frapper un monstre, ouvrir un coffre, descendre d’une salle, ouvrir une fissure |
+| `E` | entrer dans une maison, sortir, lire le livre des énigmes, ouvrir le portail, vendre à l’échoppe, frapper un monstre, ouvrir un coffre, descendre d’une salle, ouvrir une fissure |
 | `I` | ouvrir / fermer l'inventaire |
 | `P` | ouvrir / fermer les paramètres |
 | `Entrée` | ouvrir le chat (puis `Entrée` pour envoyer) |
@@ -82,7 +87,9 @@ Un rappel des touches est affiché en bas à droite pendant la partie.
 
 - Deux chemins de terre se croisent : une **grand-rue** est-ouest et une **rue
   nord-sud**. Les suivre évite les arbres.
-- Un **lac** avec sa plage occupe le nord-est.
+- Au **nord-est**, l'**échoppe du colporteur** : un bâtiment à l'auvent rayé,
+  relié à la rue nord-sud par un chemin de terre. On y vend le butin en trop
+  (voir la section 5).
 - La carte est fermée par une **forêt** sur tout le pourtour ; impossible d'en
   sortir.
 - Au **bout nord de la rue nord-sud**, une petite place dallée porte un
@@ -186,7 +193,8 @@ cristaux des coins sont les plus rapides à enchaîner.*
 ## 5. L'inventaire (`I`)
 
 L'inventaire a trois parties : **Équipement**, **Butin des donjons** et
-**Récompenses du village**.
+**Récompenses du village**. Son en-tête affiche aussi la **bourse** : les pièces
+amassées en revendant du butin.
 
 ### Équipement
 
@@ -259,6 +267,31 @@ glisser). Ferme avec `I`, `Échap`, `Entrée` ou un clic à côté du panneau.
 | Bottes de vent | vitesse de marche +25 % (aussi côté serveur) |
 | Médaillon du sage | aura dorée au-dessus de la tête |
 
+### Vendre à l'échoppe du colporteur
+
+Au nord-est du village, le colporteur rachète le butin dont tu n'as plus besoin.
+Approche-toi du comptoir : l'invite **« Échoppe — vendre du butin »** apparaît,
+et `E` ouvre son panneau. Le panneau liste tout ce que ton sac contient, avec la
+quantité et le prix unitaire.
+
+| Rareté | Prix par exemplaire |
+| ------ | ------------------- |
+| Commun | 4 pièces |
+| Rare | 10 pièces |
+| Épique | 24 pièces |
+| Légendaire | 60 pièces |
+
+- **Vendre** cède un exemplaire ; **Tout vendre** cède la pile entière.
+- Vendre le **dernier exemplaire** d'un objet équipé le retire automatiquement :
+  ton ATQ ou ta DÉF redescend aussitôt (et tes PV maximum avec l'armure).
+- Les **récompenses des maisons** ne se vendent pas : elles ne sont pas du butin.
+- La bourse s'affiche dans l'en-tête du panneau, dans l'inventaire et en haut à
+  gauche du jeu. `Échap` ou un clic à côté ferme l'échoppe.
+
+*Astuce : les doublons de dague et de cotte de mailles rapportent peu, mais les
+objets épiques et légendaires des salles secrètes font une vraie bourse —
+plusieurs centaines de pièces sans risque.*
+
 ---
 
 ## 6. Les paramètres (`P`)
@@ -322,7 +355,7 @@ Aucun compte, aucun mot de passe : tout est enregistré **dans ce navigateur**
 | `pixel-village:name` | ton nom |
 | `pixel-village:color` | ta couleur |
 | `pixel-village:rewards` | tes récompenses |
-| `pixel-village:loot` | ton butin et ton équipement |
+| `pixel-village:loot` | ton butin, ton équipement et ta **bourse** (`coins`) |
 | `pixel-village:dungeons` | les donjons conquis, donc les maisons ouvertes |
 | `pixel-village:keys` | tes touches personnalisées |
 | `pixel-village:settings` | volume et sourdine |
@@ -333,7 +366,8 @@ Conséquences à connaître :
 - Vider les données du site efface la progression.
 - Gagner une récompense dans un navigateur ne la donne pas aux autres.
 
-Pour tout remettre à zéro depuis la console (F12), par exemple :
+Le plus simple reste le bouton **Réinitialiser le personnage** de l'écran
+d'accueil (deux clics). Sinon, depuis la console (F12) :
 
 ```js
 localStorage.removeItem('pixel-village:rewards');
@@ -362,6 +396,8 @@ Puis recharge la page.
   vaincre le donjon qu'elle indique (section 4).
 - Si une porte semble bloquée, contourne par le chemin : il y a toujours un
   passage dégagé devant chaque maison.
+- Avant de repartir en donjon, passe à l'échoppe : vendre trois doublons évite
+  de confondre ta meilleure arme avec le reste du sac.
 
 ---
 
@@ -523,7 +559,8 @@ Pour éviter les fausses attentes, voici ce qui **n'est pas** dans le jeu
 aujourd'hui :
 
 - pas de compétences, de sorts ni de progression par expérience ;
-- pas de monnaie, de marchand ou d'échange entre joueurs ;
+- pas d'échange d'objets ni de pièces entre joueurs (l'échoppe n'achète qu'au
+  colporteur) ;
 - pas de commandes tactiles pour téléphone ;
 - pas de compte : la progression reste dans le navigateur.
 
@@ -543,6 +580,8 @@ section correspondante (et la ligne « jeu actuel » en haut) :
 | nouveau donjon, monstre, niveau ou butin | 11, et les tableaux de la section 5 |
 | nouvelle salle, salle secrète, fissure | 11 (Une descente de salle en salle, Les salles secrètes) |
 | maison scellée, donjon gardien, condition d'accès | 3 (tableau des maisons), 4 (Les portes scellées), 8 et 11 |
+| échoppe, bourse, prix de vente | 3, 5 (Vendre à l'échoppe), 8 et 9 |
+| réinitialisation du personnage | 1 (L'écran d'accueil) et 8 |
 | règle de combat (dégâts, PV, répit) | 11 |
 | arme affichée en main, animation de frappe | 5 (Équipement) et 11 (Le combat) |
 | changement de sauvegarde | 8 |

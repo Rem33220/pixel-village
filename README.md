@@ -4,7 +4,8 @@ Un jeu de rôle massivement multijoueur minimaliste, jouable **directement dans 
 navigateur** : un village en pixel art, des personnages qui se croisent en temps
 réel, un chat, un mode solo de secours et **trois maisons à visiter, chacune avec
 son épreuve et sa récompense** — mais chaque maison reste scellée tant que le
-donjon qui la garde n'a pas été vaincu.
+donjon qui la garde n'a pas été vaincu. Au nord-est, l'**échoppe du colporteur**
+rachète le butin en trop contre des pièces.
 
 > **Tu veux juste jouer ?** Le **[guide du joueur](GUIDE.md)** explique les
 > commandes, les maisons, les épreuves, l'inventaire et les paramètres. Ce
@@ -104,6 +105,7 @@ Pixel Village prêt : http://localhost:3000  [WebSocket intégré, zéro dépend
 | Arrêter                 | `Ctrl+C` dans la fenêtre du serveur                               |
 | Tester les épreuves     | `node tests/houses.test.mjs` (épreuves et sceaux des maisons)     |
 | Tester les donjons      | `node tests/dungeons.test.mjs`                                     |
+| Tester l'échoppe et la carte | `node tests/shop.test.mjs`                                    |
 
 ### Contrôles
 
@@ -144,7 +146,8 @@ donc aussi bien sur un clavier AZERTY que QWERTY.
         ├── config.js     # réglages partagés client/serveur
         ├── map.js        # génération de la carte + collisions
         ├── houses.js     # maisons, épreuves et récompenses
-        ├── dungeons.js   # portail, salles, fissures, monstres, butin, équipement
+        ├── dungeons.js   # portail, salles, fissures, monstres, butin, équipement, bourse
+        ├── shop.js       # échoppe : vente du butin, panneau, décor du comptoir
         ├── inventory.js  # panneau d'inventaire (touche I) + icônes
         ├── settings.js   # paramètres : volume et touches personnalisables
         ├── audio.js      # sons synthétisés (aucun fichier audio)
@@ -170,7 +173,7 @@ obtiennent donc **exactement la même grille**, sans envoyer de fichiers.
 
 | Envie                          | Fichier                        | Où regarder                          |
 | ------------------------------ | ------------------------------ | ------------------------------------ |
-| Changer le village (lac, maisons, arbres) | `public/js/map.js`  | fonction `generateWorld`             |
+| Changer le village (maisons, échoppe, arbres) | `public/js/map.js` | fonction `generateWorld`, constante `SHOP` |
 | Changer la vitesse             | `public/js/config.js`          | `speed` (tuiles/seconde)             |
 | Changer les couleurs           | `public/js/config.js`          | `colors`                             |
 | Redessiner les personnages     | `public/js/sprites.js`         | tableaux `DOWN_BASE`, `SIDE_BASE`…   |
@@ -276,7 +279,50 @@ n'est envoyé au serveur) ; `I`, `Échap`, `Entrée` ou un clic à côté du pan
 le referment. Les icônes sont dessinées en ASCII dans `public/js/inventory.js`,
 sur le même principe que les personnages : tu peux les redessiner sans
 logiciel. Le panneau affiche aussi l'**équipement** (arme, armure) et le
-**butin des donjons**, avec les boutons **Équiper** / **Retirer**.
+**butin des donjons**, avec les boutons **Équiper** / **Retirer**. La ligne
+d'en-tête rappelle la bourse (« 2 butin · 68 pièces »).
+
+### L'échoppe et la bourse
+
+À la place de l'ancien lac, au nord-est, se dresse l'**échoppe du colporteur** :
+un bâtiment de 7 × 5 tuiles (`SHOP` dans `public/js/map.js`) relié à la rue
+nord-sud par un chemin de terre, avec un auvent rayé et un comptoir dessinés
+par `drawShop` (`public/js/shop.js`, toujours sans fichier image). On s'arrête
+devant le comptoir, `E` ouvre le panneau de vente, `Échap` ou un clic à côté le
+referme — et le personnage ne bouge pas pendant ce temps.
+
+Les pièces vivent dans le coffre du joueur : `vault.coins`, sérialisé avec le
+reste dans `localStorage` (`pixel-village:loot`), relu par `sanitizeVault` (les
+valeurs négatives sont ignorées, le total est plafonné). `createVault`
+retourne donc `{ coins: 0, items: {}, equipped: {…} }`.
+
+| Réglage | Où | Effet |
+| ------- | -- | ----- |
+| `SELL_PRICES` | `shop.js` | prix par rareté : 4 / 10 / 24 / 60 pièces |
+| `SHOP_RANGE` | `shop.js` | distance à laquelle le comptoir répond |
+| `SHOP` | `map.js` | position et taille de l'échoppe |
+| `drawShop` | `shop.js` | auvent, comptoir, colporteur, enseigne |
+
+La vente est **pure** et testée sans navigateur :
+
+- `sellPrice(id)` lit la rareté de l'objet dans `LOOT` ;
+- `sellItem(vault, id, n)` retire `n` exemplaires, crédite la bourse et
+  **déséquipe** l'objet quand c'est le dernier (sinon le personnage garderait
+  une arme fantôme) ;
+- `sellAll(vault, id)` vend ce qui reste.
+
+`main.js` centralise le passage par `sellLoot` : sauvegarde du coffre, HUD,
+PV maximum (vendre une armure réduit les PV max), inventaire et panneau sont
+rafraîchis ensemble, et la vente est annoncée dans le chat.
+
+### Réinitialiser un personnage
+
+Le bouton **Réinitialiser le personnage** de l'écran d'accueil efface les clés
+de progression (`pixel-village:rewards`, `:loot`, `:dungeons`, `:name`,
+`:color`), remet le nom et la couleur par défaut, et vide les `Set` en mémoire
+(récompenses, donjons conquis) ainsi que la bourse. Il demande **deux clics**
+(le premier arme le bouton pendant cinq secondes) pour éviter l'accident. Les
+réglages — volume, sourdine, touches — ne sont pas touchés.
 
 ### Les donjons et le portail
 
