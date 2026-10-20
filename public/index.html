@@ -16,6 +16,7 @@
     <span class="chip" id="hud-players">…</span>
     <div id="hud-rewards" class="hidden"></div>
     <button type="button" id="inventory-btn" class="chip chip-btn">Sac (I)</button>
+    <button type="button" id="settings-btn" class="chip chip-btn">Paramètres</button>
   </div>
 
   <div id="status" class="hidden">
@@ -44,6 +45,42 @@
       <input id="chat-input" type="text" maxlength="120" placeholder="Entrée pour parler…" />
     </form>
   </section>
+
+  <div id="settings" class="hidden" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <div class="settings-panel">
+      <div class="settings-head">
+        <h2 id="settings-title">Paramètres</h2>
+        <button type="button" id="settings-close" class="inventory-close" aria-label="Fermer les paramètres">✕</button>
+      </div>
+
+      <section class="settings-section">
+        <h3>Son</h3>
+        <label class="settings-row" for="settings-volume">
+          <span>Volume des effets</span>
+          <input id="settings-volume" type="range" min="0" max="100" step="5" value="100" />
+          <output id="settings-volume-value" for="settings-volume">100 %</output>
+        </label>
+        <div class="settings-row settings-actions">
+          <button type="button" id="settings-mute" class="mini-btn">Couper le son</button>
+          <button type="button" id="settings-test" class="mini-btn">Tester le son</button>
+        </div>
+      </section>
+
+      <section class="settings-section">
+        <h3>Touches</h3>
+        <div id="settings-keys" class="settings-keys"></div>
+        <p class="settings-note">
+          Clique sur une touche puis appuie sur la nouvelle. Les flèches restent
+          toujours actives pour se déplacer.
+        </p>
+      </section>
+
+      <section class="settings-section settings-footer">
+        <button type="button" id="settings-reset" class="btn ghost">Réinitialiser</button>
+        <p class="settings-note" id="settings-status" aria-live="polite"></p>
+      </section>
+    </div>
+  </div>
 
   <div id="inventory" class="hidden" role="dialog" aria-modal="true" aria-labelledby="inventory-title">
     <div class="inventory-panel">
@@ -74,6 +111,7 @@
       </form>
 
       <button type="button" id="solo-btn" class="btn ghost">Jouer en solo (hors ligne)</button>
+      <button type="button" id="settings-menu-btn" class="btn ghost">Paramètres (son et touches)</button>
 
       <p class="hint-panel">
         Le mode en ligne a besoin du petit serveur Node fourni dans le projet.

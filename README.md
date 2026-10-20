@@ -106,9 +106,13 @@ Pixel Village prêt : http://localhost:3000  [WebSocket intégré, zéro dépend
 | `ZQSD` / `WASD` / flèches      | se déplacer                   |
 | `E`                            | entrer dans une maison, sortir, agir |
 | `I`                            | ouvrir / fermer l'inventaire  |
+| `P`                            | ouvrir / fermer les paramètres |
 | `1` `2` `3`                    | répondre aux énigmes          |
 | `Entrée`                       | ouvrir le chat                |
-| `Échap`                        | fermer le chat ou l'inventaire, quitter une maison |
+| `Échap`                        | fermer le chat, l'inventaire ou les paramètres, quitter une maison |
+
+Toutes ces touches (sauf `Entrée` et `Échap`) se changent dans les paramètres ;
+les flèches restent toujours actives pour se déplacer.
 | Clic sur une pastille          | changer la couleur du personnage |
 
 Les touches sont lues via `event.code` : les touches **physiques** fonctionnent
@@ -134,6 +138,8 @@ donc aussi bien sur un clavier AZERTY que QWERTY.
         ├── map.js        # génération de la carte + collisions
         ├── houses.js     # maisons, épreuves et récompenses
         ├── inventory.js  # panneau d'inventaire (touche I) + icônes
+        ├── settings.js   # paramètres : volume et touches personnalisables
+        ├── audio.js      # sons synthétisés (aucun fichier audio)
         ├── sprites.js    # pixel art des personnages (dessiné en ASCII)
         ├── renderer.js   # caméra, tuiles, personnages, bulles de chat
         ├── input.js      # clavier
@@ -162,6 +168,8 @@ obtiennent donc **exactement la même grille**, sans envoyer de fichiers.
 | Changer le look des tuiles     | `public/js/renderer.js`        | `drawTile` et ses fonctions          |
 | Changer le port                | `public/js/config.js`          | `port` (ou variable `PORT`)          |
 | Changer la taille du chat      | `public/js/config.js`          | `maxChatLength`                      |
+| Changer les touches par défaut | `public/js/settings.js`        | `DEFAULT_BINDINGS`                   |
+| Changer/ajouter des sons       | `public/js/audio.js`           | `SOUNDS`                             |
 
 Les sprites font 12 × 16 pixels et sont dessinés avec des caractères :
 
@@ -202,6 +210,30 @@ Les récompenses sont conservées dans le navigateur
 l'autre, sans compte. Un joueur qui refait une épreuve gagnée garde sa
 récompense. Si tu veux tout remettre à zéro, efface cette clé depuis la console
 (F12).
+
+### Les paramètres (touche P)
+
+`P`, ou les boutons **Paramètres** (HUD et écran d'accueil), ouvrent un panneau
+avec deux sections :
+
+- **Son** : un curseur de volume des effets, un bouton pour couper/rétablir le
+  son et un bouton **Tester**. Les sons sont synthétisés à la volée avec l'API
+  Web Audio (clics, ramassage de cristal, rune, réussite, échec) : il n'y a
+  aucun fichier audio dans le projet.
+- **Touches** : un bouton par action (haut, bas, gauche, droite, agir,
+  inventaire, paramètres). On clique sur la touche affichée, puis on appuie sur
+  la nouvelle. Si la touche est déjà utilisée par une autre action, **les deux
+  touches sont échangées** (jamais de doublon). `Échap` annule, et les touches
+  réservées (`Entrée`, `Tab`, majuscules, contrôle, alt) sont refusées avec un
+  message.
+
+Les réglages sont enregistrés dans le navigateur : `pixel-village:settings`
+pour le volume et la sourdine, `pixel-village:keys` pour les touches. Le bouton
+**Réinitialiser** remet tout à zéro. Les libellés suivent le clavier réel quand
+le navigateur le permet : sur AZERTY, la touche physique `KeyW` s'affiche « Z ».
+
+Pendant qu'un panneau (inventaire ou paramètres) est ouvert, le personnage ne
+bouge pas et aucun ordre n'est envoyé au serveur.
 
 ### L'inventaire (touche I)
 

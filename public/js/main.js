@@ -5,6 +5,8 @@ import { Renderer } from './renderer.js';
 import { initInput, moveVector, isTyping, setInputEnabled } from './input.js';
 import { createConnection, websocketUrl } from './net.js';
 import { createInventory } from './inventory.js';
+import { createSettingsPanel, getBindings, labelFor } from './settings.js';
+import { playSound } from './audio.js';
 import {
   buildHouses,
   buildInterior,
@@ -67,13 +69,33 @@ const els = {
   challengeGoal: document.getElementById('challenge-goal'),
   challengeStatus: document.getElementById('challenge-status'),
   challengeAnswers: document.getElementById('challenge-answers'),
-  inventoryBtn: document.getElementById('inventory-btn')
+  inventoryBtn: document.getElementById('inventory-btn'),
+  settingsBtn: document.getElementById('settings-btn'),
+  settingsMenuBtn: document.getElementById('settings-menu-btn'),
+  hint: document.getElementById('hint')
 };
 
-// Inventaire : panneau modal, le déplacement est coupé pendant qu'il est ouvert.
+// Panneaux modaux : le déplacement est coupé tant que l'un d'eux est ouvert.
+function refreshInputState() {
+  setInputEnabled(!(inventory.isOpen() || settingsPanel.isOpen()));
+}
+
+const settingsPanel = createSettingsPanel({
+  onToggle: () => {
+    refreshInputState();
+    playSound('click');
+  },
+  onBindingsChanged: () => {
+    updateHint();
+  }
+});
+
 const inventory = createInventory({
   getRewards: () => state.rewards,
-  onChange: (open) => setInputEnabled(!open)
+  onChange: () => {
+    refreshInputState();
+    playSound('click');
+  }
 });
 
 // --- Personnages -----------------------------------------------------------
@@ -316,6 +338,7 @@ function enterHouse(house) {
   answersKey = '';
   updateChallengePanel();
   updatePrompt(true);
+  playSound('enter');
   pushChat(`Tu entres — ${house.name}. ${house.goal}`, 'system');
 }
 
@@ -347,6 +370,7 @@ function exitHouse() {
     state.conn.send({ t: 'interior', inside: false });
     syncGear();
   }
+  playSound('click');
   updatePrompt(true);
 }
 
@@ -380,12 +404,15 @@ function chooseAnswer(index) {
   const result = answerQuiz(inside.challenge, index);
   if (!result) return;
   if (result === 'won') onChallengeWon();
+  else if (result === 'wrong') playSound('fail');
+  else if (result === 'next') playSound('pickup');
   updateChallengePanel();
 }
 
 function onChallengeWon() {
   const inside = state.inside;
   if (!inside) return;
+  playSound('success');
   const reward = REWARDS[inside.house.reward];
   const isNew = grantReward(inside.house.reward);
   if (isNew) {
@@ -693,8 +720,16 @@ function tickInside(dt) {
   const me = state.players.get(state.selfId);
   if (!me) return;
 
-  const result = updateChallenge(inside.challenge, me, dt);
+  const challenge = inside.challenge;
+  const takenBefore = challenge.taken ? challenge.taken.filter(Boolean).length : 0;
+  const stepBefore = challenge.step ?? 0;
+
+  const result = updateChallenge(challenge, me, dt);
+
+  if (challenge.taken && challenge.taken.filter(Boolean).length > takenBefore) playSound('pickup');
+  if (challenge.type === 'runes' && (challenge.step ?? 0) > stepBefore) playSound('rune');
   if (result === 'won') onChallengeWon();
+  else if (result === 'retry' || result === 'wrong') playSound('fail');
   updateChallengePanel();
 }
 
@@ -762,20 +797,42 @@ els.inventoryBtn.addEventListener('click', () => {
   inventory.toggle();
 });
 
+els.settingsBtn.addEventListener('click', () => settingsPanel.toggle());
+els.settingsMenuBtn.addEventListener('click', () => settingsPanel.open());
+
+// Rappel des touches affiché en bas à droite, toujours à jour après un
+// changement dans les paramètres.
+function updateHint() {
+  const keys = getBindings();
+  const move = `${labelFor(keys.up)}${labelFor(keys.left)}${labelFor(keys.down)}${labelFor(keys.right)}`;
+  els.hint.textContent = `${move} ou flèches : bouger · ${labelFor(keys.interact)} : agir · ${labelFor(keys.inventory)} : sac · ${labelFor(keys.settings)} : paramètres`;
+}
+
 window.addEventListener('keydown', (event) => {
-  if (event.code === 'KeyI' && !isTyping(event)
-    && state.mode !== 'menu' && state.mode !== 'connecting') {
+  const keys = getBindings();
+
+  // Paramètres : accessibles aussi depuis l'écran d'accueil, pour régler le
+  // volume avant même de jouer.
+  if (event.code === keys.settings && !isTyping(event)) {
     event.preventDefault();
-    inventory.toggle();
+    settingsPanel.toggle();
     return;
   }
 
-  // Inventaire ouvert : il capte Échap et Entrée, et bloque les autres touches.
-  if (inventory.isOpen()) {
+  // Un panneau modal capte Échap et sa propre touche, et bloque le reste.
+  if (inventory.isOpen() || settingsPanel.isOpen()) {
     if (event.code === 'Escape' || event.code === 'Enter') {
       event.preventDefault();
       inventory.close();
+      settingsPanel.close();
     }
+    return;
+  }
+
+  if (event.code === keys.inventory && !isTyping(event)
+    && state.mode !== 'menu' && state.mode !== 'connecting') {
+    event.preventDefault();
+    inventory.toggle();
     return;
   }
 
@@ -796,7 +853,7 @@ window.addEventListener('keydown', (event) => {
 
   if (isTyping(event)) return;
 
-  if (event.code === 'KeyE' && (state.mode === 'online' || state.mode === 'solo')) {
+  if (event.code === keys.interact && (state.mode === 'online' || state.mode === 'solo')) {
     event.preventDefault();
     interact();
     return;
@@ -841,4 +898,5 @@ loadRewards();
 updateSwatches();
 updateHud();
 updateRewardsHud();
+updateHint();
 requestAnimationFrame(loop);

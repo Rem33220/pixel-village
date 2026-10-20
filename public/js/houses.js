@@ -273,7 +273,7 @@ export function updateChallenge(challenge, pos, dt) {
     challenge.flash = 0.3;
     challenge.flashColor = '#e07e6a';
     challenge.message = 'Raté ! Regarde encore la séquence.';
-    return null;
+    return 'wrong';
   }
 
   if (challenge.type === 'cristaux') {
