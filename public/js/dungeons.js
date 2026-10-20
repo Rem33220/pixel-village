@@ -150,12 +150,105 @@ export const LOOT = {
     rarity: 'legendaire',
     color: '#6f4bd6',
     detail: 'Le tissu se referme sur les coups comme une nuit sans étoiles.'
+  },
+  // Butin des expéditions avancées (niveaux 4 à 6) : les objets épiques
+  // tombent dans les salles, les mythiques restent dans les salles secrètes.
+  trident_abysses: {
+    name: 'Trident des abysses',
+    kind: 'arme',
+    art: 'epee',
+    attack: 17,
+    defense: 0,
+    rarity: 'epique',
+    color: '#7fd6ff',
+    detail: 'Trois pointes forgées dans un métal qui ne rouille jamais.'
+  },
+  marteau_cendres: {
+    name: 'Marteau des cendres',
+    kind: 'arme',
+    art: 'hache',
+    attack: 20,
+    defense: 0,
+    rarity: 'epique',
+    color: '#ff9a5c',
+    detail: 'Sa tête est encore chaude quand on le sort de la forge.'
+  },
+  epee_neant: {
+    name: 'Épée du néant',
+    kind: 'arme',
+    art: 'epee',
+    attack: 23,
+    defense: 0,
+    rarity: 'epique',
+    color: '#ff8fb0',
+    detail: 'La garde est froide, la lame boit la lumière des torches.'
+  },
+  lame_abysses: {
+    name: 'Lame des abysses',
+    kind: 'arme',
+    art: 'lame',
+    glow: true,
+    attack: 22,
+    defense: 0,
+    rarity: 'mythique',
+    color: '#5fd0ff',
+    detail: 'Elle ruisselle d’une eau noire qui ne sèche jamais.'
+  },
+  cuirasse_abysses: {
+    name: 'Cuirasse abyssale',
+    kind: 'armure',
+    attack: 0,
+    defense: 12,
+    rarity: 'mythique',
+    color: '#3f7fa8',
+    detail: 'Des écailles de poisson des fosses, dures comme de la pierre.'
+  },
+  fleau_cendres: {
+    name: 'Fléau des cendres',
+    kind: 'arme',
+    art: 'hache',
+    glow: true,
+    attack: 27,
+    defense: 0,
+    rarity: 'mythique',
+    color: '#ff6a3c',
+    detail: 'Chaque coup soulève un nuage de braise qui reste dans les yeux.'
+  },
+  bouclier_cendres: {
+    name: 'Bouclier de cendres',
+    kind: 'armure',
+    attack: 0,
+    defense: 14,
+    rarity: 'mythique',
+    color: '#c9803f',
+    detail: 'Compacté dans la fournaise : il absorbe les coups comme du sable.'
+  },
+  lame_neant: {
+    name: 'Lame du néant',
+    kind: 'arme',
+    art: 'lame',
+    glow: true,
+    attack: 34,
+    defense: 0,
+    rarity: 'mythique',
+    color: '#ff5f7a',
+    detail: 'L’arme du trône : elle ne laisse derrière elle que du vide.'
+  },
+  couronne_neant: {
+    name: 'Couronne du néant',
+    kind: 'armure',
+    attack: 0,
+    defense: 17,
+    rarity: 'mythique',
+    color: '#d6a8ff',
+    detail: 'Personne ne sait si elle protège ou si elle dévore celui qui la porte.'
   }
 };
 
 // Niveaux de rareté, du plus courant au plus rare : sert au tri de
-// l'inventaire et aux couleurs du portail.
-export const RARITY_ORDER = ['commun', 'rare', 'epique', 'legendaire'];
+// l'inventaire et aux couleurs du portail. « Mythique » n'existe que dans les
+// expéditions avancées et leurs salles secrètes.
+export const RARITY_ORDER = ['commun', 'rare', 'epique', 'legendaire', 'mythique'];
 
 // Silhouettes d'armes dessinées en main (voir public/js/weapons.js) :
 // dague courte, épée, hache et lame longue. Une arme sans `art` connu tombe
@@ -259,6 +352,31 @@ export const MONSTERS = {
     speed: 1.9,
     size: 16,
     tint: '#7a5cd6'
+  },
+  // Créatures des expéditions avancées.
+  noye: {
+    name: 'Noyé des abysses',
+    pv: 42,
+    damage: 8,
+    speed: 1.7,
+    size: 14,
+    tint: '#4f9ec0'
+  },
+  gargouille: {
+    name: 'Gargouille',
+    pv: 46,
+    damage: 9,
+    speed: 2.6,
+    size: 13,
+    tint: '#8d7f6a'
+  },
+  seigneur: {
+    name: 'Seigneur du néant',
+    pv: 130,
+    damage: 16,
+    speed: 1.6,
+    size: 17,
+    tint: '#ff5f7a'
   }
 };
 
@@ -375,11 +493,160 @@ export const DUNGEONS = [
       loot: ['lame_ombre', 'cape_ombre']
     },
     loot: ['gantelets', 'plastron', 'mailles', 'armure_gardien', 'epee_gardien', 'lame_ombre', 'cape_ombre']
+  },
+  // --- Expéditions avancées ------------------------------------------------
+  // `requires` liste les donjons à conquérir avant d'ouvrir celui-ci. Les trois
+  // premiers sont libres ; les suivants s'enchaînent (4 → 5 → 6).
+  {
+    id: 'abysses',
+    name: 'Abysses noyées',
+    level: 4,
+    danger: 'Sans retour',
+    accent: '#5fd0ff',
+    requires: ['crypte', 'galerie', 'antre'],
+    intro: 'Sous l’antre, l’eau noire monte. Il faut les trois sceaux pour y descendre.',
+    rooms: [
+      {
+        name: 'Abysses noyées',
+        intro: 'Des noyés sortent de l’eau en silence. Trois coffres sur la berge.',
+        monsters: ['noye', 'noye', 'spectre'],
+        chests: 3,
+        loot: ['trident_abysses', 'armure_gardien', 'lame_brumes']
+      },
+      {
+        name: 'Gouffre sans fond',
+        intro: 'La galerie plonge : un noyé rôde autour d’une ombre du gardien.',
+        monsters: ['noye', 'ombre', 'noye'],
+        chests: 3,
+        loot: ['trident_abysses', 'plastron', 'epee_gardien']
+      },
+      {
+        name: 'Nef engloutie',
+        intro: 'Une coque brisée, des spectres et deux coffres au sec.',
+        monsters: ['noye', 'noye', 'spectre'],
+        chests: 2,
+        loot: ['armure_gardien', 'lame_brumes']
+      }
+    ],
+    secret: {
+      name: 'Cœur noyé',
+      intro: 'Sous la coque, l’eau est tiède et une ombre garde le trésor.',
+      monsters: ['ombre', 'noye'],
+      chests: 2,
+      loot: ['lame_abysses', 'cuirasse_abysses']
+    },
+    loot: ['trident_abysses', 'armure_gardien', 'lame_brumes', 'plastron', 'epee_gardien',
+      'lame_abysses', 'cuirasse_abysses']
+  },
+  {
+    id: 'forge',
+    name: 'Forge des cendres',
+    level: 5,
+    danger: 'Infernal',
+    accent: '#ff9a5c',
+    requires: ['abysses'],
+    intro: 'Les abysses n’étaient que l’entrée : la fournaise tourne encore, seule.',
+    rooms: [
+      {
+        name: 'Forge des cendres',
+        intro: 'Des gargouilles tournent au-dessus des enclumes. Trois coffres.',
+        monsters: ['gargouille', 'golem', 'gargouille'],
+        chests: 3,
+        loot: ['marteau_cendres', 'armure_gardien', 'trident_abysses']
+      },
+      {
+        name: 'Soufflet brisé',
+        intro: 'Le soufflet pend : gargouille, ombre et golem se partagent la salle.',
+        monsters: ['gargouille', 'ombre', 'golem'],
+        chests: 3,
+        loot: ['marteau_cendres', 'trident_abysses', 'plastron']
+      },
+      {
+        name: 'Grande fournaise',
+        intro: 'La chaleur plie l’air. Deux golems et une gargouille gardent deux coffres.',
+        monsters: ['golem', 'gargouille', 'golem'],
+        chests: 2,
+        loot: ['marteau_cendres', 'trident_abysses']
+      }
+    ],
+    secret: {
+      name: 'Enclume des cendres',
+      intro: 'L’enclume d’origine : une ombre et une gargouille, deux coffres mythiques.',
+      monsters: ['ombre', 'gargouille'],
+      chests: 2,
+      loot: ['fleau_cendres', 'bouclier_cendres']
+    },
+    loot: ['marteau_cendres', 'armure_gardien', 'trident_abysses', 'plastron',
+      'fleau_cendres', 'bouclier_cendres']
+  },
+  {
+    id: 'trone',
+    name: 'Trône du néant',
+    level: 6,
+    danger: 'Néant',
+    accent: '#ff5f7a',
+    requires: ['forge'],
+    intro: 'Au-delà de la forge, un trône attend celui qui a tout vaincu.',
+    rooms: [
+      {
+        name: 'Marches du trône',
+        intro: 'Des gargouilles montent la garde sur les marches.',
+        monsters: ['gargouille', 'spectre', 'gargouille'],
+        chests: 3,
+        loot: ['epee_neant', 'marteau_cendres', 'armure_gardien']
+      },
+      {
+        name: 'Salle des serments',
+        intro: 'Deux ombres et un spectre prêtent serment dans le noir.',
+        monsters: ['ombre', 'ombre', 'spectre'],
+        chests: 3,
+        loot: ['epee_neant', 'trident_abysses', 'plastron']
+      },
+      {
+        name: 'Trône du néant',
+        intro: 'Le seigneur du néant t’attend, seul, devant les derniers coffres.',
+        monsters: ['seigneur'],
+        chests: 2,
+        loot: ['epee_neant', 'marteau_cendres']
+      }
+    ],
+    secret: {
+      name: 'Antichambre du néant',
+      intro: 'Derrière le trône : une ombre veille sur le seigneur endormi.',
+      monsters: ['ombre', 'seigneur'],
+      chests: 2,
+      loot: ['lame_neant', 'couronne_neant']
+    },
+    loot: ['epee_neant', 'marteau_cendres', 'armure_gardien', 'trident_abysses', 'plastron',
+      'lame_neant', 'couronne_neant']
   }
 ];
 
 export function getDungeon(id) {
   return DUNGEONS.find((dungeon) => dungeon.id === id) ?? null;
+}
+
+// Un donjon est ouvert quand tous ceux listés dans `requires` sont conquis
+// (un `Set` d'identifiants, relu depuis le navigateur). Sans `requires`, il
+// est ouvert dès le départ : ce sont les trois donjons du village.
+export function dungeonUnlocked(dungeon, conquered) {
+  const requires = dungeon?.requires ?? [];
+  if (requires.length === 0) return true;
+  if (!conquered || typeof conquered.has !== 'function') return false;
+  return requires.every((id) => conquered.has(id));
+}
+
+// Donjons encore à conquerir pour ouvrir celui-ci (pour l'invite du portail).
+export function missingDungeons(dungeon, conquered) {
+  return (dungeon?.requires ?? [])
+    .filter((id) => !(conquered && typeof conquered.has === 'function' && conquered.has(id)))
+    .map((id) => getDungeon(id))
+    .filter(Boolean);
+}
+
+// Donjons ouverts d'emblée (les trois du village), et ceux qui s'enchaînent.
+export function starterDungeons() {
+  return DUNGEONS.filter((dungeon) => !dungeon.requires?.length);
 }
 
 export function dungeonOfItem(id) {
@@ -1276,6 +1543,87 @@ export function drawMonster(ctx, monster, now) {
     ctx.fillRect(cx + 9, top - 2, 2, 13);
     ctx.fillStyle = '#7a5cd6';
     ctx.fillRect(cx + 8, top - 4, 2, 2);
+  } else if (monster.type === 'noye') {
+    // Noyé : silhouette gonflée d'eau, algues et gouttes qui tombent.
+    ctx.fillStyle = '#2f6a86';
+    ctx.fillRect(cx - 6, cy - 9, 12, 11);
+    ctx.fillRect(cx - 7, cy - 6, 14, 5);
+    ctx.fillStyle = '#4f9ec0';
+    ctx.fillRect(cx - 5, cy - 12, 10, 6);
+    ctx.fillStyle = '#2f8f8a';
+    ctx.fillRect(cx - 5, cy - 13, 3, 2);
+    ctx.fillRect(cx + 2, cy - 13, 3, 2);
+    ctx.fillRect(cx - 6, cy - 8, 2, 4);
+    ctx.fillStyle = '#d8f7ff';
+    ctx.fillRect(cx - 4, cy - 11, 2, 2);
+    ctx.fillRect(cx + 2, cy - 11, 2, 2);
+    ctx.fillStyle = '#0f2a36';
+    ctx.fillRect(cx - 2, cy - 6, 4, 1);
+    const drip = Math.round(Math.sin(now / 240) * 2);
+    ctx.fillStyle = 'rgba(120, 200, 230, 0.55)';
+    ctx.fillRect(cx - 5, cy - 1 + drip, 1, 3);
+    ctx.fillRect(cx + 4, cy + 1 - drip, 1, 2);
+  } else if (monster.type === 'gargouille') {
+    // Gargouille : ailes de pierre qui battent, cornes et yeux jaunes.
+    const flap = Math.round(Math.sin(now / 160) * 2);
+    ctx.fillStyle = '#6f6455';
+    ctx.beginPath();
+    ctx.moveTo(cx - 4, cy - 10);
+    ctx.lineTo(cx - 12, cy - 13 - flap);
+    ctx.lineTo(cx - 10, cy - 6);
+    ctx.closePath();
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(cx + 4, cy - 10);
+    ctx.lineTo(cx + 12, cy - 13 - flap);
+    ctx.lineTo(cx + 10, cy - 6);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#8d7f6a';
+    ctx.fillRect(cx - 4, cy - 9, 8, 9);
+    ctx.fillStyle = '#a3957e';
+    ctx.fillRect(cx - 4, cy - 13, 8, 5);
+    ctx.fillRect(cx - 5, cy - 15, 2, 3);
+    ctx.fillRect(cx + 3, cy - 15, 2, 3);
+    ctx.fillStyle = '#ffd24a';
+    ctx.fillRect(cx - 3, cy - 12, 2, 2);
+    ctx.fillRect(cx + 1, cy - 12, 2, 2);
+    ctx.fillStyle = '#4a4238';
+    ctx.fillRect(cx - 4, cy - 1, 3, 2);
+    ctx.fillRect(cx + 1, cy - 1, 3, 2);
+  } else if (monster.type === 'seigneur') {
+    // Seigneur du néant : grand manteau, couronne et lame rose.
+    const float = Math.round(Math.sin(now / 420) * 2);
+    glow(ctx, cx, cy - 6 + float, monster.size, 'rgba(255, 95, 122, 0.22)');
+    ctx.fillStyle = '#1a0f1c';
+    ctx.fillRect(cx - 8, top + 4 + float, 16, 12);
+    ctx.beginPath();
+    ctx.moveTo(cx - 8, top + 16 + float);
+    ctx.lineTo(cx - 4, top + 13 + float);
+    ctx.lineTo(cx, top + 16 + float);
+    ctx.lineTo(cx + 4, top + 13 + float);
+    ctx.lineTo(cx + 8, top + 16 + float);
+    ctx.lineTo(cx + 8, top + 19 + float);
+    ctx.lineTo(cx - 8, top + 19 + float);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#3a2030';
+    ctx.fillRect(cx - 6, top + 1 + float, 12, 6);
+    ctx.fillStyle = '#2a1224';
+    ctx.fillRect(cx - 4, top + 2 + float, 8, 5);
+    // Couronne.
+    ctx.fillStyle = '#ffd24a';
+    ctx.fillRect(cx - 4, top - 2 + float, 8, 2);
+    ctx.fillRect(cx - 4, top - 4 + float, 1, 2);
+    ctx.fillRect(cx - 1, top - 5 + float, 2, 3);
+    ctx.fillRect(cx + 3, top - 4 + float, 1, 2);
+    // Yeux et lame.
+    ctx.fillStyle = '#ff5f7a';
+    ctx.fillRect(cx - 3, top + 3 + float, 2, 2);
+    ctx.fillRect(cx + 1, top + 3 + float, 2, 2);
+    ctx.fillRect(cx + 9, top - 3 + float, 2, 14);
+    ctx.fillStyle = '#ffd6e2';
+    ctx.fillRect(cx + 9, top - 3 + float, 1, 6);
   } else {
     // Golem : gros blocs de pierre.
     ctx.fillStyle = '#565c63';

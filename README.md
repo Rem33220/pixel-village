@@ -4,8 +4,10 @@ Un jeu de rôle massivement multijoueur minimaliste, jouable **directement dans 
 navigateur** : un village en pixel art, des personnages qui se croisent en temps
 réel, un chat, un mode solo de secours et **trois maisons à visiter, chacune avec
 son épreuve et sa récompense** — mais chaque maison reste scellée tant que le
-donjon qui la garde n'a pas été vaincu. Au nord-est, l'**échoppe du colporteur**
-rachète le butin en trop contre des pièces.
+donjon qui la garde n'a pas été vaincu. Les trois donjons du portail en cachent
+trois autres, des **expéditions avancées** qui se débloquent dans l'ordre et
+gardent un butin mythique. Au nord-est, l'**échoppe du colporteur** rachète le
+butin en trop contre des pièces.
 
 > **Tu veux juste jouer ?** Le **[guide du joueur](GUIDE.md)** explique les
 > commandes, les maisons, les épreuves, l'inventaire et les paramètres. Ce
@@ -298,7 +300,7 @@ retourne donc `{ coins: 0, items: {}, equipped: {…} }`.
 
 | Réglage | Où | Effet |
 | ------- | -- | ----- |
-| `SELL_PRICES` | `shop.js` | prix par rareté : 4 / 10 / 24 / 60 pièces |
+| `SELL_PRICES` | `shop.js` | prix par rareté : 4 / 10 / 24 / 60 / 140 pièces |
 | `SHOP_RANGE` | `shop.js` | distance à laquelle le comptoir répond |
 | `SHOP` | `map.js` | position et taille de l'échoppe |
 | `drawShop` | `shop.js` | auvent, comptoir, colporteur, enseigne |
@@ -350,12 +352,24 @@ qui ajoute l'identifiant à `state.conquered`, l'écrit dans
 seul lien entre un donjon et une maison : `dungeons.js` ignore tout des maisons,
 et `houses.js` ne connaît que l'identifiant du donjon gardien.
 
+Les **expéditions avancées** (niveaux 4 à 6) portent une liste `requires` : les
+Abysses noyées exigent les trois donjons du village, la Forge des cendres exige
+les Abysses, le Trône du néant exige la Forge. `dungeonUnlocked(dungeon,
+conquered)` répond à la question, `missingDungeons` fournit la liste lisible
+pour la carte verrouillée et `starterDungeons` renvoie les trois donjons
+ouverts d'emblée. La condition est évaluée à chaque ouverture du portail et
+`enterDungeon` la revérifie : une carte grisée ne peut pas être forcée. À la
+victoire, `conquerDungeon` compare l'état avant/après et annonce chaque
+expédition qui vient de s'ouvrir. Aucune de ces trois expéditions ne garde de
+maison : seuls les trois donjons du village sont liés à un sceau.
+
 Tout se règle en haut du fichier :
 
 | Réglage | Où | Effet |
 | ------- | -- | ----- |
 | `DUNGEONS` | `dungeons.js` | salles (`rooms`), salle secrète (`secret`), monstres, coffres, butin de chaque salle |
 | `MONSTERS` | `dungeons.js` | PV, dégâts, vitesse et taille de chaque monstre |
+| `requires`, `dungeonUnlocked` | `dungeons.js` | chaîne de déblocage des expéditions avancées |
 | `LOOT` | `dungeons.js` | armes et armures : bonus, rareté, couleur d'icône |
 | `BASE_STATS` | `dungeons.js` | attaque, défense et PV de base du personnage |
 | `ENTRY_GRACE`, `MONSTER_AGGRO` | `dungeons.js` | répit à chaque arrivée, distance de poursuite |
@@ -367,7 +381,10 @@ Tout se règle en haut du fichier :
 Pour ajouter une salle : une entrée dans `rooms` (nom, intro, monstres,
 nombre de coffres, butin), et c'est tout — la descente, le panneau et les
 tests la prennent automatiquement. Pour ajouter un donjon : une entrée dans
-`DUNGEONS` avec au moins deux salles et une `secret`. Les tests vérifient que
+`DUNGEONS` avec au moins deux salles et une `secret`, plus un `requires` si
+l'expédition doit rester fermée au départ. Un monstre inédit demande une
+entrée dans `MONSTERS` **et** une branche dans `drawMonster` (le dessin est
+fait au canvas, sans image). Les tests vérifient que
 chaque salle (secrète comprise) est atteignable à pied depuis son arrivée, que
 les coffres et les monstres sont sur du sol libre, que le butin vient bien de
 la salle, que la fissure est atteignable et qu'une même graine redonne la même

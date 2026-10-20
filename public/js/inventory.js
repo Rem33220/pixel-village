@@ -24,7 +24,8 @@ const RARITY = {
   commun: 'Commun',
   rare: 'Rare',
   epique: 'Épique',
-  legendaire: 'Légendaire'
+  legendaire: 'Légendaire',
+  mythique: 'Mythique'
 };
 
 const ICONS = {

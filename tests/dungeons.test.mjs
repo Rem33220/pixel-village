@@ -15,9 +15,13 @@ import {
   aimDirection,
   crackNear,
   dungeonTotals,
+  dungeonUnlocked,
   enterSecretRoom,
   equippedWeapon,
   exitAction,
+  getDungeon,
+  missingDungeons,
+  starterDungeons,
   isLastRoom,
   leaveSecretRoom,
   nextRoom,
@@ -32,7 +36,6 @@ import {
   createVault,
   equipItem,
   gearStats,
-  getDungeon,
   itemCount,
   nearExit,
   openChest,
@@ -89,8 +92,10 @@ function reachableFrom(room, start) {
 
 // --- Donjons : données cohérentes -----------------------------------------
 {
-  check('donjons: trois niveaux distincts', DUNGEONS.length === 3
-    && new Set(DUNGEONS.map((d) => d.level)).size === 3);
+  check('donjons: six expéditions, six niveaux distincts', DUNGEONS.length === 6
+    && new Set(DUNGEONS.map((d) => d.level)).size === 6);
+  check('donjons: trois donjons de départ, trois expéditions avancées',
+    starterDungeons().length === 3 && DUNGEONS.filter((d) => d.requires?.length).length === 3);
   for (const dungeon of DUNGEONS) {
     const rooms = dungeon.rooms ?? [];
     const specs = [...rooms, dungeon.secret].filter(Boolean);
@@ -147,9 +152,42 @@ function reachableFrom(room, start) {
   check('butin: au moins un objet épique par donjon',
     DUNGEONS.every((dungeon) => dungeon.loot.some((id) => LOOT[id].rarity === 'epique')));
 
-  const nouveaux = ['araignee', 'spectre', 'ombre'];
-  check('monstres: trois nouvelles créatures',
+  const nouveaux = ['araignee', 'spectre', 'ombre', 'noye', 'gargouille', 'seigneur'];
+  check('monstres: six créatures au total',
     nouveaux.every((type) => MONSTERS[type] && MONSTERS[type].pv > 0));
+  check('monstres: les expéditions avancées ont leurs propres créatures',
+    ['noye', 'gargouille', 'seigneur'].every((type) => (
+      DUNGEONS.some((d) => d.requires?.length && d.loot
+        && [...d.rooms, d.secret].some((spec) => spec.monsters.includes(type)))
+    )));
+  check('butin: rareté mythique réservée aux salles secrètes',
+    DUNGEONS.every((dungeon) => dungeon.loot
+      .filter((id) => LOOT[id].rarity === 'mythique')
+      .every((id) => dungeon.secret.loot.includes(id)))
+    && Object.values(LOOT).some((item) => item.rarity === 'mythique'));
+
+  // --- Déblocage progressif des expéditions ------------------------------
+  const starter = new Set();
+  check('déblocage: les trois premiers donjons sont ouverts d’emblée',
+    DUNGEONS.slice(0, 3).every((d) => dungeonUnlocked(d, starter)));
+  check('déblocage: les abysses exigent les trois premiers',
+    !dungeonUnlocked(getDungeon('abysses'), starter)
+    && !dungeonUnlocked(getDungeon('abysses'), new Set(['crypte', 'galerie']))
+    && dungeonUnlocked(getDungeon('abysses'), new Set(['crypte', 'galerie', 'antre'])));
+  check('déblocage: la forge exige les abysses',
+    !dungeonUnlocked(getDungeon('forge'), new Set(['crypte', 'galerie', 'antre']))
+    && dungeonUnlocked(getDungeon('forge'), new Set(['abysses'])));
+  check('déblocage: le trône exige la forge',
+    !dungeonUnlocked(getDungeon('trone'), new Set(['abysses']))
+    && dungeonUnlocked(getDungeon('trone'), new Set(['forge'])));
+  check('déblocage: chaque `requires` existe',
+    DUNGEONS.every((d) => (d.requires ?? []).every((id) => getDungeon(id))));
+  check('déblocage: une chaîne sans boucle',
+    DUNGEONS.every((d) => !(d.requires ?? []).includes(d.id)));
+  check('déblocage: la liste des manquants est explicite',
+    missingDungeons(getDungeon('abysses'), new Set(['crypte'])).map((d) => d.id).join(',')
+      === 'galerie,antre'
+    && missingDungeons(getDungeon('abysses'), new Set(['crypte', 'galerie', 'antre'])).length === 0);
   check('monstres: la salle secrète est au moins aussi dangereuse',
     DUNGEONS.every((dungeon) => {
       const pire = (types) => Math.max(...types.map((type) => MONSTERS[type].damage));

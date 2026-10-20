@@ -8,8 +8,9 @@ d'installation ni de code : pour ça, voir [README.md](README.md).
 > jouables et doit être mis à jour à chaque nouveauté (voir la dernière section).
 > État décrit : celui du commit `b5ea1f7` — portail, donjons et combat, butin
 > et équipement, arme tenue en main et animation de frappe, donjons à plusieurs
-> salles, salles secrètes, butin légendaire, maisons scellées par leur donjon,
-> échoppe du colporteur avec sa bourse, et réinitialisation du personnage. Les
+> salles, salles secrètes, butin légendaire et mythique, maisons scellées par
+> leur donjon, expéditions avancées qui se débloquent dans l'ordre, échoppe du
+> colporteur avec sa bourse, et réinitialisation du personnage. Les
 > commits qui ne touchent que la documentation ne changent rien à ce guide.
 
 ---
@@ -94,7 +95,8 @@ Un rappel des touches est affiché en bas à droite pendant la partie.
 - La carte est fermée par une **forêt** sur tout le pourtour ; impossible d'en
   sortir.
 - Au **bout nord de la rue nord-sud**, une petite place dallée porte un
-  **portail** lumineux entouré de deux piliers : c'est l'entrée des donjons
+  **portail** lumineux entouré de deux piliers : c'est l'entrée des donjons —
+  six au total, dont trois expéditions qui se débloquent au fil des victoires
   (voir la section 11).
 - Trois maisons, chacune avec sa porte marron et son paillasson lumineux.
   Chacune est **gardée par un donjon** : sa porte reste scellée jusqu'à la
@@ -232,7 +234,13 @@ statistiques montent immédiatement. Le bouton devient **Retirer**.
 | Hache de pierre | +6 ATQ | Rare | Galerie — salles 1 et 2 |
 | Lame des brumes | +9 ATQ | Épique | Galerie — 2e salle, ou salle secrète de la Crypte |
 | Épée du gardien | +13 ATQ | Épique | Antre — salles 2 et 3, ou salle secrète de la Galerie |
+| Trident des abysses | +17 ATQ | Épique | Abysses — salles 1 et 2, puis Forge et Trône |
 | Lame d’ombre | +18 ATQ | Légendaire | Salle secrète de l’Antre |
+| Marteau des cendres | +20 ATQ | Épique | Forge — salles 1 à 3, ou Trône — salles 1 et 3 |
+| Lame des abysses | +22 ATQ | Mythique | Salle secrète des Abysses |
+| Épée du néant | +23 ATQ | Épique | Trône — salles 1 à 3 |
+| Fléau des cendres | +27 ATQ | Mythique | Salle secrète de la Forge |
+| Lame du néant | +34 ATQ | Mythique | Salle secrète du Trône |
 
 | Armure | Bonus | Rareté | Où |
 | ------ | ----- | ------ | -- |
@@ -242,10 +250,14 @@ statistiques montent immédiatement. Le bouton devient **Retirer**.
 | Gantelets de pierre | +4 DÉF | Rare | Antre — salles 1 et 2 |
 | Armure du gardien | +8 DÉF | Épique | Antre — salles 2 et 3 |
 | Cape d’ombre | +10 DÉF | Légendaire | Salle secrète de l’Antre |
+| Cuirasse abyssale | +12 DÉF | Mythique | Salle secrète des Abysses |
+| Bouclier de cendres | +14 DÉF | Mythique | Salle secrète de la Forge |
+| Couronne du néant | +17 DÉF | Mythique | Salle secrète du Trône |
 
 La **rareté** est écrite dans la fiche de chaque objet : *Commun*, *Rare*,
-*Épique* ou *Légendaire* (en violet). Les objets **légendaires** ne sortent que
-des salles secrètes.
+*Épique*, *Légendaire* (en violet) ou *Mythique* (en rose). Les objets
+**légendaires** et **mythiques** ne sortent que des salles secrètes : ce sont
+les seuls butins qu'on ne croise jamais dans une salle ordinaire.
 
 Les objets ne se perdent jamais, même en tombant dans un donjon. Ils restent
 dans le navigateur (voir la section 8).
@@ -281,6 +293,7 @@ quantité et le prix unitaire.
 | Rare | 10 pièces |
 | Épique | 24 pièces |
 | Légendaire | 60 pièces |
+| Mythique | 140 pièces |
 
 - **Vendre** cède un exemplaire ; **Tout vendre** cède la pile entière.
 - Vendre le **dernier exemplaire** d'un objet équipé le retire automatiquement :
@@ -357,7 +370,7 @@ Aucun compte, aucun mot de passe : tout est enregistré **dans ce navigateur**
 | `pixel-village:color` | ta couleur |
 | `pixel-village:rewards` | tes récompenses |
 | `pixel-village:loot` | ton butin, ton équipement et ta **bourse** (`coins`) |
-| `pixel-village:dungeons` | les donjons conquis, donc les maisons ouvertes |
+| `pixel-village:dungeons` | les donjons conquis : les maisons ouvertes **et les expéditions débloquées** |
 | `pixel-village:keys` | tes touches personnalisées |
 | `pixel-village:settings` | volume et sourdine |
 
@@ -422,9 +435,11 @@ Puis recharge la page.
 1. Suis la **rue nord-sud** jusqu'à son extrémité nord : une petite place dallée
    avec deux piliers et un tourbillon lumineux.
 2. Approche-toi : l'invite **« Portail — choisir un donjon »** apparaît.
-3. Appuie sur `E` : le **panneau du portail** liste les trois donjons, avec
-   leur niveau, leur danger, le nombre de salles, de monstres et de coffres
-   (salle secrète comprise), et le butin possible.
+3. Appuie sur `E` : le **panneau du portail** liste les donjons, avec leur
+   niveau, leur danger, le nombre de salles, de monstres et de coffres (salle
+   secrète comprise), et le butin possible. Les trois premiers sont ouverts ;
+   les trois **expéditions avancées** restent grisées, avec le bouton
+   **Verrouillé** et le nom des donjons encore à vaincre.
 4. Clique sur **Entrer — niveau …**. Tu y entres **seul** : les autres joueurs
    te voient disparaître, comme pour une maison.
 
@@ -434,8 +449,8 @@ en appuyant sur `Échap` (qui quitte le donjon à tout moment).
 ### Une descente de salle en salle
 
 Chaque donjon enchaîne **plusieurs salles** (2 pour la Crypte et la Galerie, 3
-pour l'Antre), plus une salle secrète facultative. Le panneau de droite indique
-toujours où tu en es : `salle 2/3`.
+pour l'Antre et les trois expéditions avancées), plus une salle secrète
+facultative. Le panneau de droite indique toujours où tu en es : `salle 2/3`.
 
 - L'**escalier** au bas de chaque salle est marqué d'une flèche. **Flèche vers
   le bas** : `E` descend dans la salle suivante (le panneau affiche alors
@@ -459,7 +474,7 @@ expédition (sa salle change d'une descente à l'autre). Elle se trouve dans le
    secrète »** apparaît.
 2. Appuie sur `E` : tu passes derrière le mur. La salle est plus petite, les
    monstres y sont plus coriaces, et ses coffres contiennent un butin qu'on ne
-trouve **nulle part ailleurs** (épique ou légendaire).
+trouve **nulle part ailleurs** (épique, légendaire ou mythique).
 3. L'escalier de la salle secrète te ramène dans la salle d'où tu viens, juste
    devant la fissure. Tu peux y retourner autant de fois que tu veux : les
    coffres déjà ouverts le restent.
@@ -478,6 +493,26 @@ Chaque donjon est **rejouable** : la disposition, le contenu des coffres et la
 place de la fissure changent à chaque entrée, ce qui permet de récupérer un
 objet manqué.
 
+### Les expéditions avancées
+
+Les trois donjons du village ne sont que le début. Une fois les **trois**
+vaincus, trois **expéditions avancées** apparaissent au portail, puis
+s'enchaînent : chacune exige la précédente. Le portail refuse d'entrer dans une
+expédition verrouillée, et sa carte grise indique précisément ce qui manque
+(« Verrouillé — vaincs d'abord : … »).
+
+| Expédition | Niveau | Salles | Débloquée par | Monstres | Butin possible |
+| ---------- | ------ | ------ | ------------- | -------- | -------------- |
+| Abysses noyées | 4 | 3 + secrète | Crypte, Galerie et Antre | noyés, spectres, ombres | trident des abysses, lame des brumes, plastron, épée du gardien, armure du gardien ; lame et cuirasse abyssales dans la salle secrète |
+| Forge des cendres | 5 | 3 + secrète | Abysses noyées | gargouilles, golems, ombres | marteau des cendres, trident des abysses, plastron, armure du gardien ; fléau et bouclier de cendres dans la salle secrète |
+| Trône du néant | 6 | 3 + secrète | Forge des cendres | gargouilles, spectres, ombres, seigneur du néant | épée du néant, marteau des cendres, trident des abysses, armure du gardien ; lame et couronne du néant dans la salle secrète |
+
+À chaque victoire, le chat annonce l'expédition qui vient de s'ouvrir :
+« Nouveau donjon au portail : … ». La progression est enregistrée avec les
+donjons conquis (section 8) : recharger la page ne reverrouille rien.
+
+### Les créatures
+
 | Monstre | PV | Dégâts par coup | Comportement |
 | ------- | -- | --------------- | ------------ |
 | Baveux | 14 | 2 | lent, poursuit de près |
@@ -486,6 +521,9 @@ objet manqué.
 | Spectre | 34 | 7 | flotte, frappe fort |
 | Golem | 55 | 10 | lent mais très dangereux |
 | Ombre du gardien | 80 | 13 | boss de la salle secrète de l’Antre |
+| Noyé des abysses | 42 | 8 | lent, sort de l’eau sans un bruit |
+| Gargouille | 46 | 9 | très rapide, bat des ailes |
+| Seigneur du néant | 130 | 16 | boss du Trône, lame rose et couronne |
 
 ### Le combat
 
@@ -523,7 +561,9 @@ est **en pause** : impossible de se faire tuer dans un menu.
 
 ### Ce que la victoire ouvre
 
-Chaque donjon garde **une maison et une seule** :
+Chaque donjon du village garde **une maison et une seule**. Les expéditions
+avancées, elles, ne gardent aucune porte : elles s'ouvrent l'une l'autre (voir
+plus haut) et servent d'escalier vers le butin mythique.
 
 | Donjon | Maison débloquée | Épreuve qui s'y trouve |
 | ------ | ---------------- | ---------------------- |
@@ -581,6 +621,8 @@ section correspondante (et la ligne « jeu actuel » en haut) :
 | nouveau donjon, monstre, niveau ou butin | 11, et les tableaux de la section 5 |
 | nouvelle salle, salle secrète, fissure | 11 (Une descente de salle en salle, Les salles secrètes) |
 | maison scellée, donjon gardien, condition d'accès | 3 (tableau des maisons), 4 (Les portes scellées), 8 et 11 |
+| donjon verrouillé, déblocage progressif, expédition avancée | 11 (Les expéditions avancées) et 8 |
+| nouvelle rareté (mythique), prix de vente | 5 (Butin, Vendre) et 11 |
 | échoppe, bourse, prix de vente | 3, 5 (Vendre à l'échoppe), 8 et 9 |
 | réinitialisation du personnage | 1 (L'écran d'accueil) et 8 |
 | règle de combat (dégâts, PV, répit) | 11 |

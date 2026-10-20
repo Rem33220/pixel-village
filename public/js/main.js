@@ -40,11 +40,13 @@ import {
   drawPortal,
   drawRun,
   dungeonTotals,
+  dungeonUnlocked,
   enterSecretRoom,
   equipItem,
   equippedWeapon,
   exitAction,
   leaveSecretRoom,
+  missingDungeons,
   monsterNear,
   nearExit as nearRoomExit,
   nextRoom,
@@ -676,8 +678,9 @@ function nearPortal(me) {
 }
 
 function dungeonCard(dungeon) {
+  const unlocked = dungeonUnlocked(dungeon, state.conquered);
   const card = document.createElement('article');
-  card.className = 'portal-card';
+  card.className = unlocked ? 'portal-card' : 'portal-card locked';
 
   const head = document.createElement('div');
   head.className = 'portal-card-head';
@@ -701,7 +704,20 @@ function dungeonCard(dungeon) {
   intro.className = 'portal-intro';
   intro.textContent = dungeon.intro;
 
+  // Expédition avancée : on dit précisément ce qui manque pour l'ouvrir.
+  let lock = null;
+  if (!unlocked) {
+    const missing = missingDungeons(dungeon, state.conquered);
+    lock = document.createElement('p');
+    lock.className = 'portal-locked';
+    lock.textContent = missing.length
+      ? `Verrouillé — vaincs d’abord : ${missing.map((entry) => entry.name).join(', ')}.`
+      : 'Verrouillé.';
+  }
+
   // Ce que la victoire ouvre au village : la maison gardée par ce donjon.
+  // Les expéditions avancées ne gardent aucune maison : on affiche juste
+  // leur état (vaincue ou non), sans promesse de récompense au village.
   const house = houseForDungeon(dungeon.id, houses);
   let seal = null;
   if (house) {
@@ -711,6 +727,11 @@ function dungeonCard(dungeon) {
     seal.textContent = conquered
       ? `Conquis — ${houseWithArticle(house)} est ouverte`
       : `Garde la porte de ${houseWithArticle(house)}`;
+  } else if (unlocked) {
+    const conquered = state.conquered.has(dungeon.id);
+    seal = document.createElement('p');
+    seal.className = conquered ? 'portal-seal open' : 'portal-seal';
+    seal.textContent = conquered ? 'Expédition terminée' : 'Expédition — jamais vaincue';
   }
 
   const loot = document.createElement('ul');
@@ -728,10 +749,12 @@ function dungeonCard(dungeon) {
   const button = document.createElement('button');
   button.type = 'button';
   button.className = 'btn';
-  button.textContent = `Entrer — niveau ${dungeon.level}`;
-  button.addEventListener('click', () => enterDungeon(dungeon.id));
+  button.disabled = !unlocked;
+  button.textContent = unlocked ? `Entrer — niveau ${dungeon.level}` : 'Verrouillé';
+  if (unlocked) button.addEventListener('click', () => enterDungeon(dungeon.id));
 
   card.append(head, info, intro);
+  if (lock) card.append(lock);
   if (seal) card.append(seal);
   card.append(loot, button);
   return card;
@@ -807,6 +830,7 @@ function enterDungeon(id) {
   const dungeon = DUNGEONS.find((entry) => entry.id === id);
   const me = state.players.get(state.selfId);
   if (!dungeon || !me) return;
+  if (!dungeonUnlocked(dungeon, state.conquered)) return;
 
   closePortal();
 
@@ -963,20 +987,35 @@ function handleRunInteract() {
 // Donjon conquis : mémorisé dans le navigateur, il ouvre la maison qu'il garde
 // (une maison par donjon). La victoire n'est annoncée qu'une seule fois.
 function conquerDungeon(run) {
+  const before = new Set(state.conquered);
   const isNew = !state.conquered.has(run.dungeon.id);
   if (isNew) {
     state.conquered.add(run.dungeon.id);
     saveConquered();
   }
+
   const house = houseForDungeon(run.dungeon.id, houses);
-  if (!house) return;
-  playSound('success');
-  pushChat(
-    isNew
-      ? `Donjon conquis ! Le sceau de ${houseWithArticle(house)} se brise : la porte est ouverte.`
-      : `${houseWithArticle(house)} est déjà ouverte : ce donjon avait été vaincu.`,
-    'system'
-  );
+  if (house) {
+    playSound('success');
+    pushChat(
+      isNew
+        ? `Donjon conquis ! Le sceau de ${houseWithArticle(house)} se brise : la porte est ouverte.`
+        : `${houseWithArticle(house)} est déjà ouverte : ce donjon avait été vaincu.`,
+      'system'
+    );
+  }
+
+  // Les expéditions avancées s'enchaînent : chaque victoire peut en ouvrir une.
+  for (const dungeon of DUNGEONS) {
+    if (before.has(dungeon.id)) continue;
+    if (!dungeonUnlocked(dungeon, state.conquered)) continue;
+    if (dungeonUnlocked(dungeon, before)) continue;
+    playSound('success');
+    pushChat(
+      `Nouveau donjon au portail : ${dungeon.name} (niveau ${dungeon.level}, ${dungeon.danger}).`,
+      'system'
+    );
+  }
 }
 
 function tickDungeon(dt) {

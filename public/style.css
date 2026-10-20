@@ -1025,6 +1025,22 @@ label,
   border-color: #7a3b34;
 }
 
+.danger-4 {
+  color: #7fd6ff;
+  border-color: #2f5a72;
+}
+
+.danger-5 {
+  color: #ffb27a;
+  border-color: #7a4a2a;
+}
+
+.danger-6 {
+  color: #ff8fb8;
+  border-color: #6f2c46;
+  text-shadow: 0 0 8px rgba(255, 95, 122, 0.35);
+}
+
 .portal-danger {
   margin: 6px 0 0;
   font-size: 10px;
@@ -1082,6 +1098,37 @@ label,
 
 .rarity-epique {
   color: #f6d34d;
+}
+
+.rarity-mythique {
+  color: #ff7ad9;
+  text-shadow: 0 0 6px rgba(255, 122, 217, 0.35);
+}
+
+/* Expédition encore verrouillée : carte éteinte, bouton inerte. */
+.portal-card.locked {
+  opacity: 0.72;
+  border-color: #3a2f2f;
+  background: repeating-linear-gradient(
+    -45deg,
+    rgba(255, 255, 255, 0.02) 0 6px,
+    transparent 6px 12px
+  ), #0b120f;
+}
+
+.portal-locked {
+  margin: 8px 0 0;
+  font-size: 10px;
+  line-height: 1.5;
+  color: #d8836f;
+}
+
+.portal-card .btn:disabled {
+  color: #6d8278;
+  background: #16231d;
+  border: 2px solid var(--line);
+  box-shadow: none;
+  cursor: not-allowed;
 }
 
 .rarity-legendaire {

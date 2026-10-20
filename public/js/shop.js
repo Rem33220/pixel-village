@@ -21,14 +21,16 @@ export const SELL_PRICES = {
   commun: 4,
   rare: 10,
   epique: 24,
-  legendaire: 60
+  legendaire: 60,
+  mythique: 140
 };
 
 export const RARITY_LABEL = {
   commun: 'Commun',
   rare: 'Rare',
   epique: 'Épique',
-  legendaire: 'Légendaire'
+  legendaire: 'Légendaire',
+  mythique: 'Mythique'
 };
 
 function distance(a, b) {
@@ -245,7 +247,7 @@ export function createShopPanel({ getVault, onChange, onSell }) {
       .sort((a, b) => {
         const itemA = LOOT[a];
         const itemB = LOOT[b];
-        const rank = { legendaire: 0, epique: 1, rare: 2, commun: 3 };
+        const rank = { mythique: 0, legendaire: 1, epique: 2, rare: 3, commun: 4 };
         const diff = (rank[itemA.rarity] ?? 9) - (rank[itemB.rarity] ?? 9);
         return diff !== 0 ? diff : itemA.name.localeCompare(itemB.name, 'fr');
       });

@@ -30,10 +30,13 @@ const check = (label, ok, extra = '') => {
   const keys = houses.map((house) => house.requiredDungeon);
   check('sceaux: chaque maison a un donjon gardien', keys.every(Boolean), keys.join(', '));
   check('sceaux: un seul donjon par maison', new Set(keys).size === keys.length);
-  check('sceaux: chaque donjon garde une maison', DUNGEONS.every((dungeon) => {
-    const guarding = houses.filter((house) => house.requiredDungeon === dungeon.id);
-    return guarding.length === 1;
-  }), DUNGEONS.map((d) => d.id).join(', '));
+  check('sceaux: chaque donjon du village garde une maison', DUNGEONS
+    .filter((dungeon) => !dungeon.requires?.length)
+    .every((dungeon) => houses.filter((house) => house.requiredDungeon === dungeon.id).length === 1),
+  DUNGEONS.map((d) => d.id).join(', '));
+  check('sceaux: les expéditions avancées ne gardent aucune maison', DUNGEONS
+    .filter((dungeon) => dungeon.requires?.length)
+    .every((dungeon) => houseForDungeon(dungeon.id, houses) === null));
   check('sceaux: donjon inconnu ignoré', houseUnlocked({ requiredDungeon: 'abysses' }, new Set(['crypte'])) === false);
 
   const house = houses.find((h) => h.requiredDungeon === 'crypte');
