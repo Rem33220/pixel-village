@@ -88,6 +88,14 @@ const SOUNDS = {
   },
   enter: () => tone({ freq: 300, endFreq: 460, duration: 0.2, type: 'sine', gain: 0.1 }),
   fail: () => tone({ freq: 250, endFreq: 120, duration: 0.3, type: 'sawtooth', gain: 0.08 }),
+  // Combat : un coup sec pour frapper, un grondement grave pour être touché.
+  hit: () => {
+    tone({ freq: 320, endFreq: 150, duration: 0.07, type: 'square', gain: 0.08 });
+    tone({ freq: 640, start: 0.02, duration: 0.04, type: 'triangle', gain: 0.05 });
+  },
+  hurt: () => {
+    tone({ freq: 170, endFreq: 80, duration: 0.22, type: 'sawtooth', gain: 0.1 });
+  },
   success: () => {
     [523, 659, 784, 1046].forEach((freq, index) => {
       tone({ freq, start: index * 0.09, duration: 0.17, type: 'triangle', gain: 0.1 });
@@ -95,7 +103,7 @@ const SOUNDS = {
   }
 };
 
-// Noms acceptés : click, pickup, rune, enter, fail, success.
+// Noms acceptés : click, pickup, rune, enter, fail, success, hit, hurt.
 export function playSound(name) {
   if (muted || volume <= 0) return;
   const key = name === 'pickup' ? 'pickups' : name;

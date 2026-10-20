@@ -6,8 +6,9 @@ d'installation ni de code : pour ça, voir [README.md](README.md).
 
 > **Note de maintenance** — ce fichier décrit *toutes* les fonctionnalités
 > jouables et doit être mis à jour à chaque nouveauté (voir la dernière section).
-> État décrit : celui du commit `a3a9525`, dernière modification du jeu
-> (les commits qui ne touchent que la documentation ne changent rien à ce guide).
+> État décrit : celui du commit `d3bf5f6`, plus les **donjons** (portail,
+> combat, butin et équipement) ajoutés ensuite. Les commits qui ne touchent que
+> la documentation ne changent rien à ce guide.
 
 ---
 
@@ -23,8 +24,9 @@ d'installation ni de code : pour ça, voir [README.md](README.md).
 8. [Ta sauvegarde](#8-ta-sauvegarde)
 9. [Astuces](#9-astuces)
 10. [En cas de problème](#10-en-cas-de-problème)
-11. [Ce qui n'existe pas encore](#11-ce-qui-nexiste-pas-encore)
-12. [Mettre ce guide à jour](#12-mettre-ce-guide-à-jour)
+11. [Les donjons et le portail](#11-les-donjons-et-le-portail)
+12. [Ce qui n'existe pas encore](#12-ce-qui-nexiste-pas-encore)
+13. [Mettre ce guide à jour](#13-mettre-ce-guide-à-jour)
 
 ---
 
@@ -60,11 +62,11 @@ chemins.
 | Touche | Action |
 | ------ | ------ |
 | `ZQSD` / `WASD` / flèches | se déplacer (les diagonales fonctionnent) |
-| `E` | entrer dans une maison, sortir, lire le livre des énigmes |
+| `E` | entrer dans une maison, sortir, lire le livre des énigmes, ouvrir le portail, frapper un monstre, ouvrir un coffre |
 | `I` | ouvrir / fermer l'inventaire |
 | `P` | ouvrir / fermer les paramètres |
 | `Entrée` | ouvrir le chat (puis `Entrée` pour envoyer) |
-| `Échap` | fermer le chat, un panneau, ou quitter une maison |
+| `Échap` | fermer le chat, un panneau, quitter une maison ou un donjon |
 | `1` `2` `3` | répondre aux énigmes de la Maison du sage |
 
 Deux boutons sont aussi disponibles en haut à gauche : **Sac (I)** et
@@ -82,6 +84,9 @@ Un rappel des touches est affiché en bas à droite pendant la partie.
 - Un **lac** avec sa plage occupe le nord-est.
 - La carte est fermée par une **forêt** sur tout le pourtour ; impossible d'en
   sortir.
+- Au **bout nord de la rue nord-sud**, une petite place dallée porte un
+  **portail** lumineux entouré de deux piliers : c'est l'entrée des donjons
+  (voir la section 11).
 - Trois maisons, chacune avec sa porte marron et son paillasson lumineux :
 
 | Maison | Où | Depuis la place centrale |
@@ -149,6 +154,51 @@ cristaux des coins sont les plus rapides à enchaîner.*
 
 ## 5. L'inventaire (`I`)
 
+L'inventaire a trois parties : **Équipement**, **Butin des donjons** et
+**Récompenses du village**.
+
+### Équipement
+
+Deux emplacements : une **arme** et une **armure**. Chacun affiche l'objet porté
+et son bonus (`+4 ATQ`, `+3 DÉF`) ; clique dessus pour lire sa fiche ou le
+retirer. Un emplacement vide indique simplement « Aucune arme » / « Aucune
+armure ».
+
+- **ATQ** (attaque) : dégâts de chaque coup (`E`), base 4 sans arme.
+- **DÉF** (défense) : points de dégâts retirés à chaque coup reçu, et **+2 PV
+  maximum par point de défense**.
+
+L'arme et l'armure comptent ensemble : le HUD en haut à gauche affiche en
+permanence `ATQ … · DÉF …` (survole-le pour voir les deux objets portés).
+
+### Butin des donjons
+
+Chaque objet trouvé dans un coffre apparaît ici avec son icône, son nom, son
+bonus et un badge `×2` si tu en as plusieurs exemplaires. Clique sur un objet
+puis sur **Équiper** : l'objet passe dans l'emplacement correspondant et tes
+statistiques montent immédiatement. Le bouton devient **Retirer**.
+
+| Arme | Bonus | Où |
+| ---- | ----- | -- |
+| Dague rouillée | +2 ATQ | Crypte des brumes |
+| Épée courte | +4 ATQ | Crypte des brumes |
+| Hache de pierre | +6 ATQ | Galerie des échos |
+| Lame des brumes | +9 ATQ | Galerie des échos |
+| Épée du gardien | +13 ATQ | Antre du gardien |
+
+| Armure | Bonus | Où |
+| ------ | ----- | -- |
+| Tunique de cuir | +1 DÉF | Crypte des brumes |
+| Cotte de mailles | +3 DÉF | Galerie des échos |
+| Plastron runique | +5 DÉF | Galerie des échos |
+| Gantelets de pierre | +4 DÉF | Antre du gardien |
+| Armure du gardien | +8 DÉF | Antre du gardien |
+
+Les objets ne se perdent jamais, même en tombant dans un donjon. Ils restent
+dans le navigateur (voir la section 8).
+
+### Récompenses du village
+
 Trois emplacements, un par maison :
 
 - **Obtenu** : icône, nom, maison d'origine, description et effet.
@@ -206,8 +256,9 @@ touche physique « W » s'affiche « Z ».
 - **Chat** : `Entrée`, tape ton message (120 caractères), `Entrée` pour envoyer.
   Un message toutes les 0,5 seconde maximum. Ton texte apparaît aussi dans une
   bulle au-dessus de ton personnage pendant quelques secondes.
-- Les joueurs qui entrent dans une maison **disparaissent de la carte** : leur
-  intérieur est privé. Ils réapparaissent à leur place en sortant.
+- Les joueurs qui entrent dans une maison ou dans un donjon **disparaissent de
+  la carte** : leur instance est privée. Ils réapparaissent à leur place en
+  sortant.
 - Si la connexion se coupe ou si le serveur est injoignable au démarrage, le
   jeu passe automatiquement en solo avec un bandeau, et tes récompenses sont
   conservées. Le bouton **Reconnecter** du bandeau permet de retenter la
@@ -227,6 +278,7 @@ Aucun compte, aucun mot de passe : tout est enregistré **dans ce navigateur**
 | `pixel-village:name` | ton nom |
 | `pixel-village:color` | ta couleur |
 | `pixel-village:rewards` | tes récompenses |
+| `pixel-village:loot` | ton butin et ton équipement |
 | `pixel-village:keys` | tes touches personnalisées |
 | `pixel-village:settings` | volume et sourdine |
 
@@ -240,6 +292,7 @@ Pour tout remettre à zéro depuis la console (F12), par exemple :
 
 ```js
 localStorage.removeItem('pixel-village:rewards');
+localStorage.removeItem('pixel-village:loot');
 localStorage.removeItem('pixel-village:keys');
 localStorage.removeItem('pixel-village:settings');
 ```
@@ -275,21 +328,95 @@ Puis recharge la page.
 
 ---
 
-## 11. Ce qui n'existe pas encore
+## 11. Les donjons et le portail
+
+### Entrer dans un donjon
+
+1. Suis la **rue nord-sud** jusqu'à son extrémité nord : une petite place dallée
+   avec deux piliers et un tourbillon lumineux.
+2. Approche-toi : l'invite **« Portail — choisir un donjon »** apparaît.
+3. Appuie sur `E` : le **panneau du portail** liste les trois donjons, avec
+   leur niveau, leur danger, le nombre de monstres et de coffres, et le butin
+   possible.
+4. Clique sur **Entrer — niveau …**. Tu y entres **seul** : les autres joueurs
+   te voient disparaître, comme pour une maison.
+
+Pour ressortir : monte sur l'**escalier lumineux** en bas de la salle et appuie
+sur `E`, ou appuie sur `Échap`. Tu réapparais exactement devant le portail.
+
+### Les trois donjons
+
+| Donjon | Niveau | Danger | Monstres | Coffres | Butin possible |
+| ------ | ------ | ------ | -------- | ------- | -------------- |
+| Crypte des brumes | 1 | Calme | 2 baveux | 3 | dague, tunique de cuir, épée courte |
+| Galerie des échos | 2 | Risqué | 3 squelettes + 1 baveux | 4 | hache de pierre, cotte de mailles, lame des brumes, plastron runique |
+| Antre du gardien | 3 | Mortel | 2 golems + 1 squelette | 3 | épée du gardien, armure du gardien, gantelets de pierre |
+
+Chaque donjon est **rejouable** : la disposition et le contenu des coffres
+changent à chaque entrée, ce qui permet de récupérer un objet manqué.
+
+| Monstre | PV | Dégâts par coup | Comportement |
+| ------- | -- | --------------- | ------------ |
+| Baveux | 14 | 2 | lent, poursuit de près |
+| Squelette | 24 | 5 | rapide |
+| Golem | 55 | 10 | lent mais très dangereux |
+
+### Le combat
+
+- `E` **frappe** le monstre le plus proche (à moins d'une tuile et demie). Un
+  coup toutes les 0,42 seconde.
+- Les dégâts que tu infliges sont ton **ATQ** : 4 à mains nues, plus le bonus de
+  ton arme.
+- Les monstres te poursuivent quand tu t'approches et frappent au contact,
+  environ une fois par seconde.
+- Tu subis `dégâts du monstre − DÉF` (toujours au moins 1 point).
+- Tu as **1,2 seconde de répit** à l'arrivée : le temps de regarder la salle.
+- Tes **PV** s'affichent en haut à gauche, dans la barre rouge.
+
+**Si tu tombes** (PV à zéro) : tu es renvoyé devant le portail, avec tous tes
+points de vie pour la prochaine visite. **Tu ne perds ni butin ni équipement.**
+
+### Les coffres et le butin
+
+- Approche-toi d'un coffre : l'invite **« Ouvrir le coffre »** apparaît.
+  Appuie sur `E` : l'objet tombe directement dans ton inventaire.
+- Chaque coffre contient un objet **différent** du donjon.
+- Les monstres laissent parfois tomber un objet (environ une fois sur trois).
+- Le panneau de droite suit ta progression : `coffres ouverts · monstres
+  restants · PV`. Quand tous les coffres sont ouverts, la salle est nettoyée :
+  il ne reste qu'à sortir.
+- Ouvre l'inventaire (`I`) et clique sur l'objet puis **Équiper** : il compte
+  immédiatement dans tes statistiques (voir la section 5).
+
+Pendant qu'un panneau est ouvert (inventaire, paramètres, portail), le donjon
+est **en pause** : impossible de se faire tuer dans un menu.
+
+### Conseils
+
+- Combats **un monstre à la fois** : tu marches plus vite qu'eux, recule pour
+  les séparer.
+- Fais la Crypte des brumes en premier : ses objets rendent la Galerie et
+  l'Antre bien plus faciles.
+- L'**armure** fait deux choses à la fois : elle réduit les dégâts reçus et
+  augmente tes PV maximum (2 PV par point de défense).
+- Dans l'Antre, sans armure, un golem te tue en trois coups : n'y va pas les
+  mains nues.
+
+---
+
+## 12. Ce qui n'existe pas encore
 
 Pour éviter les fausses attentes, voici ce qui **n'est pas** dans le jeu
 aujourd'hui :
 
-- pas de combat, pas de monstres, pas de points de vie ;
-- pas de donjons, pas de portail, pas de butin (armes, armures) ni
-  d'équipement ;
+- pas de compétences, de sorts ni de progression par expérience ;
 - pas de monnaie, de marchand ou d'échange entre joueurs ;
 - pas de commandes tactiles pour téléphone ;
 - pas de compte : la progression reste dans le navigateur.
 
 ---
 
-## 12. Mettre ce guide à jour
+## 13. Mettre ce guide à jour
 
 À chaque nouvelle fonctionnalité **visible par le joueur**, mettre à jour la
 section correspondante (et la ligne « jeu actuel » en haut) :
@@ -300,7 +427,8 @@ section correspondante (et la ligne « jeu actuel » en haut) :
 | nouvel objet, arme, armure, équipement | 5, plus une ligne dans le tableau des effets |
 | nouvelle touche ou action | 2 et 6 |
 | nouveau réglage (son, affichage…) | 6 |
-| zone, portail, donjon, monstre | nouvelle section avant « Ce qui n'existe pas encore », puis retirer la ligne correspondante de la section 11 |
+| nouveau donjon, monstre, niveau ou butin | 11, et les tableaux de la section 5 |
+| règle de combat (dégâts, PV, répit) | 11 |
 | changement de sauvegarde | 8 |
 | limite ou règle multijoueur | 7 |
-| commandes tactiles / mobile | 2, puis retirer la ligne de la section 11 |
+| commandes tactiles / mobile | 2, puis retirer la ligne de la section 12 |

@@ -4,7 +4,7 @@ import { generateWorld, isSolid } from './map.js';
 import { Renderer } from './renderer.js';
 import { initInput, moveVector, isTyping, setInputEnabled } from './input.js';
 import { createConnection, websocketUrl } from './net.js';
-import { createInventory } from './inventory.js';
+import { createInventory, equipmentSummary } from './inventory.js';
 import { createSettingsPanel, getBindings, labelFor } from './settings.js';
 import { playSound } from './audio.js';
 import {
@@ -16,11 +16,30 @@ import {
   openQuiz,
   drawChallenge,
   nearTome,
-  nearExit,
   ENTER_RANGE,
   QUIZ,
   REWARDS
 } from './houses.js';
+import {
+  DUNGEONS,
+  LOOT,
+  PORTAL_RANGE,
+  addItem,
+  attackRun,
+  chestNear,
+  createRun,
+  createVault,
+  drawMonster,
+  drawPortal,
+  drawRun,
+  equipItem,
+  monsterNear,
+  nearExit as nearRoomExit,
+  openChest,
+  playerStats,
+  sanitizeVault,
+  updateRun
+} from './dungeons.js';
 
 const world = generateWorld();
 const houses = buildHouses(world);
@@ -43,7 +62,11 @@ const state = {
   // Maison en cours de visite : { house, room, challenge }
   inside: null,
   savedPos: null,
-  rewards: new Set()
+  rewards: new Set(),
+  // Butin et équipement (localStorage « pixel-village:loot »).
+  vault: createVault(),
+  // Donjon en cours : { dungeon, room, monsters, chests, pv… }
+  run: null
 };
 
 const els = {
@@ -72,12 +95,23 @@ const els = {
   inventoryBtn: document.getElementById('inventory-btn'),
   settingsBtn: document.getElementById('settings-btn'),
   settingsMenuBtn: document.getElementById('settings-menu-btn'),
-  hint: document.getElementById('hint')
+  hint: document.getElementById('hint'),
+  challengeHelp: document.getElementById('challenge-help'),
+  hudPv: document.getElementById('hud-pv'),
+  hudPvFill: document.getElementById('hud-pv-fill'),
+  hudPvText: document.getElementById('hud-pv-text'),
+  hudGear: document.getElementById('hud-gear'),
+  portal: document.getElementById('portal'),
+  portalList: document.getElementById('portal-list'),
+  portalClose: document.getElementById('portal-close')
 };
+
+const HOUSE_HELP = 'E : sortir · Échap : quitter la maison';
+const DUNGEON_HELP = 'E : attaquer, ouvrir un coffre, sortir · Échap : quitter le donjon';
 
 // Panneaux modaux : le déplacement est coupé tant que l'un d'eux est ouvert.
 function refreshInputState() {
-  setInputEnabled(!(inventory.isOpen() || settingsPanel.isOpen()));
+  setInputEnabled(!(inventory.isOpen() || settingsPanel.isOpen() || isPortalOpen()));
 }
 
 const settingsPanel = createSettingsPanel({
@@ -92,10 +126,12 @@ const settingsPanel = createSettingsPanel({
 
 const inventory = createInventory({
   getRewards: () => state.rewards,
+  getVault: () => state.vault,
   onChange: () => {
     refreshInputState();
     playSound('click');
-  }
+  },
+  onEquip: (id) => toggleEquip(id)
 });
 
 // --- Personnages -----------------------------------------------------------
@@ -209,6 +245,94 @@ function updateRewardsHud() {
     els.hudRewards.append(chip);
   }
   els.hudRewards.classList.toggle('hidden', state.rewards.size === 0);
+}
+
+// --- Butin et équipement ---------------------------------------------------
+
+function loadVault() {
+  try {
+    state.vault = sanitizeVault(JSON.parse(localStorage.getItem('pixel-village:loot') || 'null'));
+  } catch {
+    state.vault = createVault();
+  }
+}
+
+function saveVault() {
+  try {
+    localStorage.setItem('pixel-village:loot', JSON.stringify(state.vault));
+  } catch {
+    /* stockage indisponible */
+  }
+}
+
+function grantLoot(id) {
+  if (!LOOT[id]) return false;
+  addItem(state.vault, id);
+  saveVault();
+  updateGearHud();
+  inventory.render();
+  return true;
+}
+
+function toggleEquip(id) {
+  const result = equipItem(state.vault, id);
+  if (!result) return;
+  saveVault();
+  applyGearToRun();
+  updateGearHud();
+  updatePvHud(true);
+  playSound(result === 'equipped' ? 'pickup' : 'click');
+  inventory.render();
+  const item = LOOT[id];
+  if (item) {
+    pushChat(
+      result === 'equipped'
+        ? `Tu portes : ${item.name} (${item.kind === 'arme' ? `+${item.attack} ATQ` : `+${item.defense} DÉF`}).`
+        : `Tu retires ${item.name}.`,
+      'system'
+    );
+  }
+}
+
+// L'armure change les points de vie maximum : on garde le même écart en
+// cours de donjon au lieu de soigner ou de blesser brutalement.
+function applyGearToRun() {
+  const run = state.run;
+  if (!run) return;
+  const stats = playerStats(state.vault);
+  const delta = stats.pvMax - run.pvMax;
+  run.pvMax = stats.pvMax;
+  run.pv = Math.max(1, Math.min(run.pvMax, run.pv + delta));
+}
+
+function updateGearHud() {
+  if (!els.hudGear) return;
+  const stats = playerStats(state.vault);
+  els.hudGear.classList.remove('hidden');
+  els.hudGear.textContent = `ATQ ${stats.attack} · DÉF ${stats.defense}`;
+  els.hudGear.title = equipmentSummary(state.vault) || 'Aucun équipement — ouvre les coffres des donjons.';
+}
+
+let pvText = '';
+let pvRatio = -1;
+
+function updatePvHud(force = false) {
+  const run = state.run;
+  if (!run) {
+    els.hudPv.classList.add('hidden');
+    pvText = '';
+    pvRatio = -1;
+    return;
+  }
+  const ratio = run.pvMax > 0 ? Math.max(0, Math.min(1, run.pv / run.pvMax)) : 0;
+  const text = `${Math.ceil(run.pv)} / ${run.pvMax}`;
+  if (!force && text === pvText && ratio === pvRatio) return;
+  pvText = text;
+  pvRatio = ratio;
+  els.hudPv.classList.remove('hidden');
+  els.hudPv.classList.toggle('low', ratio <= 0.3);
+  els.hudPvText.textContent = text;
+  els.hudPvFill.style.width = `${Math.round(ratio * 100)}%`;
 }
 
 // --- Interface -------------------------------------------------------------
@@ -334,6 +458,7 @@ function enterHouse(house) {
   }
 
   els.challengeGoal.textContent = house.goal;
+  els.challengeHelp.textContent = HOUSE_HELP;
   els.challenge.classList.remove('hidden');
   answersKey = '';
   updateChallengePanel();
@@ -353,6 +478,7 @@ function exitHouse() {
 
   answersKey = '';
   els.challenge.classList.add('hidden');
+  els.challengeHelp.textContent = HOUSE_HELP;
   els.challengeAnswers.replaceChildren();
 
   state.world = world;
@@ -374,13 +500,265 @@ function exitHouse() {
   updatePrompt(true);
 }
 
+// --- Portail et donjons ----------------------------------------------------
+
+function isPortalOpen() {
+  return !els.portal.classList.contains('hidden');
+}
+
+function nearPortal(me) {
+  const portal = world.portal;
+  return Math.hypot(me.rx - portal.x, me.ry - portal.y) <= PORTAL_RANGE;
+}
+
+function dungeonCard(dungeon) {
+  const card = document.createElement('article');
+  card.className = 'portal-card';
+
+  const head = document.createElement('div');
+  head.className = 'portal-card-head';
+  const name = document.createElement('h3');
+  name.textContent = dungeon.name;
+  const level = document.createElement('span');
+  level.className = `portal-level danger-${dungeon.level}`;
+  level.textContent = `Niveau ${dungeon.level}`;
+  head.append(name, level);
+
+  const info = document.createElement('p');
+  info.className = 'portal-danger';
+  info.textContent = `${dungeon.danger} · ${dungeon.monsters.length} monstre${
+    dungeon.monsters.length > 1 ? 's' : ''
+  } · ${dungeon.chests} coffre${dungeon.chests > 1 ? 's' : ''}`;
+
+  const intro = document.createElement('p');
+  intro.className = 'portal-intro';
+  intro.textContent = dungeon.intro;
+
+  const loot = document.createElement('ul');
+  loot.className = 'portal-loot';
+  for (const id of dungeon.loot) {
+    const item = LOOT[id];
+    if (!item) continue;
+    const li = document.createElement('li');
+    li.className = `rarity-${item.rarity}`;
+    const bonus = item.kind === 'arme' ? `+${item.attack} ATQ` : `+${item.defense} DÉF`;
+    li.textContent = `${item.name} — ${bonus}`;
+    loot.append(li);
+  }
+
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'btn';
+  button.textContent = `Entrer — niveau ${dungeon.level}`;
+  button.addEventListener('click', () => enterDungeon(dungeon.id));
+
+  card.append(head, info, intro, loot, button);
+  return card;
+}
+
+function openPortal() {
+  if (isPortalOpen() || state.run || state.inside) return;
+  els.portalList.replaceChildren();
+  for (const dungeon of DUNGEONS) els.portalList.append(dungeonCard(dungeon));
+  els.portal.classList.remove('hidden');
+  refreshInputState();
+  els.portalClose.focus();
+  playSound('click');
+}
+
+function closePortal() {
+  if (!isPortalOpen()) return;
+  els.portal.classList.add('hidden');
+  els.portalList.replaceChildren();
+  els.portalClose.blur();
+  refreshInputState();
+}
+
+let dungeonStatus = '';
+
+function updateDungeonPanel(force = false) {
+  const run = state.run;
+  if (!run) return;
+  const opened = run.chests.filter((chest) => chest.opened).length;
+  const alive = run.monsters.filter((monster) => monster.alive).length;
+  const status = run.phase === 'won'
+    ? 'Salle nettoyée ! Sors par l’escalier (E) ou avec Échap.'
+    : `${opened}/${run.chests.length} coffre${run.chests.length > 1 ? 's' : ''} ouvert${
+      opened > 1 ? 's' : ''
+    } · ${alive} monstre${alive > 1 ? 's' : ''} · PV ${Math.ceil(run.pv)}/${run.pvMax}`;
+  if (!force && status === dungeonStatus) return;
+  dungeonStatus = status;
+  els.challengeStatus.textContent = status;
+}
+
+function enterDungeon(id) {
+  if (state.run || state.inside) return;
+  const dungeon = DUNGEONS.find((entry) => entry.id === id);
+  const me = state.players.get(state.selfId);
+  if (!dungeon || !me) return;
+
+  closePortal();
+
+  const run = createRun(id, Math.floor(Math.random() * 0x7fffffff));
+  const stats = playerStats(state.vault);
+  run.pvMax = stats.pvMax;
+  run.pv = stats.pvMax;
+
+  state.savedPos = { x: me.rx, y: me.ry };
+  state.run = run;
+
+  me.rx = run.room.spawn.x;
+  me.ry = run.room.spawn.y;
+  me.x = me.rx;
+  me.y = me.ry;
+  me.dir = 'up';
+  me.moving = false;
+
+  state.world = run.room;
+  state.renderer.setWorld(run.room);
+  state.renderer.centerOn(me.rx, me.ry);
+
+  if (state.mode === 'online' && state.conn) {
+    state.conn.send({ t: 'interior', inside: true });
+  }
+
+  els.challengeTitle.textContent = `${dungeon.name} — niveau ${dungeon.level}`;
+  els.challengeGoal.textContent = dungeon.intro;
+  els.challengeHelp.textContent = DUNGEON_HELP;
+  els.challenge.classList.remove('hidden');
+  answersKey = '';
+  dungeonStatus = '';
+  updateDungeonPanel(true);
+  updatePvHud(true);
+  updateGearHud();
+  updatePrompt(true);
+  playSound('enter');
+  pushChat(`Tu entres dans ${dungeon.name} (niveau ${dungeon.level}). ${dungeon.intro}`, 'system');
+}
+
+function exitDungeon(reason = 'sortie') {
+  const run = state.run;
+  if (!run) return;
+
+  const me = state.players.get(state.selfId);
+  const back = state.savedPos ?? { x: world.portal.x, y: world.portal.y + 1.5 };
+  state.run = null;
+  state.savedPos = null;
+
+  els.challenge.classList.add('hidden');
+  els.challengeHelp.textContent = HOUSE_HELP;
+  els.challengeAnswers.replaceChildren();
+  dungeonStatus = '';
+
+  state.world = world;
+  state.renderer.setWorld(world);
+  if (me) {
+    me.rx = back.x;
+    me.ry = back.y;
+    me.x = back.x;
+    me.y = back.y;
+    me.moving = false;
+    state.renderer.centerOn(me.rx, me.ry);
+  }
+
+  if (state.mode === 'online' && state.conn) {
+    state.conn.send({ t: 'interior', inside: false });
+    syncGear();
+  }
+
+  updateGearHud();
+  updatePvHud(true);
+  updatePrompt(true);
+
+  if (reason === 'defeat') {
+    playSound('fail');
+    pushChat('Tu es tombé… le portail te ramène au village. Ton butin et ton équipement sont conservés.', 'system');
+  } else {
+    playSound('click');
+  }
+}
+
+function handleRunInteract() {
+  const run = state.run;
+  const me = state.players.get(state.selfId);
+  if (!run || !me) return;
+
+  if (nearRoomExit(run.room, me)) {
+    exitDungeon('sortie');
+    return;
+  }
+
+  if (chestNear(run, me)) {
+    const id = openChest(run, me);
+    if (id) {
+      grantLoot(id);
+      const item = LOOT[id];
+      playSound('pickup');
+      pushChat(
+        `Coffre ouvert : ${item.name} (${
+          item.kind === 'arme' ? `+${item.attack} ATQ` : `+${item.defense} DÉF`
+        }). Touche I pour l’équiper.`,
+        'system'
+      );
+      updateDungeonPanel(true);
+      return;
+    }
+  }
+
+  const result = attackRun(run, me, playerStats(state.vault));
+  if (!result) return;
+
+  if (result.killed) {
+    playSound('success');
+    pushChat(`${result.killed.name} vaincu !`, 'system');
+    if (result.drop) {
+      grantLoot(result.drop);
+      pushChat(`Il laisse tomber : ${LOOT[result.drop].name}.`, 'system');
+    }
+    updateDungeonPanel(true);
+  } else if (result.hit) {
+    playSound('hit');
+  } else {
+    playSound('click');
+  }
+  updateDungeonPanel();
+}
+
+function tickDungeon(dt) {
+  const run = state.run;
+  if (!run) return;
+  // Les panneaux mettent le donjon en pause : on ne meurt pas dans un menu.
+  if (inventory.isOpen() || settingsPanel.isOpen() || isPortalOpen()) return;
+
+  const me = state.players.get(state.selfId);
+  if (!me) return;
+
+  const events = updateRun(run, me, dt, playerStats(state.vault));
+  if (events.damage > 0) playSound('hurt');
+  if (events.dead) {
+    exitDungeon('defeat');
+    return;
+  }
+  if (events.cleared) {
+    playSound('success');
+    pushChat('Tous les coffres sont ouverts : la salle est nettoyée.', 'system');
+  }
+  updateDungeonPanel();
+  updatePvHud();
+}
+
 function interact() {
   if (state.mode !== 'online' && state.mode !== 'solo') return;
   const me = state.players.get(state.selfId);
   if (!me) return;
 
+  if (state.run) {
+    handleRunInteract();
+    return;
+  }
+
   if (state.inside) {
-    if (nearExit(state.inside.room, me)) {
+    if (nearRoomExit(state.inside.room, me)) {
       exitHouse();
       return;
     }
@@ -391,6 +769,11 @@ function interact() {
         updateChallengePanel();
       }
     }
+    return;
+  }
+
+  if (nearPortal(me)) {
+    openPortal();
     return;
   }
 
@@ -487,14 +870,20 @@ function updatePrompt(force = false) {
   let text = '';
 
   if (me && (state.mode === 'online' || state.mode === 'solo')) {
-    if (state.inside) {
-      if (nearExit(state.inside.room, me)) {
+    if (state.run) {
+      if (nearRoomExit(state.run.room, me)) text = 'Sortir du donjon';
+      else if (chestNear(state.run, me)) text = 'Ouvrir le coffre';
+      else if (monsterNear(state.run, me)) text = 'Attaquer';
+    } else if (state.inside) {
+      if (nearRoomExit(state.inside.room, me)) {
         text = 'Sortir de la maison';
       } else if (state.inside.challenge.type === 'devinettes'
         && state.inside.challenge.phase === 'idle'
         && nearTome(me)) {
         text = 'Lire le livre des énigmes';
       }
+    } else if (nearPortal(me)) {
+      text = 'Portail — choisir un donjon';
     } else {
       const house = houseNear(me);
       if (house) text = `Entrer — ${house.name}`;
@@ -562,6 +951,10 @@ function handleConnectionLost(error) {
 }
 
 function startSolo(reason = '') {
+  // Une éventuelle expédition en cours est abandonnée proprement : le joueur
+  // revient au portail avant que la session solo ne prenne le relais.
+  if (state.run) exitDungeon('sortie');
+  closePortal();
   const previous = state.players.get(state.selfId);
   state.players.clear();
   state.selfId = 'local';
@@ -677,7 +1070,7 @@ function updateLocal(dt) {
     advanceWalk(me, Math.hypot(me.rx - beforeX, me.ry - beforeY));
   }
 
-  if (state.mode === 'solo' || state.inside) {
+  if (state.mode === 'solo' || state.inside || state.run) {
     me.x = me.rx;
     me.y = me.ry;
     return;
@@ -743,22 +1136,38 @@ function loop(now) {
     updateLocal(dt);
     updateRemotes(dt);
     if (state.inside) tickInside(dt);
+    else if (state.run) tickDungeon(dt);
     const me = state.players.get(state.selfId);
     if (me) state.renderer.updateCamera(me.rx, me.ry, dt);
     updatePrompt();
   }
 
-  const decor = state.inside
-    ? (ctx, time) => drawChallenge(ctx, state.inside.challenge, state.inside.room, time)
+  let decor;
+  if (state.inside) {
+    decor = (ctx, time) => drawChallenge(ctx, state.inside.challenge, state.inside.room, time);
+  } else if (state.run) {
+    decor = (ctx, time) => drawRun(ctx, state.run, time);
+  } else {
+    decor = (ctx, time) => drawPortal(ctx, world.portal, time);
+  }
+
+  const actors = state.run
+    ? state.run.monsters
+      .filter((monster) => monster.alive)
+      .map((monster) => ({
+        ry: monster.y,
+        draw: (ctx, time) => drawMonster(ctx, monster, time)
+      }))
     : null;
 
-  state.renderer.render(renderList(), state.selfId, now, decor);
+  state.renderer.render(renderList(), state.selfId, now, decor, actors);
   requestAnimationFrame(loop);
 }
 
-// À l'intérieur, on ne dessine que soi-même : l'instance est privée.
+// À l'intérieur d'une maison ou d'un donjon, on ne dessine que soi-même :
+// l'instance est privée (les monstres passent par `actors`).
 function renderList() {
-  if (!state.inside) return state.players;
+  if (!state.inside && !state.run) return state.players;
   const me = state.players.get(state.selfId);
   if (!me) return new Map();
   return new Map([[me.id, me]]);
@@ -799,6 +1208,10 @@ els.inventoryBtn.addEventListener('click', () => {
 
 els.settingsBtn.addEventListener('click', () => settingsPanel.toggle());
 els.settingsMenuBtn.addEventListener('click', () => settingsPanel.open());
+els.portalClose.addEventListener('click', () => closePortal());
+els.portal.addEventListener('click', (event) => {
+  if (event.target === els.portal) closePortal();
+});
 
 // Rappel des touches affiché en bas à droite, toujours à jour après un
 // changement dans les paramètres.
@@ -813,18 +1226,19 @@ window.addEventListener('keydown', (event) => {
 
   // Paramètres : accessibles aussi depuis l'écran d'accueil, pour régler le
   // volume avant même de jouer.
-  if (event.code === keys.settings && !isTyping(event)) {
+  if (event.code === keys.settings && !isTyping(event) && !isPortalOpen()) {
     event.preventDefault();
     settingsPanel.toggle();
     return;
   }
 
   // Un panneau modal capte Échap et sa propre touche, et bloque le reste.
-  if (inventory.isOpen() || settingsPanel.isOpen()) {
+  if (inventory.isOpen() || settingsPanel.isOpen() || isPortalOpen()) {
     if (event.code === 'Escape' || event.code === 'Enter') {
       event.preventDefault();
       inventory.close();
       settingsPanel.close();
+      closePortal();
     }
     return;
   }
@@ -847,6 +1261,8 @@ window.addEventListener('keydown', (event) => {
       els.chatInput.blur();
     } else if (state.inside) {
       exitHouse();
+    } else if (state.run) {
+      exitDungeon('sortie');
     }
     return;
   }
@@ -895,8 +1311,10 @@ initInput();
 buildColorList();
 loadSettings();
 loadRewards();
+loadVault();
 updateSwatches();
 updateHud();
 updateRewardsHud();
+updateGearHud();
 updateHint();
 requestAnimationFrame(loop);

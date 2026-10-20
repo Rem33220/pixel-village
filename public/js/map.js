@@ -25,8 +25,17 @@ export const T = {
   DOOR_STONE: 16,
   TABLE: 17,
   SHELF: 18,
-  CRATE: 19
+  CRATE: 19,
+  // Tuiles des donjons.
+  STONE_FLOOR: 20,
+  MOSS: 21,
+  STONE_WALL: 22
 };
+
+// Portail des donjons : au bout nord de la rue nord-sud, sur la petite place
+// dallée. Le client s'en sert pour proposer les donjons, le serveur n'en a pas
+// besoin (chaque donjon est une instance privée).
+export const PORTAL = { x: 30, y: 5.5 };
 
 // Tuiles qui bloquent le passage.
 export const SOLID_TILES = new Set([
@@ -41,7 +50,8 @@ export const SOLID_TILES = new Set([
   T.DOOR_STONE,
   T.TABLE,
   T.SHELF,
-  T.CRATE
+  T.CRATE,
+  T.STONE_WALL
 ]);
 
 function mulberry32(seed) {
@@ -100,9 +110,15 @@ export function generateWorld(seed = WORLD_SEED) {
     set(x, 21, T.PATH);
     set(x, 22, T.PATH);
   }
-  for (let y = 8; y <= 36; y++) {
+  for (let y = 4; y <= 36; y++) {
     set(29, y, T.PATH);
     set(30, y, T.PATH);
+  }
+
+  // Petite place dallée au bout nord du chemin : c'est là que se dresse le
+  // portail des donjons, et on doit pouvoir en faire le tour.
+  for (let y = 3; y <= 7; y++) {
+    for (let x = 28; x <= 31; x++) set(x, y, T.PATH);
   }
 
   // Maisons du village. `doors` liste les portes rencontrées : le client s'en
@@ -197,6 +213,8 @@ export function generateWorld(seed = WORLD_SEED) {
     h,
     tiles,
     spawn: { x: 30.5, y: 24.5 },
+    // Position du portail, sur la place au bout du chemin nord.
+    portal: { ...PORTAL },
     // Portes des maisons, renseignées par generateWorld pour que les deux
     // côtés (client et serveur) connaissent les mêmes coordonnées.
     doors

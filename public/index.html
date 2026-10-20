@@ -14,6 +14,11 @@
   <div id="hud">
     <span class="chip" id="hud-name">Aventurier</span>
     <span class="chip" id="hud-players">…</span>
+    <div id="hud-pv" class="hidden" role="status" aria-label="Points de vie">
+      <span id="hud-pv-fill"></span>
+      <span id="hud-pv-text">24 / 24</span>
+    </div>
+    <span class="chip hidden" id="hud-gear" title="Équipement">ATQ 4 · DÉF 0</span>
     <div id="hud-rewards" class="hidden"></div>
     <button type="button" id="inventory-btn" class="chip chip-btn">Sac (I)</button>
     <button type="button" id="settings-btn" class="chip chip-btn">Paramètres</button>
@@ -36,8 +41,23 @@
     <p id="challenge-goal"></p>
     <p id="challenge-status"></p>
     <div id="challenge-answers"></div>
-    <p class="challenge-help">E : sortir · Échap : quitter la maison</p>
+    <p class="challenge-help" id="challenge-help">E : sortir · Échap : quitter la maison</p>
   </aside>
+
+  <div id="portal" class="hidden" role="dialog" aria-modal="true" aria-labelledby="portal-title">
+    <div class="portal-panel">
+      <div class="settings-head">
+        <h2 id="portal-title">Portail des donjons</h2>
+        <button type="button" id="portal-close" class="inventory-close" aria-label="Fermer le portail">✕</button>
+      </div>
+      <p class="portal-note">
+        Choisis un donjon. Ton butin et ton équipement restent acquis, même si
+        tu tombes : tu es simplement renvoyé au portail.
+      </p>
+      <div id="portal-list" class="portal-list"></div>
+      <p class="inventory-help">Échap : fermer le portail</p>
+    </div>
+  </div>
 
   <section id="chat" aria-label="Chat">
     <div id="chat-log"></div>
@@ -89,7 +109,20 @@
         <span id="inventory-count" class="inventory-count"></span>
         <button type="button" id="inventory-close" class="inventory-close" aria-label="Fermer l’inventaire">✕</button>
       </div>
-      <div id="inventory-grid" class="inventory-grid" role="group" aria-label="Objets"></div>
+
+      <h3 class="inventory-section">Équipement</h3>
+      <div id="inventory-equipment" class="inventory-grid" role="group" aria-label="Équipement porté"></div>
+
+      <h3 class="inventory-section">Butin des donjons</h3>
+      <div id="inventory-loot" class="inventory-grid inventory-loot" role="group" aria-label="Butin"></div>
+      <p id="inventory-loot-empty" class="inventory-empty">
+        Aucun butin pour l’instant : entre dans le portail au bout du chemin nord
+        et ouvre les coffres des donjons.
+      </p>
+
+      <h3 class="inventory-section">Récompenses du village</h3>
+      <div id="inventory-grid" class="inventory-grid" role="group" aria-label="Récompenses"></div>
+
       <div id="inventory-detail" class="inventory-detail"></div>
       <p class="inventory-help">I ou Échap : fermer</p>
     </div>
@@ -98,7 +131,7 @@
   <div id="login">
     <div class="panel">
       <h1>PIXEL VILLAGE</h1>
-      <p class="tagline">Mini MMO RPG — un village, trois maisons, trois épreuves.</p>
+      <p class="tagline">Mini MMO RPG — un village, trois maisons, trois épreuves, trois donjons.</p>
 
       <form id="login-form" autocomplete="off">
         <label for="name-input">Nom du personnage</label>
@@ -117,7 +150,9 @@
         Le mode en ligne a besoin du petit serveur Node fourni dans le projet.
         Sans serveur, le jeu démarre en solo.<br />
         Chaque maison cache une épreuve et sa récompense : approche-toi d'une
-        porte et appuie sur <strong>E</strong>.
+        porte et appuie sur <strong>E</strong>. Au bout du chemin nord, le
+        <strong>portail</strong> ouvre trois donjons peuplés de monstres, avec
+        des coffres à butin (armes et armures) à équiper dans l'inventaire.
       </p>
     </div>
   </div>

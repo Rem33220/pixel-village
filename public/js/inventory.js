@@ -1,10 +1,29 @@
-// Inventaire : les récompenses gagnées dans les maisons, ouvert avec la touche I.
-// Les icônes sont dessinées en pixel art (16 × 16) comme les personnages, donc
-// aucun fichier image à télécharger.
+// Inventaire : récompenses des maisons, équipement porté et butin des donjons,
+// ouvert avec la touche I. Les icônes sont dessinées en pixel art (16 × 16)
+// comme les personnages, donc aucun fichier image à télécharger.
 
 import { REWARDS } from './houses.js';
+import {
+  LOOT,
+  ITEM_ICONS,
+  dungeonOfItem,
+  isEquipped,
+  itemCount,
+  ownsItem
+} from './dungeons.js';
 
 export const ITEM_ORDER = ['lampe', 'bottes', 'medaille'];
+
+const SLOTS = [
+  { id: 'arme', label: 'Arme', empty: 'Aucune arme' },
+  { id: 'armure', label: 'Armure', empty: 'Aucune armure' }
+];
+
+const RARITY = {
+  commun: 'Commun',
+  rare: 'Rare',
+  epique: 'Épique'
+};
 
 const ICONS = {
   lampe: {
@@ -72,8 +91,7 @@ const ICONS = {
   }
 };
 
-function makeIcon(name) {
-  const icon = ICONS[name];
+function paintIcon(icon, palette) {
   const canvas = document.createElement('canvas');
   canvas.width = 16;
   canvas.height = 16;
@@ -84,7 +102,7 @@ function makeIcon(name) {
 
   icon.rows.forEach((row, y) => {
     for (let x = 0; x < row.length; x++) {
-      const color = icon.palette[row[x]];
+      const color = palette[row[x]];
       if (!color) continue;
       ctx.fillStyle = color;
       ctx.fillRect(x, y, 1, 1);
@@ -94,22 +112,59 @@ function makeIcon(name) {
   return canvas;
 }
 
-export function createInventory({ getRewards, onChange }) {
+function rewardIcon(id) {
+  return paintIcon(ICONS[id], ICONS[id].palette);
+}
+
+function lootIcon(id) {
+  const item = LOOT[id];
+  const icon = ITEM_ICONS[item.kind];
+  return paintIcon(icon, { ...icon.palette, b: item.color });
+}
+
+function bonusLabel(item) {
+  if (item.kind === 'arme') return `+${item.attack} ATQ`;
+  return `+${item.defense} DÉF`;
+}
+
+export function createInventory({ getRewards, getVault, onChange, onEquip }) {
   const root = document.getElementById('inventory');
   const grid = document.getElementById('inventory-grid');
+  const lootGrid = document.getElementById('inventory-loot');
+  const lootEmpty = document.getElementById('inventory-loot-empty');
+  const equipment = document.getElementById('inventory-equipment');
   const detail = document.getElementById('inventory-detail');
   const count = document.getElementById('inventory-count');
   const closeBtn = document.getElementById('inventory-close');
 
-  let selected = null;
+  let selected = { type: 'reward', id: ITEM_ORDER[0] };
 
   function isOpen() {
     return !root.classList.contains('hidden');
   }
 
-  function renderDetail(id, owned) {
+  function ownedLoot() {
+    const vault = getVault();
+    return Object.keys(vault.items)
+      .filter((id) => ownsItem(vault, id))
+      .sort((a, b) => {
+        const itemA = LOOT[a];
+        const itemB = LOOT[b];
+        if (itemA.kind !== itemB.kind) return itemA.kind === 'arme' ? -1 : 1;
+        return itemB.attack + itemB.defense - (itemA.attack + itemA.defense);
+      });
+  }
+
+  function select(next) {
+    selected = next;
+    render();
+  }
+
+  // --- Détail -------------------------------------------------------------
+
+  function renderRewardDetail(id, owned) {
     const item = REWARDS[id];
-    detail.replaceChildren();
+    if (!item) return;
 
     const title = document.createElement('h3');
     title.textContent = owned ? item.name : 'Emplacement vide';
@@ -133,13 +188,186 @@ export function createInventory({ getRewards, onChange }) {
     }
   }
 
-  function render() {
-    const owned = getRewards();
-    if (!selected || !REWARDS[selected]) {
-      selected = ITEM_ORDER.find((id) => owned.has(id)) ?? ITEM_ORDER[0];
+  function renderLootDetail(id) {
+    const item = LOOT[id];
+    const vault = getVault();
+    const dungeon = dungeonOfItem(id);
+    const has = ownsItem(vault, id);
+    const equipped = isEquipped(vault, id);
+
+    const title = document.createElement('h3');
+    title.textContent = item.name;
+
+    const source = document.createElement('p');
+    source.className = 'inventory-source';
+    source.textContent = dungeon
+      ? `Butin — ${dungeon.name} (niveau ${dungeon.level})`
+      : 'Butin des donjons';
+
+    const stats = document.createElement('p');
+    stats.className = 'inventory-effect';
+    stats.textContent = `${RARITY[item.rarity] ?? 'Commun'} · ${item.kind === 'arme' ? 'Arme' : 'Armure'} · ${bonusLabel(item)}`;
+
+    const text = document.createElement('p');
+    text.textContent = item.detail;
+
+    detail.append(title, source, stats, text);
+
+    if (equipped) {
+      const state = document.createElement('p');
+      state.className = 'inventory-equipped';
+      state.textContent = 'Équipé — il compte dans tes statistiques.';
+      detail.append(state);
     }
 
-    count.textContent = `${owned.size} / ${ITEM_ORDER.length} récompense${ITEM_ORDER.length > 1 ? 's' : ''}`;
+    if (!has) return;
+
+    const action = document.createElement('button');
+    action.type = 'button';
+    action.className = 'btn small inventory-action';
+    action.textContent = equipped ? 'Retirer' : 'Équiper';
+    action.addEventListener('click', () => {
+      action.blur();
+      onEquip?.(id);
+    });
+    detail.append(action);
+  }
+
+  function renderSlotDetail(slot) {
+    const vault = getVault();
+    const id = vault.equipped[slot.id];
+    const title = document.createElement('h3');
+    title.textContent = `${slot.label}${id ? ` : ${LOOT[id].name}` : ''}`;
+
+    const text = document.createElement('p');
+    text.className = 'inventory-source';
+    text.textContent = id
+      ? bonusLabel(LOOT[id])
+      : `Rien d’équipé. Choisis ${slot.id === 'arme' ? 'une arme' : 'une armure'} dans ton butin ci-dessus.`;
+
+    detail.append(title, text);
+
+    if (!id) return;
+
+    const action = document.createElement('button');
+    action.type = 'button';
+    action.className = 'btn small inventory-action';
+    action.textContent = 'Retirer';
+    action.addEventListener('click', () => {
+      action.blur();
+      onEquip?.(id);
+    });
+    detail.append(action);
+  }
+
+  function renderDetail() {
+    detail.replaceChildren();
+    if (selected.type === 'loot') {
+      if (!LOOT[selected.id]) selected = { type: 'reward', id: ITEM_ORDER[0] };
+      else {
+        renderLootDetail(selected.id);
+        return;
+      }
+    }
+    if (selected.type === 'slot') {
+      const slot = SLOTS.find((entry) => entry.id === selected.id);
+      if (slot) {
+        renderSlotDetail(slot);
+        return;
+      }
+      selected = { type: 'reward', id: ITEM_ORDER[0] };
+    }
+    const owned = getRewards();
+    if (!REWARDS[selected.id]) selected = { type: 'reward', id: ITEM_ORDER[0] };
+    renderRewardDetail(selected.id, owned.has(selected.id));
+  }
+
+  // --- Grilles ------------------------------------------------------------
+
+  function renderEquipment() {
+    const vault = getVault();
+    equipment.replaceChildren();
+
+    for (const slot of SLOTS) {
+      const id = vault.equipped[slot.id];
+      const item = id ? LOOT[id] : null;
+
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = `inventory-slot equipment-slot${item ? ' owned' : ' locked'}${
+        selected.type === 'slot' && selected.id === slot.id ? ' selected' : ''
+      }`;
+      button.setAttribute('aria-pressed', String(selected.type === 'slot' && selected.id === slot.id));
+      button.setAttribute('aria-label', item ? `${slot.label} : ${item.name}` : `${slot.label} : vide`);
+
+      if (item) {
+        button.append(lootIcon(id));
+      } else {
+        const mark = document.createElement('span');
+        mark.className = 'inventory-locked-mark';
+        mark.textContent = '—';
+        button.append(mark);
+      }
+
+      const label = document.createElement('span');
+      label.className = 'inventory-slot-label';
+      label.textContent = item ? item.name : slot.empty;
+      button.append(label);
+
+      const tag = document.createElement('span');
+      tag.className = 'inventory-slot-tag';
+      tag.textContent = item ? bonusLabel(item) : slot.label;
+      button.append(tag);
+
+      button.addEventListener('click', () => select({ type: 'slot', id: slot.id }));
+      equipment.append(button);
+    }
+  }
+
+  function renderLoot() {
+    const vault = getVault();
+    const ids = ownedLoot();
+    lootGrid.replaceChildren();
+    lootEmpty.classList.toggle('hidden', ids.length > 0);
+
+    for (const id of ids) {
+      const item = LOOT[id];
+      const qty = itemCount(vault, id);
+      const slot = document.createElement('button');
+      slot.type = 'button';
+      const equipped = isEquipped(vault, id);
+      slot.className = `inventory-slot owned${equipped ? ' equipped' : ''}${
+        selected.type === 'loot' && selected.id === id ? ' selected' : ''
+      }`;
+      slot.setAttribute('aria-pressed', String(selected.type === 'loot' && selected.id === id));
+      slot.setAttribute('aria-label', `${item.name}${qty > 1 ? ` ×${qty}` : ''}${equipped ? ' (équipé)' : ''}`);
+
+      slot.append(lootIcon(id));
+
+      if (qty > 1) {
+        const badge = document.createElement('span');
+        badge.className = 'inventory-count-badge';
+        badge.textContent = `×${qty}`;
+        slot.append(badge);
+      }
+
+      const label = document.createElement('span');
+      label.className = 'inventory-slot-label';
+      label.textContent = item.name;
+      slot.append(label);
+
+      const tag = document.createElement('span');
+      tag.className = `inventory-slot-tag rarity-${item.rarity}`;
+      tag.textContent = equipped ? 'Équipé' : bonusLabel(item);
+      slot.append(tag);
+
+      slot.addEventListener('click', () => select({ type: 'loot', id }));
+      lootGrid.append(slot);
+    }
+  }
+
+  function renderRewards() {
+    const owned = getRewards();
     grid.replaceChildren();
 
     for (const id of ITEM_ORDER) {
@@ -148,12 +376,14 @@ export function createInventory({ getRewards, onChange }) {
 
       const slot = document.createElement('button');
       slot.type = 'button';
-      slot.className = `inventory-slot${has ? ' owned' : ' locked'}${selected === id ? ' selected' : ''}`;
-      slot.setAttribute('aria-pressed', String(selected === id));
+      slot.className = `inventory-slot${has ? ' owned' : ' locked'}${
+        selected.type === 'reward' && selected.id === id ? ' selected' : ''
+      }`;
+      slot.setAttribute('aria-pressed', String(selected.type === 'reward' && selected.id === id));
       slot.setAttribute('aria-label', has ? item.name : `Emplacement vide — ${item.house}`);
 
       if (has) {
-        slot.append(makeIcon(id));
+        slot.append(rewardIcon(id));
       } else {
         const mark = document.createElement('span');
         mark.className = 'inventory-locked-mark';
@@ -166,14 +396,21 @@ export function createInventory({ getRewards, onChange }) {
       label.textContent = has ? item.name : 'Vide';
       slot.append(label);
 
-      slot.addEventListener('click', () => {
-        selected = id;
-        render();
-      });
+      slot.addEventListener('click', () => select({ type: 'reward', id }));
       grid.append(slot);
     }
+  }
 
-    renderDetail(selected, owned.has(selected));
+  function render() {
+    const owned = getRewards();
+    const vault = getVault();
+    const loot = ownedLoot().length;
+    count.textContent = `${owned.size} / ${ITEM_ORDER.length} récompenses · ${loot} butin`;
+
+    renderEquipment();
+    renderLoot();
+    renderRewards();
+    renderDetail();
   }
 
   function open() {
@@ -202,4 +439,15 @@ export function createInventory({ getRewards, onChange }) {
   });
 
   return { open, close, toggle, render, isOpen };
+}
+
+// Utilisé par le HUD pour nommer ce que l'on porte.
+export function equipmentSummary(vault) {
+  return SLOTS
+    .map((slot) => {
+      const id = vault.equipped[slot.id];
+      return id ? `${slot.label} : ${LOOT[id].name}` : null;
+    })
+    .filter(Boolean)
+    .join(' · ');
 }

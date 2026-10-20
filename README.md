@@ -102,18 +102,19 @@ Pixel Village prêt : http://localhost:3000  [WebSocket intégré, zéro dépend
 | Changer le port         | `set PORT=4000` puis `node server/index.js` (PowerShell : `$env:PORT=4000; node server/index.js`) |
 | Arrêter                 | `Ctrl+C` dans la fenêtre du serveur                               |
 | Tester les épreuves     | `node tests/houses.test.mjs`                                      |
+| Tester les donjons      | `node tests/dungeons.test.mjs`                                     |
 
 ### Contrôles
 
 | Touche                         | Action                        |
 | ------------------------------ | ----------------------------- |
 | `ZQSD` / `WASD` / flèches      | se déplacer                   |
-| `E`                            | entrer dans une maison, sortir, agir |
+| `E`                            | entrer dans une maison, sortir, agir, ouvrir le portail, frapper, ouvrir un coffre |
 | `I`                            | ouvrir / fermer l'inventaire  |
 | `P`                            | ouvrir / fermer les paramètres |
 | `1` `2` `3`                    | répondre aux énigmes          |
 | `Entrée`                       | ouvrir le chat                |
-| `Échap`                        | fermer le chat, l'inventaire ou les paramètres, quitter une maison |
+| `Échap`                        | fermer le chat, l'inventaire ou les paramètres, quitter une maison ou un donjon |
 
 Toutes ces touches (sauf `Entrée` et `Échap`) se changent dans les paramètres ;
 les flèches restent toujours actives pour se déplacer.
@@ -142,6 +143,7 @@ donc aussi bien sur un clavier AZERTY que QWERTY.
         ├── config.js     # réglages partagés client/serveur
         ├── map.js        # génération de la carte + collisions
         ├── houses.js     # maisons, épreuves et récompenses
+        ├── dungeons.js   # portail, donjons, monstres, butin, équipement
         ├── inventory.js  # panneau d'inventaire (touche I) + icônes
         ├── settings.js   # paramètres : volume et touches personnalisables
         ├── audio.js      # sons synthétisés (aucun fichier audio)
@@ -252,7 +254,35 @@ Pendant que l'inventaire est ouvert, le personnage ne bouge plus (aucun ordre
 n'est envoyé au serveur) ; `I`, `Échap`, `Entrée` ou un clic à côté du panneau
 le referment. Les icônes sont dessinées en ASCII dans `public/js/inventory.js`,
 sur le même principe que les personnages : tu peux les redessiner sans
-logiciel.
+logiciel. Le panneau affiche aussi l'**équipement** (arme, armure) et le
+**butin des donjons**, avec les boutons **Équiper** / **Retirer**.
+
+### Les donjons et le portail
+
+Le portail se trouve au bout nord de la rue nord-sud (`PORTAL` dans
+`public/js/map.js`). Devant lui, `E` ouvre un panneau qui liste les donjons ;
+en choisir un crée une **instance privée** générée par
+`public/js/dungeons.js` : salle, monstres, coffres et butin. Comme pour une
+maison, le serveur ne reçoit que « je suis à l'intérieur » : il ne connaît ni
+les monstres, ni les PV, ni le butin, et rien de tout cela ne peut donc
+désynchroniser les autres joueurs.
+
+Tout se règle en haut du fichier :
+
+| Réglage | Où | Effet |
+| ------- | -- | ----- |
+| `DUNGEONS` | `dungeons.js` | nom, niveau, monstres, nombre de coffres, liste du butin |
+| `MONSTERS` | `dungeons.js` | PV, dégâts, vitesse et taille de chaque monstre |
+| `LOOT` | `dungeons.js` | armes et armures : bonus, rareté, couleur d'icône |
+| `BASE_STATS` | `dungeons.js` | attaque, défense et PV de base du personnage |
+| `ENTRY_GRACE`, `MONSTER_AGGRO` | `dungeons.js` | répit à l'arrivée, distance de poursuite |
+| `PLAYER_RADIUS`, `ROOM_W`, `ROOM_H` | `dungeons.js` | taille et collisions des salles |
+
+Pour ajouter un donjon : une entrée dans `DUNGEONS` (avec ses identifiants de
+butin déjà présents dans `LOOT`), et c'est tout — le panneau du portail, le
+compteur de coffres et les tests le prennent automatiquement. Les tests
+vérifient que chaque salle est atteignable à pied, que les coffres et les
+monstres sont sur du sol libre et que le butin vient bien du bon donjon.
 
 Le serveur reçoit seulement deux informations : *je suis à l'intérieur* (pour
 masquer l'avatar) et *ma vitesse* (pour rester aligné avec les Bottes de vent,
@@ -561,11 +591,11 @@ Sources : [Render — déployer gratuitement](https://render.com/docs/free),
 
 ## 6. Pistes pour aller plus loin
 
-- Monstres et combat au tour par tour ou en temps réel.
-- Inventaire, objets au sol, PNJ marchands.
+- Un boss par donjon, avec plusieurs phases et un butin garanti.
+- PNJ marchand, monnaie et échange d'objets entre joueurs.
 - D'autres maisons, des épreuves à deux joueurs et des récompenses partagées.
 - Comptes joueurs et sauvegarde en base (SQLite/PostgreSQL).
-- Plusieurs maps avec téléportation et donjons.
+- Nouvelles zones et donjons générés à partir d'une graine plus variée.
 - Contrôles tactiles pour mobile.
 - Éditeur de carte visuel (Tiled) et chargement d'un JSON.
 

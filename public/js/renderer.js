@@ -207,6 +207,58 @@ function drawCrate(ctx, px, py) {
   ctx.stroke();
 }
 
+// --- Tuiles de donjon ------------------------------------------------------
+
+function drawStoneFloor(ctx, px, py, tx, ty, moss) {
+  ctx.fillStyle = '#2b2f3a';
+  ctx.fillRect(px, py, 16, 16);
+
+  // Dalles : joints irréguliers pour éviter un damier trop propre.
+  ctx.fillStyle = '#23262f';
+  ctx.fillRect(px, py + 7, 16, 1);
+  ctx.fillRect(px + ((tx * 5 + ty * 3) % 14), py, 1, 7);
+  ctx.fillRect(px + ((tx * 3 + ty * 7) % 14), py + 8, 1, 8);
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.045)';
+  ctx.fillRect(px + 1, py + 1, 6, 1);
+  if (tileRand(tx, ty, 4) > 0.72) {
+    ctx.fillStyle = '#1d2028';
+    ctx.fillRect(px + 5, py + 11, 3, 1);
+    ctx.fillRect(px + 9, py + 3, 2, 1);
+  }
+
+  if (moss) {
+    ctx.fillStyle = '#3c6b3f';
+    for (let i = 0; i < 4; i++) {
+      const x = px + 1 + Math.floor(tileRand(tx, ty, i + 5) * 13);
+      const y = py + 1 + Math.floor(tileRand(tx, ty, i + 9) * 13);
+      ctx.fillRect(x, y, 2 + (i % 2), 1);
+    }
+    ctx.fillStyle = '#4f8a52';
+    ctx.fillRect(px + 3, py + 12, 2, 1);
+  }
+}
+
+function drawStoneWall(ctx, px, py, tx, ty) {
+  ctx.fillStyle = '#3f444f';
+  ctx.fillRect(px, py, 16, 16);
+  ctx.fillStyle = '#2c3038';
+  ctx.fillRect(px, py + 8, 16, 8);
+  ctx.fillRect(px, py + 15, 16, 1);
+  const offset = ty % 2 === 0 ? 0 : 4;
+  ctx.fillStyle = '#22252c';
+  ctx.fillRect(px + ((offset + 5) % 16), py, 1, 8);
+  ctx.fillRect(px + ((offset + 12) % 16), py + 8, 1, 8);
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.07)';
+  ctx.fillRect(px + 1, py + 1, 7, 1);
+  ctx.fillRect(px + 9, py + 9, 5, 1);
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+  ctx.fillRect(px, py, 16, 2);
+  if (tileRand(tx, ty, 21) > 0.85) {
+    ctx.fillStyle = '#4f8a52';
+    ctx.fillRect(px + 2, py + 10, 1, 3);
+  }
+}
+
 function drawTile(ctx, px, py, tile, tx, ty) {
   switch (tile) {
     case T.WATER: {
@@ -294,6 +346,15 @@ function drawTile(ctx, px, py, tile, tx, ty) {
       break;
     case T.CRATE:
       drawCrate(ctx, px, py);
+      break;
+    case T.STONE_FLOOR:
+      drawStoneFloor(ctx, px, py, tx, ty, false);
+      break;
+    case T.MOSS:
+      drawStoneFloor(ctx, px, py, tx, ty, true);
+      break;
+    case T.STONE_WALL:
+      drawStoneWall(ctx, px, py, tx, ty);
       break;
     default:
       drawGrass(ctx, px, py, tx, ty, false);
@@ -438,10 +499,24 @@ export class Renderer {
   }
 
   clampCamera() {
-    const maxX = Math.max(0, this.world.w * TILE_SIZE - this.viewW / this.scale);
-    const maxY = Math.max(0, this.world.h * TILE_SIZE - this.viewH / this.scale);
-    this.camX = Math.min(Math.max(this.camX, 0), maxX);
-    this.camY = Math.min(Math.max(this.camY, 0), maxY);
+    const worldW = this.world.w * TILE_SIZE;
+    const worldH = this.world.h * TILE_SIZE;
+    const viewTileW = this.viewW / this.scale;
+    const viewTileH = this.viewH / this.scale;
+
+    // Une salle plus petite que l'écran (intérieur, donjon) est centrée : une
+    // caméra bloquée à zéro la collerait en haut à gauche, avec une grande
+    // bande vide d'un seul côté.
+    if (worldW <= viewTileW) {
+      this.camX = (worldW - viewTileW) / 2;
+    } else {
+      this.camX = Math.min(Math.max(this.camX, 0), worldW - viewTileW);
+    }
+    if (worldH <= viewTileH) {
+      this.camY = (worldH - viewTileH) / 2;
+    } else {
+      this.camY = Math.min(Math.max(this.camY, 0), worldH - viewTileH);
+    }
   }
 
   updateCamera(targetX, targetY, dt) {
@@ -453,7 +528,9 @@ export class Renderer {
     this.clampCamera();
   }
 
-  render(players, selfId, now, decor = null) {
+  // `actors` : objets animés dessinés dans l'ordre de profondeur avec les
+  // joueurs (monstres, par exemple). Chacun expose { ry, draw(ctx, now) }.
+  render(players, selfId, now, decor = null, actors = null) {
     const ctx = this.ctx;
     const scale = this.scale;
     const camX = Math.round(this.camX);
@@ -471,7 +548,16 @@ export class Renderer {
 
     const list = Array.from(players.values()).sort((a, b) => a.ry - b.ry);
 
-    for (const p of list) {
+    const drawables = list.map((player) => ({ y: player.ry, player, actor: null }));
+    for (const actor of actors ?? []) drawables.push({ y: actor.ry, player: null, actor });
+    drawables.sort((a, b) => a.y - b.y);
+
+    for (const entry of drawables) {
+      if (entry.actor) {
+        entry.actor.draw(ctx, now);
+        continue;
+      }
+      const p = entry.player;
       const px = Math.round(p.rx * TILE_SIZE);
       const py = Math.round(p.ry * TILE_SIZE);
       const isSelf = p.id === selfId;
