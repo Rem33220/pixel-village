@@ -6,7 +6,7 @@ d'installation ni de code : pour ça, voir [README.md](README.md).
 
 > **Note de maintenance** — ce fichier décrit *toutes* les fonctionnalités
 > jouables et doit être mis à jour à chaque nouveauté (voir la dernière section).
-> État décrit : celui du commit `20d1442` — portail, donjons et combat, butin
+> État décrit : celui du commit `841c2f2` — portail, donjons et combat, butin
 > et équipement, arme tenue en main et animation de frappe, donjons à plusieurs
 > salles dont le nombre croît avec le niveau, plusieurs salles secrètes par
 > donjon sur des murs différents, butin légendaire et mythique, maisons
