@@ -48,7 +48,10 @@ function broadcast(message) {
 }
 
 function playerList() {
-  return Array.from(players.values(), (player) => ({
+  // Les joueurs qui visitent une maison disparaissent de la carte : leur
+  // intérieur est une instance privée, gérée uniquement par leur client.
+  const visible = Array.from(players.values()).filter((player) => !player.inside);
+  return visible.map((player) => ({
     id: player.id,
     name: player.name,
     color: player.color,
@@ -96,6 +99,13 @@ function movePlayer(player, dx, dy) {
 }
 
 function stepPlayer(player) {
+  if (player.inside) {
+    player.dx = 0;
+    player.dy = 0;
+    player.moving = false;
+    return;
+  }
+
   if (Date.now() - player.lastInputAt > 1500) {
     player.dx = 0;
     player.dy = 0;
@@ -116,7 +126,7 @@ function stepPlayer(player) {
     player.dir = ny < 0 ? 'up' : 'down';
   }
 
-  const distance = CONFIG.speed * STEP;
+  const distance = CONFIG.speed * player.speed * STEP;
   movePlayer(player, nx * distance, 0);
   movePlayer(player, 0, ny * distance);
 }
@@ -205,6 +215,26 @@ wss.on('connection', (ws) => {
       return;
     }
 
+    if (message.t === 'interior') {
+      // Le joueur entre dans une maison (ou en sort). On le fige sur place :
+      // sa position dans l'intérieur n'a pas à être connue du serveur.
+      player.inside = message.inside === true;
+      player.dx = 0;
+      player.dy = 0;
+      player.moving = false;
+      player.lastInputAt = Date.now();
+      return;
+    }
+
+    if (message.t === 'gear') {
+      // Multiplicateur de vitesse validé côté serveur (Bottes de vent).
+      const speed = Number(message.speed);
+      if (Number.isFinite(speed)) {
+        player.speed = Math.max(1, Math.min(1.6, speed));
+      }
+      return;
+    }
+
     if (message.t === 'chat') {
       const now = Date.now();
       if (now - player.lastChat < 500) return;
@@ -251,6 +281,8 @@ function join(ws, message) {
     dy: 0,
     dir: 'down',
     moving: false,
+    speed: 1,
+    inside: false,
     lastInputAt: Date.now(),
     lastChat: 0
   };

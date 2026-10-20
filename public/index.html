@@ -14,6 +14,7 @@
   <div id="hud">
     <span class="chip" id="hud-name">Aventurier</span>
     <span class="chip" id="hud-players">…</span>
+    <div id="hud-rewards" class="hidden"></div>
   </div>
 
   <div id="status" class="hidden">
@@ -21,7 +22,20 @@
     <button type="button" id="reconnect-btn" class="mini-btn hidden">Reconnecter</button>
   </div>
 
-  <p id="hint">ZQSD / WASD / flèches · Entrée : chat</p>
+  <p id="hint">ZQSD / WASD / flèches · E : entrer, agir · Entrée : chat</p>
+
+  <div id="prompt" class="hidden" aria-live="polite">
+    <kbd>E</kbd>
+    <span id="prompt-text"></span>
+  </div>
+
+  <aside id="challenge" class="hidden" aria-live="polite">
+    <h2 id="challenge-title">Épreuve</h2>
+    <p id="challenge-goal"></p>
+    <p id="challenge-status"></p>
+    <div id="challenge-answers"></div>
+    <p class="challenge-help">E : sortir · Échap : quitter la maison</p>
+  </aside>
 
   <section id="chat" aria-label="Chat">
     <div id="chat-log"></div>
@@ -33,7 +47,7 @@
   <div id="login">
     <div class="panel">
       <h1>PIXEL VILLAGE</h1>
-      <p class="tagline">Mini MMO RPG — un village, des joueurs, du pixel.</p>
+      <p class="tagline">Mini MMO RPG — un village, trois maisons, trois épreuves.</p>
 
       <form id="login-form" autocomplete="off">
         <label for="name-input">Nom du personnage</label>
@@ -49,7 +63,9 @@
 
       <p class="hint-panel">
         Le mode en ligne a besoin du petit serveur Node fourni dans le projet.
-        Sans serveur, le jeu démarre en solo.
+        Sans serveur, le jeu démarre en solo.<br />
+        Chaque maison cache une épreuve et sa récompense : approche-toi d'une
+        porte et appuie sur <strong>E</strong>.
       </p>
     </div>
   </div>

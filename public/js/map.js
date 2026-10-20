@@ -16,7 +16,16 @@ export const T = {
   WALL: 8,
   ROOF: 9,
   DOOR: 10,
-  WINDOW: 11
+  WINDOW: 11,
+  // Tuiles des intérieurs de maison.
+  WOOD: 12,
+  PLANK: 13,
+  RUG: 14,
+  BRICK: 15,
+  DOOR_STONE: 16,
+  TABLE: 17,
+  SHELF: 18,
+  CRATE: 19
 };
 
 // Tuiles qui bloquent le passage.
@@ -27,7 +36,12 @@ export const SOLID_TILES = new Set([
   T.WALL,
   T.ROOF,
   T.DOOR,
-  T.WINDOW
+  T.WINDOW,
+  T.BRICK,
+  T.DOOR_STONE,
+  T.TABLE,
+  T.SHELF,
+  T.CRATE
 ]);
 
 function mulberry32(seed) {
@@ -91,14 +105,19 @@ export function generateWorld(seed = WORLD_SEED) {
     set(30, y, T.PATH);
   }
 
-  // Maisons du village.
+  // Maisons du village. `doors` liste les portes rencontrées : le client s'en
+  // sert pour proposer d'entrer, sans redécouvrir la carte.
+  const doors = [];
   const house = (hx, hy, hw, hh) => {
     for (let y = 0; y < hh; y++) {
       for (let x = 0; x < hw; x++) {
         set(hx + x, hy + y, y < 2 ? T.ROOF : T.WALL);
       }
     }
-    set(hx + Math.floor(hw / 2), hy + hh - 1, T.DOOR);
+    const doorX = hx + Math.floor(hw / 2);
+    const doorY = hy + hh - 1;
+    doors.push({ x: doorX, y: doorY });
+    set(doorX, doorY, T.DOOR);
     if (hw >= 5) {
       set(hx + 1, hy + hh - 2, T.WINDOW);
       set(hx + hw - 2, hy + hh - 2, T.WINDOW);
@@ -109,6 +128,18 @@ export function generateWorld(seed = WORLD_SEED) {
   house(19, 27, 6, 4);
   house(39, 26, 7, 5);
 
+  // Seuil dégagé devant chaque porte (on y arrive toujours du Sud).
+  for (const door of doors) {
+    for (let dx = -1; dx <= 1; dx++) {
+      for (let dy = 1; dy <= 2; dy++) {
+        const x = door.x + dx;
+        const y = door.y + dy;
+        const tile = get(x, y);
+        if (tile === T.TREE || tile === T.ROCK) set(x, y, T.GRASS);
+      }
+    }
+  }
+
   // Zone de départ dégagée.
   for (let y = 23; y <= 27; y++) {
     for (let x = 28; x <= 33; x++) {
@@ -116,6 +147,11 @@ export function generateWorld(seed = WORLD_SEED) {
       if (tile === T.TREE || tile === T.ROCK) set(x, y, T.GRASS);
     }
   }
+
+  // Zone juste devant une porte : on la garde libre pour pouvoir entrer.
+  const nearDoorFront = (x, y) => doors.some((door) => (
+    Math.abs(x - door.x) <= 1 && y > door.y && y <= door.y + 2
+  ));
 
   const nearBuilding = (x, y) => {
     for (let j = -1; j <= 1; j++) {
@@ -139,7 +175,7 @@ export function generateWorld(seed = WORLD_SEED) {
     if (Math.abs(y - 21) <= 2 || Math.abs(y - 22) <= 2) continue;
     if (Math.abs(x - 29) <= 2 || Math.abs(x - 30) <= 2) continue;
     if (Math.hypot(x - 30.5, y - 25) < 6) continue;
-    if (nearBuilding(x, y)) continue;
+    if (nearBuilding(x, y) || nearDoorFront(x, y)) continue;
     set(x, y, T.TREE);
     planted++;
   }
@@ -151,6 +187,8 @@ export function generateWorld(seed = WORLD_SEED) {
     const tile = get(x, y);
     if (tile !== T.GRASS && tile !== T.GRASS2) continue;
     if (Math.hypot(x - 30.5, y - 25) < 5) continue;
+    // Pas de rocher devant les maisons : sinon l'entrée peut être bouchée.
+    if (nearBuilding(x, y) || nearDoorFront(x, y)) continue;
     set(x, y, rand() < 0.65 ? T.FLOWER : T.ROCK);
   }
 
@@ -158,7 +196,10 @@ export function generateWorld(seed = WORLD_SEED) {
     w,
     h,
     tiles,
-    spawn: { x: 30.5, y: 24.5 }
+    spawn: { x: 30.5, y: 24.5 },
+    // Portes des maisons, renseignées par generateWorld pour que les deux
+    // côtés (client et serveur) connaissent les mêmes coordonnées.
+    doors
   };
 }
 

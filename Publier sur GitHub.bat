@@ -27,14 +27,24 @@ echo.
 echo Verification des changements...
 git add -A
 git diff --cached --quiet
-if errorlevel 1 goto commit
-echo Aucun changement a envoyer.
-goto push
+if not errorlevel 1 goto nothing
 
 :commit
 set /p MESSAGE=Message du commit (Entree pour "Mise a jour du jeu") : 
 if "%MESSAGE%"=="" set MESSAGE=Mise a jour du jeu
 git commit -m "%MESSAGE%"
+if errorlevel 1 goto commit_failed
+
+:sync
+rem Le depot distant peut avoir avance (autre PC, modification faite sur
+rem GitHub). On se synchronise avant d'envoyer, sinon le push est refuse
+rem avec « fetch first ».
+echo.
+echo Synchronisation avec GitHub...
+git fetch origin
+if errorlevel 1 goto push_failed
+git merge --ff-only origin/main >nul 2>nul
+if errorlevel 1 goto diverged
 
 :push
 echo.
@@ -45,12 +55,28 @@ echo.
 echo Envoye. Si le depot est relie a Render, le redeploiement demarre tout seul.
 goto end
 
+:nothing
+echo Aucun changement local a enregistrer.
+goto sync
+
+:commit_failed
+echo.
+echo Le commit a echoue. Rien n'a ete envoye.
+goto end
+
+:diverged
+echo.
+echo Les historiques local et distant ont diverge : un fichier a ete modifie
+echo des deux cotes. Ouvre le dossier dans VS Code et demande de l'aide
+echo (git status pour voir les fichiers concernes). Rien n'a ete ecrase.
+goto end
+
 :push_failed
 echo.
 echo Echec de l'envoi. Causes possibles :
 echo   - URL du depot incorrecte : git remote set-url origin URL
 echo   - connexion GitHub refusee : relance et connecte-toi dans la fenetre
-echo   - depot distant deja rempli avec un autre historique
+echo   - pas de connexion internet
 goto end
 
 :no_git

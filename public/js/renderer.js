@@ -116,6 +116,97 @@ function drawRoof(ctx, px, py, tx, ty) {
   ctx.fillRect(px + ((offset + 3) % 14), py + 10, 1, 4);
 }
 
+// --- Tuiles d'intérieur ----------------------------------------------------
+
+function drawWood(ctx, px, py, tx, ty, dark) {
+  ctx.fillStyle = dark ? '#8a6039' : '#96693f';
+  ctx.fillRect(px, py, 16, 16);
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.13)';
+  ctx.fillRect(px, py + 7, 16, 1);
+  const joint = (tx * 7 + ty * 3) % 12;
+  ctx.fillRect(px + 2 + joint, py + 1, 1, 6);
+  ctx.fillRect(px + 2 + ((joint + 5) % 12), py + 9, 1, 6);
+  ctx.fillStyle = 'rgba(255, 240, 210, 0.07)';
+  ctx.fillRect(px, py, 16, 1);
+}
+
+function drawBrick(ctx, px, py, tx, ty) {
+  ctx.fillStyle = '#4a4a52';
+  ctx.fillRect(px, py, 16, 16);
+  ctx.fillStyle = '#3b3b43';
+  ctx.fillRect(px, py + 7, 16, 1);
+  ctx.fillRect(px, py + 15, 16, 1);
+  const offset = ty % 2 === 0 ? 0 : 4;
+  ctx.fillRect(px + ((offset + 3) % 16), py, 1, 7);
+  ctx.fillRect(px + ((offset + 11) % 16), py + 8, 1, 7);
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+  ctx.fillRect(px + 1, py + 1, 6, 1);
+  ctx.fillRect(px + 9, py + 9, 5, 1);
+}
+
+function drawRug(ctx, px, py, tx, ty) {
+  ctx.fillStyle = '#9c3f3a';
+  ctx.fillRect(px, py, 16, 16);
+  ctx.fillStyle = '#8b3731';
+  ctx.fillRect(px, py, 16, 1);
+  ctx.fillRect(px, py + 15, 16, 1);
+  ctx.fillStyle = '#c9803f';
+  if ((tx + ty) % 2 === 0) {
+    ctx.fillRect(px + 6, py + 6, 4, 4);
+    ctx.fillStyle = '#e8d6a4';
+    ctx.fillRect(px + 7, py + 7, 2, 2);
+  } else {
+    ctx.fillRect(px + 3, py + 3, 1, 1);
+    ctx.fillRect(px + 12, py + 12, 1, 1);
+  }
+}
+
+function drawTable(ctx, px, py) {
+  drawWood(ctx, px, py, 0, 0, true);
+  ctx.fillStyle = '#6b4a2f';
+  ctx.fillRect(px + 1, py + 3, 14, 9);
+  ctx.fillStyle = '#8a6238';
+  ctx.fillRect(px + 2, py + 4, 12, 6);
+  ctx.fillStyle = '#4a3220';
+  ctx.fillRect(px + 3, py + 12, 2, 3);
+  ctx.fillRect(px + 11, py + 12, 2, 3);
+}
+
+function drawShelf(ctx, px, py) {
+  drawWood(ctx, px, py, 0, 0, true);
+  ctx.fillStyle = '#4a3220';
+  ctx.fillRect(px + 1, py + 1, 14, 14);
+  ctx.fillStyle = '#6b4a2f';
+  ctx.fillRect(px + 2, py + 2, 12, 5);
+  ctx.fillRect(px + 2, py + 9, 12, 5);
+  const books = ['#b5564b', '#3b8fd6', '#4fbf6a', '#e0a83c'];
+  for (let i = 0; i < 4; i++) {
+    ctx.fillStyle = books[i];
+    ctx.fillRect(px + 3 + i * 3, py + 3, 2, 4);
+    ctx.fillStyle = books[(i + 2) % 4];
+    ctx.fillRect(px + 3 + i * 3, py + 10, 2, 4);
+  }
+}
+
+function drawCrate(ctx, px, py) {
+  drawWood(ctx, px, py, 0, 0, true);
+  ctx.fillStyle = '#8a6238';
+  ctx.fillRect(px + 2, py + 3, 12, 11);
+  ctx.fillStyle = '#5d4023';
+  ctx.fillRect(px + 2, py + 3, 12, 1);
+  ctx.fillRect(px + 2, py + 13, 12, 1);
+  ctx.fillRect(px + 2, py + 3, 1, 11);
+  ctx.fillRect(px + 13, py + 3, 1, 11);
+  ctx.beginPath();
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = '#5d4023';
+  ctx.moveTo(px + 3.5, py + 4.5);
+  ctx.lineTo(px + 12.5, py + 12.5);
+  ctx.moveTo(px + 12.5, py + 4.5);
+  ctx.lineTo(px + 3.5, py + 12.5);
+  ctx.stroke();
+}
+
 function drawTile(ctx, px, py, tile, tx, ty) {
   switch (tile) {
     case T.WATER: {
@@ -179,6 +270,31 @@ function drawTile(ctx, px, py, tile, tx, ty) {
       drawWall(ctx, px, py);
       drawDoor(ctx, px, py);
       break;
+    case T.WOOD:
+      drawWood(ctx, px, py, tx, ty, false);
+      break;
+    case T.PLANK:
+      drawWood(ctx, px, py, tx, ty, true);
+      break;
+    case T.BRICK:
+      drawBrick(ctx, px, py, tx, ty);
+      break;
+    case T.RUG:
+      drawRug(ctx, px, py, tx, ty);
+      break;
+    case T.DOOR_STONE:
+      drawBrick(ctx, px, py, tx, ty);
+      drawDoor(ctx, px, py);
+      break;
+    case T.TABLE:
+      drawTable(ctx, px, py);
+      break;
+    case T.SHELF:
+      drawShelf(ctx, px, py);
+      break;
+    case T.CRATE:
+      drawCrate(ctx, px, py);
+      break;
     default:
       drawGrass(ctx, px, py, tx, ty, false);
       break;
@@ -238,6 +354,46 @@ function drawBubble(ctx, text, cx, bottomY) {
   ctx.fillText(label, cx, y + height / 2 + 1);
 }
 
+// --- Effets des récompenses ------------------------------------------------
+
+function drawLantern(ctx, px, py, now) {
+  const pulse = 0.88 + 0.12 * Math.sin(now / 620);
+  const radius = 26 * pulse;
+  const gradient = ctx.createRadialGradient(px, py - 4, 0, px, py - 4, radius);
+  gradient.addColorStop(0, 'rgba(255, 232, 168, 0.42)');
+  gradient.addColorStop(0.55, 'rgba(255, 206, 112, 0.16)');
+  gradient.addColorStop(1, 'rgba(255, 200, 100, 0)');
+  ctx.fillStyle = gradient;
+  ctx.beginPath();
+  ctx.arc(px, py - 4, radius, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawMedalAura(ctx, px, py, now) {
+  const pulse = 0.75 + 0.25 * Math.sin(now / 480);
+  ctx.strokeStyle = `rgba(246, 211, 77, ${0.28 + 0.18 * pulse})`;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.ellipse(px, py + 1, 10, 4, 0, 0, Math.PI * 2);
+  ctx.stroke();
+}
+
+function drawMedal(ctx, px, py, now) {
+  const bob = Math.sin(now / 460) * 1.2;
+  const cx = px;
+  const cy = py - 7 + bob;
+  ctx.fillStyle = '#f6d34d';
+  ctx.beginPath();
+  ctx.moveTo(cx, cy);
+  ctx.lineTo(cx + 2.5, cy + 2.5);
+  ctx.lineTo(cx, cy + 5);
+  ctx.lineTo(cx - 2.5, cy + 2.5);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = 'rgba(255, 249, 214, 0.9)';
+  ctx.fillRect(cx - 1, cy + 1, 1, 2);
+}
+
 export class Renderer {
   constructor(canvas, world) {
     this.canvas = canvas;
@@ -268,6 +424,13 @@ export class Renderer {
     this.clampCamera();
   }
 
+  // Change de carte : monde extérieur ou intérieur d'une maison.
+  setWorld(world) {
+    this.world = world;
+    this.mapCanvas = buildMapCanvas(world);
+    this.clampCamera();
+  }
+
   centerOn(x, y) {
     this.camX = x * TILE_SIZE - this.viewW / (2 * this.scale);
     this.camY = y * TILE_SIZE - this.viewH / (2 * this.scale);
@@ -290,7 +453,7 @@ export class Renderer {
     this.clampCamera();
   }
 
-  render(players, selfId, now) {
+  render(players, selfId, now, decor = null) {
     const ctx = this.ctx;
     const scale = this.scale;
     const camX = Math.round(this.camX);
@@ -304,12 +467,20 @@ export class Renderer {
     ctx.scale(scale, scale);
     ctx.translate(-camX, -camY);
     ctx.drawImage(this.mapCanvas, 0, 0);
+    if (decor) decor(ctx, now);
 
     const list = Array.from(players.values()).sort((a, b) => a.ry - b.ry);
 
     for (const p of list) {
       const px = Math.round(p.rx * TILE_SIZE);
       const py = Math.round(p.ry * TILE_SIZE);
+      const isSelf = p.id === selfId;
+
+      // Récompenses : la lampe éclaire autour du personnage, le médaillon
+      // ajoute une aura dorée. Les autres joueurs ne les voient pas.
+      if (isSelf && p.rewards?.has('lampe')) drawLantern(ctx, px, py, now);
+      if (isSelf && p.rewards?.has('medaille')) drawMedalAura(ctx, px, py, now);
+
       ctx.fillStyle = 'rgba(8, 14, 10, 0.28)';
       ctx.beginPath();
       ctx.ellipse(px, py + 2, 5, 2.5, 0, 0, Math.PI * 2);
@@ -323,6 +494,8 @@ export class Renderer {
         : (Math.floor(now / 900) % 2 === 0 ? 0 : -1);
       const sprite = getPlayerSprite(p.color, p.dir, frame);
       ctx.drawImage(sprite, px - 6, py - 15 + bob, 12, 16);
+
+      if (isSelf && p.rewards?.has('medaille')) drawMedal(ctx, px, py - 15 + bob, now);
     }
     ctx.restore();
 

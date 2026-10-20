@@ -1,14 +1,34 @@
-// Point d'entrée du client : boucle de jeu, connexion, chat, HUD.
+// Point d'entrée du client : boucle de jeu, connexion, chat, HUD, maisons.
 import { CONFIG } from './config.js';
 import { generateWorld, isSolid } from './map.js';
 import { Renderer } from './renderer.js';
 import { initInput, moveVector, isTyping } from './input.js';
 import { createConnection, websocketUrl } from './net.js';
+import {
+  buildHouses,
+  buildInterior,
+  createChallenge,
+  updateChallenge,
+  answerQuiz,
+  openQuiz,
+  drawChallenge,
+  nearTome,
+  nearExit,
+  ENTER_RANGE,
+  QUIZ,
+  REWARDS
+} from './houses.js';
 
 const world = generateWorld();
+const houses = buildHouses(world);
+
+// Vitesse appliquée quand les Bottes de vent sont obtenues.
+const SPEED_WITH_BOOTS = 1.25;
 
 const state = {
   mode: 'menu', // menu | connecting | online | solo
+  world,
+  houses,
   players: new Map(),
   selfId: null,
   name: 'Aventurier',
@@ -16,7 +36,11 @@ const state = {
   conn: null,
   renderer: null,
   lastSent: { x: 0, y: 0 },
-  lastSentAt: 0
+  lastSentAt: 0,
+  // Maison en cours de visite : { house, room, challenge }
+  inside: null,
+  savedPos: null,
+  rewards: new Set()
 };
 
 const els = {
@@ -28,12 +52,20 @@ const els = {
   canvas: document.getElementById('screen'),
   hudName: document.getElementById('hud-name'),
   hudPlayers: document.getElementById('hud-players'),
+  hudRewards: document.getElementById('hud-rewards'),
   chatLog: document.getElementById('chat-log'),
   chatForm: document.getElementById('chat-form'),
   chatInput: document.getElementById('chat-input'),
   status: document.getElementById('status'),
   statusText: document.getElementById('status-text'),
-  reconnect: document.getElementById('reconnect-btn')
+  reconnect: document.getElementById('reconnect-btn'),
+  prompt: document.getElementById('prompt'),
+  promptText: document.getElementById('prompt-text'),
+  challenge: document.getElementById('challenge'),
+  challengeTitle: document.getElementById('challenge-title'),
+  challengeGoal: document.getElementById('challenge-goal'),
+  challengeStatus: document.getElementById('challenge-status'),
+  challengeAnswers: document.getElementById('challenge-answers')
 };
 
 // --- Personnages -----------------------------------------------------------
@@ -51,7 +83,8 @@ function makePlayer(id, name, color, x, y) {
     moving: false,
     phase: 0,
     chatText: '',
-    chatUntil: 0
+    chatUntil: 0,
+    speed: 1
   };
 }
 
@@ -66,10 +99,10 @@ function advanceWalk(player, distance) {
 
 function canStand(x, y) {
   const radius = 0.3;
-  return !isSolid(world, Math.floor(x - radius), Math.floor(y - radius))
-    && !isSolid(world, Math.floor(x + radius), Math.floor(y - radius))
-    && !isSolid(world, Math.floor(x - radius), Math.floor(y + radius))
-    && !isSolid(world, Math.floor(x + radius), Math.floor(y + radius));
+  return !isSolid(state.world, Math.floor(x - radius), Math.floor(y - radius))
+    && !isSolid(state.world, Math.floor(x + radius), Math.floor(y - radius))
+    && !isSolid(state.world, Math.floor(x - radius), Math.floor(y + radius))
+    && !isSolid(state.world, Math.floor(x + radius), Math.floor(y + radius));
 }
 
 function moveWithCollision(player, dx, dy) {
@@ -81,8 +114,70 @@ function moveWithCollision(player, dx, dy) {
     const ny = player.ry + dy;
     if (canStand(player.rx, ny)) player.ry = ny;
   }
-  player.rx = Math.min(Math.max(player.rx, 1), world.w - 1);
-  player.ry = Math.min(Math.max(player.ry, 1), world.h - 1);
+  player.rx = Math.min(Math.max(player.rx, 1), state.world.w - 1);
+  player.ry = Math.min(Math.max(player.ry, 1), state.world.h - 1);
+}
+
+// --- Récompenses -----------------------------------------------------------
+
+function applyRewards(player) {
+  if (!player) return;
+  player.rewards = state.rewards;
+  player.speed = state.rewards.has('bottes') ? SPEED_WITH_BOOTS : 1;
+}
+
+function loadRewards() {
+  try {
+    const list = JSON.parse(localStorage.getItem('pixel-village:rewards') || '[]');
+    if (Array.isArray(list)) {
+      for (const id of list) {
+        if (REWARDS[id]) state.rewards.add(id);
+      }
+    }
+  } catch {
+    /* stockage indisponible (mode privé) */
+  }
+}
+
+function saveRewards() {
+  try {
+    localStorage.setItem('pixel-village:rewards', JSON.stringify(Array.from(state.rewards)));
+  } catch {
+    /* stockage indisponible */
+  }
+}
+
+function syncGear() {
+  if (state.mode !== 'online' || !state.conn) return;
+  state.conn.send({
+    t: 'gear',
+    speed: state.rewards.has('bottes') ? SPEED_WITH_BOOTS : 1
+  });
+}
+
+function grantReward(id) {
+  const isNew = !state.rewards.has(id);
+  if (isNew) {
+    state.rewards.add(id);
+    saveRewards();
+    applyRewards(state.players.get(state.selfId));
+    syncGear();
+    updateRewardsHud();
+  }
+  return isNew;
+}
+
+function updateRewardsHud() {
+  if (!els.hudRewards) return;
+  els.hudRewards.replaceChildren();
+  for (const id of state.rewards) {
+    const chip = document.createElement('span');
+    chip.className = 'chip reward';
+    chip.title = REWARDS[id]?.detail ?? '';
+    chip.textContent = REWARDS[id]?.name ?? id;
+    els.hudRewards.append(chip);
+  }
+  els.hudRewards.classList.toggle('hidden', state.rewards.size === 0);
 }
 
 // --- Interface -------------------------------------------------------------
@@ -171,6 +266,215 @@ function saveSettings() {
   }
 }
 
+// --- Maisons ---------------------------------------------------------------
+
+function houseNear(player) {
+  for (const house of houses) {
+    const dx = player.rx - (house.door.x + 0.5);
+    const dy = player.ry - (house.door.y + 0.5);
+    if (Math.hypot(dx, dy) <= ENTER_RANGE) return house;
+  }
+  return null;
+}
+
+function enterHouse(house) {
+  const me = state.players.get(state.selfId);
+  if (!me || state.inside) return;
+
+  const room = buildInterior(house);
+  state.savedPos = { x: me.rx, y: me.ry };
+  state.inside = { house, room, challenge: createChallenge(house.challenge) };
+
+  me.rx = room.spawn.x;
+  me.ry = room.spawn.y;
+  me.x = me.rx;
+  me.y = me.ry;
+  me.dir = 'up';
+  me.moving = false;
+
+  // Les collisions doivent utiliser la carte de l'intérieur, pas celle du
+  // village.
+  state.world = room;
+  state.renderer.setWorld(room);
+  state.renderer.centerOn(me.rx, me.ry);
+
+  if (state.mode === 'online' && state.conn) {
+    state.conn.send({ t: 'interior', inside: true });
+  }
+
+  els.challengeGoal.textContent = house.goal;
+  els.challenge.classList.remove('hidden');
+  answersKey = '';
+  updateChallengePanel();
+  updatePrompt(true);
+  pushChat(`Tu entres — ${house.name}. ${house.goal}`, 'system');
+}
+
+function exitHouse() {
+  const inside = state.inside;
+  if (!inside) return;
+
+  const me = state.players.get(state.selfId);
+  const back = state.savedPos ?? inside.house.stand;
+  state.inside = null;
+  state.savedPos = null;
+
+  answersKey = '';
+  els.challenge.classList.add('hidden');
+  els.challengeAnswers.replaceChildren();
+
+  state.world = world;
+  state.renderer.setWorld(world);
+  if (me) {
+    me.rx = back.x;
+    me.ry = back.y;
+    me.x = back.x;
+    me.y = back.y;
+    me.moving = false;
+    state.renderer.centerOn(me.rx, me.ry);
+  }
+
+  if (state.mode === 'online' && state.conn) {
+    state.conn.send({ t: 'interior', inside: false });
+    syncGear();
+  }
+  updatePrompt(true);
+}
+
+function interact() {
+  if (state.mode !== 'online' && state.mode !== 'solo') return;
+  const me = state.players.get(state.selfId);
+  if (!me) return;
+
+  if (state.inside) {
+    if (nearExit(state.inside.room, me)) {
+      exitHouse();
+      return;
+    }
+    const challenge = state.inside.challenge;
+    if (challenge.type === 'devinettes' && challenge.phase === 'idle' && nearTome(me)) {
+      if (openQuiz(challenge)) {
+        answersKey = '';
+        updateChallengePanel();
+      }
+    }
+    return;
+  }
+
+  const house = houseNear(me);
+  if (house) enterHouse(house);
+}
+
+function chooseAnswer(index) {
+  const inside = state.inside;
+  if (!inside) return;
+  const result = answerQuiz(inside.challenge, index);
+  if (!result) return;
+  if (result === 'won') onChallengeWon();
+  updateChallengePanel();
+}
+
+function onChallengeWon() {
+  const inside = state.inside;
+  if (!inside) return;
+  const reward = REWARDS[inside.house.reward];
+  const isNew = grantReward(inside.house.reward);
+  if (isNew) {
+    pushChat(`Épreuve réussie ! Récompense : ${reward.name} — ${reward.detail}.`, 'system');
+  } else {
+    pushChat(`Épreuve réussie à nouveau ! Tu possèdes déjà ${reward.name}.`, 'system');
+  }
+}
+
+let answersKey = '';
+let challengeStatus = '';
+
+function renderAnswers(challenge) {
+  const key = challenge.type === 'devinettes' && challenge.phase === 'question' ? `q${challenge.index}` : '';
+  if (key === answersKey) return;
+  answersKey = key;
+  els.challengeAnswers.replaceChildren();
+  if (!key) return;
+
+  const question = QUIZ[challenge.index];
+  question.options.forEach((label, index) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'answer';
+    button.textContent = `${index + 1}. ${label}`;
+    button.addEventListener('click', () => {
+      button.blur();
+      chooseAnswer(index);
+    });
+    els.challengeAnswers.append(button);
+  });
+}
+
+function updateChallengePanel() {
+  const inside = state.inside;
+  if (!inside) {
+    els.challenge.classList.add('hidden');
+    return;
+  }
+  const challenge = inside.challenge;
+  els.challengeTitle.textContent = inside.house.name;
+
+  let status = challenge.message ?? '';
+  if (challenge.type === 'runes') {
+    if (challenge.phase === 'watch') status = 'Observe la séquence des runes…';
+    else if (challenge.phase === 'input') status = `À toi : reproduis la séquence (${challenge.step}/${challenge.seq.length}).`;
+    else if (challenge.phase === 'won') status = 'Épreuve réussie ! Sors par la porte quand tu veux (E).';
+  } else if (challenge.type === 'cristaux') {
+    const done = challenge.taken.filter(Boolean).length;
+    status = challenge.phase === 'won'
+      ? 'Épreuve réussie ! Sors par la porte quand tu veux (E).'
+      : `${done}/${challenge.taken.length} cristaux — ${challenge.time.toFixed(1)} s`;
+  } else if (challenge.phase === 'question') {
+    status = `Énigme ${challenge.index + 1}/${QUIZ.length} : ${QUIZ[challenge.index].question}`;
+  } else if (challenge.phase === 'won') {
+    status = 'Les trois énigmes sont résolues ! Sors par la porte quand tu veux (E).';
+  } else {
+    status = challenge.message || 'Le livre du sage t’attend (E).';
+  }
+
+  if (status !== challengeStatus) {
+    challengeStatus = status;
+    els.challengeStatus.textContent = status;
+  }
+  renderAnswers(challenge);
+}
+
+let promptKey = '';
+
+function updatePrompt(force = false) {
+  const me = state.players.get(state.selfId);
+  let text = '';
+
+  if (me && (state.mode === 'online' || state.mode === 'solo')) {
+    if (state.inside) {
+      if (nearExit(state.inside.room, me)) {
+        text = 'Sortir de la maison';
+      } else if (state.inside.challenge.type === 'devinettes'
+        && state.inside.challenge.phase === 'idle'
+        && nearTome(me)) {
+        text = 'Lire le livre des énigmes';
+      }
+    } else {
+      const house = houseNear(me);
+      if (house) text = `Entrer — ${house.name}`;
+    }
+  }
+
+  if (!force && text === promptKey) return;
+  promptKey = text;
+  if (!text) {
+    els.prompt.classList.add('hidden');
+    return;
+  }
+  els.promptText.textContent = text;
+  els.prompt.classList.remove('hidden');
+}
+
 // --- Connexion -------------------------------------------------------------
 
 function enterWorld(online) {
@@ -233,6 +537,7 @@ function startSolo(reason = '') {
     const spawn = world.spawn;
     state.players.set('local', makePlayer('local', state.name, state.color, spawn.x, spawn.y));
   }
+  applyRewards(state.players.get('local'));
 
   state.mode = 'solo';
   state.conn = null;
@@ -258,6 +563,7 @@ function syncPlayers(list) {
     player.moving = data.moving;
   }
   for (const id of Array.from(state.players.keys())) {
+    if (id === state.selfId) continue; // le serveur nous masque quand on est dans une maison
     if (!seen.has(id)) state.players.delete(id);
   }
 }
@@ -275,12 +581,16 @@ function handleMessage(message) {
         const p = makePlayer(state.selfId, state.name, state.color, message.spawn.x, message.spawn.y);
         state.players.set(state.selfId, p);
       }
+      applyRewards(state.players.get(state.selfId));
+      syncGear();
+      if (state.inside) state.conn.send({ t: 'interior', inside: true });
       updateHud();
       setStatus(null);
-      pushChat('Bienvenue dans le village ! ZQSD / WASD pour bouger, Entrée pour discuter.', 'system');
+      pushChat('Bienvenue dans le village ! ZQSD / WASD pour bouger, E pour entrer dans une maison, Entrée pour discuter.', 'system');
       break;
     }
     case 'state': {
+      // Pendant une visite, on ne touche pas à notre propre position.
       syncPlayers(message.players);
       updateHud();
       break;
@@ -323,13 +633,14 @@ function updateLocal(dt) {
     } else {
       me.dir = vector.y < 0 ? 'up' : 'down';
     }
+    const speed = CONFIG.speed * (me.speed ?? 1);
     const beforeX = me.rx;
     const beforeY = me.ry;
-    moveWithCollision(me, vector.x * CONFIG.speed * dt, vector.y * CONFIG.speed * dt);
+    moveWithCollision(me, vector.x * speed * dt, vector.y * speed * dt);
     advanceWalk(me, Math.hypot(me.rx - beforeX, me.ry - beforeY));
   }
 
-  if (state.mode === 'solo') {
+  if (state.mode === 'solo' || state.inside) {
     me.x = me.rx;
     me.y = me.ry;
     return;
@@ -366,6 +677,17 @@ function updateRemotes(dt) {
   }
 }
 
+function tickInside(dt) {
+  const inside = state.inside;
+  if (!inside) return;
+  const me = state.players.get(state.selfId);
+  if (!me) return;
+
+  const result = updateChallenge(inside.challenge, me, dt);
+  if (result === 'won') onChallengeWon();
+  updateChallengePanel();
+}
+
 let lastFrame = performance.now();
 
 function loop(now) {
@@ -375,12 +697,26 @@ function loop(now) {
   if (state.mode === 'online' || state.mode === 'solo') {
     updateLocal(dt);
     updateRemotes(dt);
+    if (state.inside) tickInside(dt);
     const me = state.players.get(state.selfId);
     if (me) state.renderer.updateCamera(me.rx, me.ry, dt);
+    updatePrompt();
   }
 
-  state.renderer.render(state.players, state.selfId, now);
+  const decor = state.inside
+    ? (ctx, time) => drawChallenge(ctx, state.inside.challenge, state.inside.room, time)
+    : null;
+
+  state.renderer.render(renderList(), state.selfId, now, decor);
   requestAnimationFrame(loop);
+}
+
+// À l'intérieur, on ne dessine que soi-même : l'instance est privée.
+function renderList() {
+  if (!state.inside) return state.players;
+  const me = state.players.get(state.selfId);
+  if (!me) return new Map();
+  return new Map([[me.id, me]]);
 }
 
 // --- Événements ------------------------------------------------------------
@@ -415,16 +751,40 @@ window.addEventListener('keydown', (event) => {
   if (event.code === 'Enter' && !isTyping(event) && state.mode !== 'menu') {
     event.preventDefault();
     els.chatInput.focus();
+    return;
   }
-  if (event.code === 'Escape' && document.activeElement === els.chatInput) {
-    els.chatInput.blur();
+
+  if (event.code === 'Escape') {
+    if (document.activeElement === els.chatInput) {
+      els.chatInput.blur();
+    } else if (state.inside) {
+      exitHouse();
+    }
+    return;
+  }
+
+  if (isTyping(event)) return;
+
+  if (event.code === 'KeyE' && (state.mode === 'online' || state.mode === 'solo')) {
+    event.preventDefault();
+    interact();
+    return;
+  }
+
+  const challenge = state.inside?.challenge;
+  if (challenge && challenge.type === 'devinettes' && challenge.phase === 'question') {
+    const digits = { Digit1: 0, Digit2: 1, Digit3: 2, Numpad1: 0, Numpad2: 1, Numpad3: 2 };
+    if (event.code in digits) {
+      event.preventDefault();
+      chooseAnswer(digits[event.code]);
+    }
   }
 });
 
 // Envoie la direction au serveur quand elle change, et la rafraîchit
 // régulièrement pour ne pas être coupé par le délai d'inactivité du serveur.
 setInterval(() => {
-  if (state.mode !== 'online' || !state.conn) return;
+  if (state.mode !== 'online' || !state.conn || state.inside) return;
   const vector = moveVector();
   const x = Math.round(vector.x * 50) / 50;
   const y = Math.round(vector.y * 50) / 50;
@@ -446,6 +806,8 @@ state.renderer.centerOn(world.spawn.x, world.spawn.y);
 initInput();
 buildColorList();
 loadSettings();
+loadRewards();
 updateSwatches();
 updateHud();
+updateRewardsHud();
 requestAnimationFrame(loop);

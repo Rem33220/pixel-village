@@ -53,7 +53,9 @@ body::after {
 body:not(.playing) #hud,
 body:not(.playing) #chat,
 body:not(.playing) #hint,
-body:not(.playing) #status {
+body:not(.playing) #status,
+body:not(.playing) #prompt,
+body:not(.playing) #challenge {
   display: none;
 }
 
@@ -82,6 +84,20 @@ body:not(.playing) #status {
   color: var(--cream);
 }
 
+#hud-rewards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip.reward {
+  color: #241a05;
+  background: linear-gradient(#f3dd9f, #e0c176);
+  border-color: #8a6f3a;
+  font-size: 11px;
+  letter-spacing: 0.2px;
+}
+
 #hint {
   position: fixed;
   right: 14px;
@@ -93,6 +109,108 @@ body:not(.playing) #status {
   color: var(--muted);
   background: rgba(12, 20, 16, 0.78);
   border: 2px solid var(--line);
+}
+
+/* --- Invite d'action (E) ------------------------------------------------ */
+
+#prompt {
+  position: fixed;
+  left: 50%;
+  bottom: 74px;
+  z-index: 15;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  max-width: calc(100vw - 28px);
+  padding: 8px 14px;
+  font-size: 12px;
+  color: var(--text);
+  background: rgba(12, 20, 16, 0.92);
+  border: 2px solid var(--cream);
+  transform: translateX(-50%);
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.45);
+}
+
+#prompt kbd {
+  padding: 2px 7px;
+  font: inherit;
+  font-size: 11px;
+  font-weight: bold;
+  color: #14100a;
+  background: var(--cream);
+  border-radius: 2px;
+}
+
+/* --- Panneau d'épreuve -------------------------------------------------- */
+
+#challenge {
+  position: fixed;
+  top: 62px;
+  right: 14px;
+  z-index: 15;
+  width: min(310px, calc(100vw - 28px));
+  padding: 14px 14px 12px;
+  background: linear-gradient(#16231d, #101a15);
+  border: 2px solid var(--cream);
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.45);
+}
+
+#challenge h2 {
+  margin: 0 0 8px;
+  font-size: 13px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--cream);
+}
+
+#challenge-goal {
+  margin: 0 0 8px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+#challenge-status {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+#challenge-answers {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+#challenge-answers:empty {
+  display: none;
+}
+
+.answer {
+  padding: 8px 10px;
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  color: var(--text);
+  background: #0b120f;
+  border: 2px solid var(--line);
+  cursor: pointer;
+}
+
+.answer:hover,
+.answer:focus-visible {
+  color: var(--cream);
+  border-color: var(--cream);
+  outline: none;
+}
+
+.challenge-help {
+  margin: 10px 0 0;
+  font-size: 10px;
+  letter-spacing: 0.4px;
+  color: #6d8278;
 }
 
 /* --- Chat --------------------------------------------------------------- */
@@ -338,8 +456,30 @@ label,
     width: calc(100vw - 28px);
   }
 
+  #challenge {
+    top: 58px;
+    right: 8px;
+    left: 8px;
+    width: auto;
+    padding: 11px 12px 10px;
+  }
+
+  #challenge-goal {
+    display: none;
+  }
+
+  #hud-rewards .chip.reward {
+    font-size: 10px;
+    padding: 4px 7px;
+  }
+
   #hint {
     display: none;
+  }
+
+  #prompt {
+    bottom: 64px;
+    font-size: 11px;
   }
 
   .panel h1 {

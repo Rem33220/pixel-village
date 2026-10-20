@@ -2,7 +2,8 @@
 
 Un jeu de rôle massivement multijoueur minimaliste, jouable **directement dans le
 navigateur** : un village en pixel art, des personnages qui se croisent en temps
-réel, un chat et un mode solo de secours.
+réel, un chat, un mode solo de secours et **trois maisons à visiter, chacune avec
+son épreuve et sa récompense**.
 
 - Client : HTML + Canvas 2D, **aucune étape de build**, aucun asset à télécharger.
 - Serveur : Node.js + WebSocket, la carte et les collisions sont simulées
@@ -96,14 +97,17 @@ Pixel Village prêt : http://localhost:3000  [WebSocket intégré, zéro dépend
 | Lancer le serveur seul  | `node server/index.js`                                            |
 | Changer le port         | `set PORT=4000` puis `node server/index.js` (PowerShell : `$env:PORT=4000; node server/index.js`) |
 | Arrêter                 | `Ctrl+C` dans la fenêtre du serveur                               |
+| Tester les épreuves     | `node tests/houses.test.mjs`                                      |
 
 ### Contrôles
 
 | Touche                         | Action                        |
 | ------------------------------ | ----------------------------- |
 | `ZQSD` / `WASD` / flèches      | se déplacer                   |
+| `E`                            | entrer dans une maison, sortir, agir |
+| `1` `2` `3`                    | répondre aux énigmes          |
 | `Entrée`                       | ouvrir le chat                |
-| `Échap`                        | fermer le chat                |
+| `Échap`                        | fermer le chat, quitter une maison |
 | Clic sur une pastille          | changer la couleur du personnage |
 
 Les touches sont lues via `event.code` : les touches **physiques** fonctionnent
@@ -127,6 +131,7 @@ donc aussi bien sur un clavier AZERTY que QWERTY.
     └── js/
         ├── config.js     # réglages partagés client/serveur
         ├── map.js        # génération de la carte + collisions
+        ├── houses.js     # maisons, épreuves et récompenses
         ├── sprites.js    # pixel art des personnages (dessiné en ASCII)
         ├── renderer.js   # caméra, tuiles, personnages, bulles de chat
         ├── input.js      # clavier
@@ -167,6 +172,38 @@ Les sprites font 12 × 16 pixels et sont dessinés avec des caractères :
 
 Chaque lettre correspond à une couleur dans `BASE_PALETTE`. Tu peux redessiner
 un personnage sans aucune compétence en dessin ni logiciel externe.
+
+### Les maisons, épreuves et récompenses
+
+Trois maisons du village s'ouvrent avec `E` quand on se place devant leur porte.
+Chacune est une **salle privée** : on y entre seul, et les autres joueurs voient
+simplement l'avatar disparaître (il réapparaît à la même place en sortant).
+
+| Maison                | Épreuve                                                  | Récompense          | Effet |
+| --------------------- | -------------------------------------------------------- | ------------------- | ----- |
+| Chaumière des runes   | reproduire de mémoire la séquence de 4 runes             | Lampe du veilleur   | halo de lumière autour du personnage |
+| Atelier des cristaux  | toucher 6 cristaux en 32 secondes                        | Bottes de vent      | 25 % plus rapide |
+| Maison du sage        | répondre aux 3 énigmes du livre sans erreur               | Médaillon du sage   | aura dorée au-dessus de la tête |
+
+Toute la mécanique vit dans `public/js/houses.js` :
+
+| Envie                                  | Où regarder                                    |
+| -------------------------------------- | ---------------------------------------------- |
+| Changer les énigmes et leurs réponses   | `QUIZ` (le champ `answer` est l'index correct) |
+| Changer la durée des cristaux          | `createChallenge('cristaux')`, champ `time`    |
+| Déplacer runes, cristaux, livre        | `RUNE_PADS`, `CRYSTAL_SPOTS`, `TOME`           |
+| Changer les textes et récompenses      | `HOUSE_SPECS` et `REWARDS`                     |
+| Changer la porte d'une maison          | `house(...)` dans `public/js/map.js`           |
+
+Les récompenses sont conservées dans le navigateur
+(`localStorage`, clé `pixel-village:rewards`) : on les garde d'une session à
+l'autre, sans compte. Un joueur qui refait une épreuve gagnée garde sa
+récompense. Si tu veux tout remettre à zéro, efface cette clé depuis la console
+(F12).
+
+Le serveur reçoit seulement deux informations : *je suis à l'intérieur* (pour
+masquer l'avatar) et *ma vitesse* (pour rester aligné avec les Bottes de vent,
+bornée entre 1 et 1,6).
 
 ---
 
@@ -473,6 +510,7 @@ Sources : [Render — déployer gratuitement](https://render.com/docs/free),
 
 - Monstres et combat au tour par tour ou en temps réel.
 - Inventaire, objets au sol, PNJ marchands.
+- D'autres maisons, des épreuves à deux joueurs et des récompenses partagées.
 - Comptes joueurs et sauvegarde en base (SQLite/PostgreSQL).
 - Plusieurs maps avec téléportation et donjons.
 - Contrôles tactiles pour mobile.
