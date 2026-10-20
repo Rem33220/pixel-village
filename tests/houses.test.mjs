@@ -10,8 +10,12 @@ import {
   nearTome,
   QUIZ,
   RUNE_PADS,
-  CRYSTAL_SPOTS
+  CRYSTAL_SPOTS,
+  houseUnlocked,
+  houseForDungeon,
+  houseWithArticle
 } from '../public/js/houses.js';
+import { DUNGEONS } from '../public/js/dungeons.js';
 
 const world = generateWorld();
 const houses = buildHouses(world);
@@ -20,6 +24,30 @@ const check = (label, ok, extra = '') => {
   console.log(`${ok ? 'OK  ' : 'ECHEC'} ${label}${extra ? ' — ' + extra : ''}`);
   if (!ok) fail.push(label);
 };
+
+// --- Sceaux : un donjon par maison ----------------------------------------
+{
+  const keys = houses.map((house) => house.requiredDungeon);
+  check('sceaux: chaque maison a un donjon gardien', keys.every(Boolean), keys.join(', '));
+  check('sceaux: un seul donjon par maison', new Set(keys).size === keys.length);
+  check('sceaux: chaque donjon garde une maison', DUNGEONS.every((dungeon) => {
+    const guarding = houses.filter((house) => house.requiredDungeon === dungeon.id);
+    return guarding.length === 1;
+  }), DUNGEONS.map((d) => d.id).join(', '));
+  check('sceaux: donjon inconnu ignoré', houseUnlocked({ requiredDungeon: 'abysses' }, new Set(['crypte'])) === false);
+
+  const house = houses.find((h) => h.requiredDungeon === 'crypte');
+  check('sceaux: fermée tant que le donjon n’est pas conquis',
+    !houseUnlocked(house, new Set()) && !houseUnlocked(house, new Set(['antre'])));
+  check('sceaux: ouverte après la victoire',
+    houseUnlocked(house, new Set(['crypte'])) && houseUnlocked(house, new Set(['crypte', 'antre'])));
+  check('sceaux: maison retrouvée depuis le donjon',
+    houseForDungeon('galerie', houses)?.id === 'cristaux'
+    && houseForDungeon('abysses', houses) === null);
+  check('sceaux: article défini correct',
+    houseWithArticle(houses.find((h) => h.id === 'runes')) === 'la Chaumière des runes'
+    && houseWithArticle(houses.find((h) => h.id === 'cristaux')) === 'l’Atelier des cristaux');
+}
 
 // --- Épreuve des runes : séquence reproduite correctement -------------------
 {

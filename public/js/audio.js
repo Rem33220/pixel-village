@@ -87,6 +87,11 @@ const SOUNDS = {
     tone({ freq: 930, start: 0.05, duration: 0.12, type: 'sine', gain: 0.09 });
   },
   enter: () => tone({ freq: 300, endFreq: 460, duration: 0.2, type: 'sine', gain: 0.1 }),
+  // Sifflement du coup d'épée : bref, aigu, descendant.
+  swing: () => {
+    tone({ freq: 900, endFreq: 300, duration: 0.13, type: 'triangle', gain: 0.055 });
+    tone({ freq: 1500, endFreq: 700, duration: 0.08, type: 'sine', gain: 0.03 });
+  },
   fail: () => tone({ freq: 250, endFreq: 120, duration: 0.3, type: 'sawtooth', gain: 0.08 }),
   // Combat : un coup sec pour frapper, un grondement grave pour être touché.
   hit: () => {
@@ -103,7 +108,7 @@ const SOUNDS = {
   }
 };
 
-// Noms acceptés : click, pickup, rune, enter, fail, success, hit, hurt.
+// Noms acceptés : click, pickup, rune, enter, swing, fail, success, hit, hurt.
 export function playSound(name) {
   if (muted || volume <= 0) return;
   const key = name === 'pickup' ? 'pickups' : name;

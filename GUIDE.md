@@ -7,8 +7,10 @@ d'installation ni de code : pour ça, voir [README.md](README.md).
 > **Note de maintenance** — ce fichier décrit *toutes* les fonctionnalités
 > jouables et doit être mis à jour à chaque nouveauté (voir la dernière section).
 > État décrit : celui du commit `6276e10` (portail, donjons, combat, butin et
-> équipement compris). Les commits qui ne touchent que la documentation ne
-> changent rien à ce guide.
+> équipement compris), plus l’arme tenue en main, l’animation de frappe, les
+> donjons à plusieurs salles, les salles secrètes, le butin légendaire et les
+> maisons scellées par leur donjon. Les commits qui ne touchent que la
+> documentation ne changent rien à ce guide.
 
 ---
 
@@ -62,7 +64,7 @@ chemins.
 | Touche | Action |
 | ------ | ------ |
 | `ZQSD` / `WASD` / flèches | se déplacer (les diagonales fonctionnent) |
-| `E` | entrer dans une maison, sortir, lire le livre des énigmes, ouvrir le portail, frapper un monstre, ouvrir un coffre |
+| `E` | entrer dans une maison, sortir, lire le livre des énigmes, ouvrir le portail, frapper un monstre, ouvrir un coffre, descendre d’une salle, ouvrir une fissure |
 | `I` | ouvrir / fermer l'inventaire |
 | `P` | ouvrir / fermer les paramètres |
 | `Entrée` | ouvrir le chat (puis `Entrée` pour envoyer) |
@@ -87,17 +89,22 @@ Un rappel des touches est affiché en bas à droite pendant la partie.
 - Au **bout nord de la rue nord-sud**, une petite place dallée porte un
   **portail** lumineux entouré de deux piliers : c'est l'entrée des donjons
   (voir la section 11).
-- Trois maisons, chacune avec sa porte marron et son paillasson lumineux :
+- Trois maisons, chacune avec sa porte marron et son paillasson lumineux.
+  Chacune est **gardée par un donjon** : sa porte reste scellée jusqu'à la
+  victoire sur ce donjon (voir la section 4).
 
-| Maison | Où | Depuis la place centrale |
-| ------ | -- | ------------------------ |
-| Chaumière des runes | nord-ouest | grand-rue vers l'ouest, puis montée vers le nord |
-| Atelier des cristaux | sud-ouest | grand-rue vers l'ouest, puis descente vers le sud |
-| Maison du sage | sud-est | rue nord-sud vers le sud, puis grand-rue vers l'est |
+| Maison | Où | Depuis la place centrale | Donjon gardien |
+| ------ | -- | ------------------------ | -------------- |
+| Chaumière des runes | nord-ouest | grand-rue vers l'ouest, puis montée vers le nord | Crypte des brumes |
+| Atelier des cristaux | sud-ouest | grand-rue vers l'ouest, puis descente vers le sud | Galerie des échos |
+| Maison du sage | sud-est | rue nord-sud vers le sud, puis grand-rue vers l'est | Antre du gardien |
 
-Quand tu t'approches d'une porte, une invite **« Entrer — … »** s'affiche en bas
-de l'écran : appuie sur `E`. Les arbres, les rochers, l'eau et les murs sont
-solides : ils arrêtent le personnage, c'est normal.
+Quand tu t'approches d'une porte ouverte, une invite **« Entrer — … »** s'affiche
+en bas de l'écran : appuie sur `E`. Devant une porte scellée, l'invite devient
+**Porte scellée — donjon « Crypte des brumes »** et un **sceau violet** (deux
+barreaux en croix et une gemme qui pulse) barre la porte. Les arbres, les
+rochers, l'eau et les murs sont solides : ils arrêtent le personnage, c'est
+normal.
 
 En haut à gauche, tu vois ton nom, le nombre de joueurs en ligne et tes
 récompenses gagnées.
@@ -110,6 +117,31 @@ Chaque maison contient une salle privée (on y entre seul), une épreuve et une
 récompense durable. Le panneau à droite rappelle l'objectif et l'avancement.
 Appuie sur `E` devant le seuil lumineux (ou `Échap`) pour ressortir : tu
 réapparais exactement là où tu étais.
+
+### Les portes scellées
+
+**Une maison, un donjon** : chaque maison est fermée par le sceau d'un donjon,
+et un donjon ne garde qu'une seule maison.
+
+| Maison | Sceau à briser |
+| ------ | -------------- |
+| Chaumière des runes | Crypte des brumes (niveau 1) |
+| Atelier des cristaux | Galerie des échos (niveau 2) |
+| Maison du sage | Antre du gardien (niveau 3) |
+
+- Tant que le donjon n'est pas conquis, la porte affiche un **sceau violet** et
+  l'invite **Porte scellée — donjon « … »**. `E` devant la porte rappelle
+  dans le chat quel donjon il faut vaincre : rien ne s'ouvre.
+- Un donjon est **conquis** quand **toutes ses salles ordinaires** sont vidées
+  (tous les coffres ouverts, y compris ceux de la dernière salle). La salle
+  secrète reste facultative.
+- À la victoire, le chat annonce « Donjon conquis ! Le sceau de … se brise ».
+  Le sceau disparaît de la porte (il ne reste qu'une petite lueur verte au
+  linteau), l'invite redevient « Entrer — … », et le panneau du portail affiche
+  **« Conquis — … est ouverte »** sur la carte du donjon.
+- L'ouverture est **définitive** : elle est enregistrée dans le navigateur et
+  survit au rechargement. Un donjon déjà vaincu peut être refait pour le butin
+  sans refermer la maison.
 
 ### Chaumière des runes — l'épreuve de mémoire
 
@@ -171,6 +203,13 @@ armure ».
 L'arme et l'armure comptent ensemble : le HUD en haut à gauche affiche en
 permanence `ATQ … · DÉF …` (survole-le pour voir les deux objets portés).
 
+**L'arme se voit en main** : dès qu'une arme est équipée, elle apparaît dans la
+main droite du personnage, au village comme dans les donjons, avec sa propre
+silhouette — dague courte, épée, hache ou lame longue. Les armes épiques
+(lame des brumes, épée du gardien) brillent d'un halo de leur couleur. Retirer
+l'arme la fait disparaître ; à mains nues, seul le poing apparaît pendant un
+coup.
+
 ### Butin des donjons
 
 Chaque objet trouvé dans un coffre apparaît ici avec son icône, son nom, son
@@ -178,21 +217,27 @@ bonus et un badge `×2` si tu en as plusieurs exemplaires. Clique sur un objet
 puis sur **Équiper** : l'objet passe dans l'emplacement correspondant et tes
 statistiques montent immédiatement. Le bouton devient **Retirer**.
 
-| Arme | Bonus | Où |
-| ---- | ----- | -- |
-| Dague rouillée | +2 ATQ | Crypte des brumes |
-| Épée courte | +4 ATQ | Crypte des brumes |
-| Hache de pierre | +6 ATQ | Galerie des échos |
-| Lame des brumes | +9 ATQ | Galerie des échos |
-| Épée du gardien | +13 ATQ | Antre du gardien |
+| Arme | Bonus | Rareté | Où |
+| ---- | ----- | ------ | -- |
+| Dague rouillée | +2 ATQ | Commun | Crypte — 1re salle |
+| Épée courte | +4 ATQ | Commun | Crypte — 2e salle |
+| Hache de pierre | +6 ATQ | Rare | Galerie — salles 1 et 2 |
+| Lame des brumes | +9 ATQ | Épique | Galerie — 2e salle, ou salle secrète de la Crypte |
+| Épée du gardien | +13 ATQ | Épique | Antre — salles 2 et 3, ou salle secrète de la Galerie |
+| Lame d’ombre | +18 ATQ | Légendaire | Salle secrète de l’Antre |
 
-| Armure | Bonus | Où |
-| ------ | ----- | -- |
-| Tunique de cuir | +1 DÉF | Crypte des brumes |
-| Cotte de mailles | +3 DÉF | Galerie des échos |
-| Plastron runique | +5 DÉF | Galerie des échos |
-| Gantelets de pierre | +4 DÉF | Antre du gardien |
-| Armure du gardien | +8 DÉF | Antre du gardien |
+| Armure | Bonus | Rareté | Où |
+| ------ | ----- | ------ | -- |
+| Tunique de cuir | +1 DÉF | Commun | Crypte — salles 1 et 2 |
+| Cotte de mailles | +3 DÉF | Rare | Galerie — salles 1 et 2 |
+| Plastron runique | +5 DÉF | Rare | Galerie — 1re salle |
+| Gantelets de pierre | +4 DÉF | Rare | Antre — salles 1 et 2 |
+| Armure du gardien | +8 DÉF | Épique | Antre — salles 2 et 3 |
+| Cape d’ombre | +10 DÉF | Légendaire | Salle secrète de l’Antre |
+
+La **rareté** est écrite dans la fiche de chaque objet : *Commun*, *Rare*,
+*Épique* ou *Légendaire* (en violet). Les objets **légendaires** ne sortent que
+des salles secrètes.
 
 Les objets ne se perdent jamais, même en tombant dans un donjon. Ils restent
 dans le navigateur (voir la section 8).
@@ -279,6 +324,7 @@ Aucun compte, aucun mot de passe : tout est enregistré **dans ce navigateur**
 | `pixel-village:color` | ta couleur |
 | `pixel-village:rewards` | tes récompenses |
 | `pixel-village:loot` | ton butin et ton équipement |
+| `pixel-village:dungeons` | les donjons conquis, donc les maisons ouvertes |
 | `pixel-village:keys` | tes touches personnalisées |
 | `pixel-village:settings` | volume et sourdine |
 
@@ -293,6 +339,7 @@ Pour tout remettre à zéro depuis la console (F12), par exemple :
 ```js
 localStorage.removeItem('pixel-village:rewards');
 localStorage.removeItem('pixel-village:loot');
+localStorage.removeItem('pixel-village:dungeons');
 localStorage.removeItem('pixel-village:keys');
 localStorage.removeItem('pixel-village:settings');
 ```
@@ -308,8 +355,12 @@ Puis recharge la page.
   la même, mais le trajet est plus court qu'un L.
 - Fais l'Atelier des cristaux en dernier si tu veux garder le plaisir du chrono :
   les Bottes de vent rendent l'épreuve bien plus facile.
+- Commence par la **Crypte des brumes** : elle ouvre la Chaumière des runes et
+  sa lampe, puis sert de première marche vers la Galerie et l'Antre.
 - La Lampe du veilleur est purement visuelle : elle ne remplace pas les
   récompenses de vitesse.
+- Une porte marquée d'un **sceau violet** n'est pas cassée : il faut d'abord
+  vaincre le donjon qu'elle indique (section 4).
 - Si une porte semble bloquée, contourne par le chemin : il y a toujours un
   passage dégagé devant chaque maison.
 
@@ -336,35 +387,78 @@ Puis recharge la page.
    avec deux piliers et un tourbillon lumineux.
 2. Approche-toi : l'invite **« Portail — choisir un donjon »** apparaît.
 3. Appuie sur `E` : le **panneau du portail** liste les trois donjons, avec
-   leur niveau, leur danger, le nombre de monstres et de coffres, et le butin
-   possible.
+   leur niveau, leur danger, le nombre de salles, de monstres et de coffres
+   (salle secrète comprise), et le butin possible.
 4. Clique sur **Entrer — niveau …**. Tu y entres **seul** : les autres joueurs
    te voient disparaître, comme pour une maison.
 
-Pour ressortir : monte sur l'**escalier lumineux** en bas de la salle et appuie
-sur `E`, ou appuie sur `Échap`. Tu réapparais exactement devant le portail.
+Tu ne réapparais devant le portail qu'en sortant de la **dernière** salle, ou
+en appuyant sur `Échap` (qui quitte le donjon à tout moment).
+
+### Une descente de salle en salle
+
+Chaque donjon enchaîne **plusieurs salles** (2 pour la Crypte et la Galerie, 3
+pour l'Antre), plus une salle secrète facultative. Le panneau de droite indique
+toujours où tu en es : `salle 2/3`.
+
+- L'**escalier** au bas de chaque salle est marqué d'une flèche. **Flèche vers
+  le bas** : `E` descend dans la salle suivante (le panneau affiche alors
+  « Descendre — Ossuaire effondré »). **Flèche vers le haut**, dans la dernière
+  salle : `E` sort du donjon.
+- Les monstres et les coffres d'une salle restent tels quels quand tu la
+  quittes : on ne remonte pas, mais une salle quittée ne se vide pas derrière
+  toi.
+- Tu gardes tes **PV** et ton équipement d'une salle à l'autre. Chaque
+  arrivée te laisse **1,2 seconde de répit**.
+- La fin du donjon est annoncée quand **toutes** les salles sont vidées :
+  « Tous les coffres du donjon sont ouverts ! »
+
+### Les salles secrètes
+
+Une **fissure** est cachée dans l'une des salles ordinaires, à chaque
+expédition (sa salle change d'une descente à l'autre). Elle se trouve dans le
+**mur de droite**, à mi-hauteur, et pulse d'une lueur violette.
+
+1. Approche-toi du mur : l'invite **« Fissure — entrer dans la salle
+   secrète »** apparaît.
+2. Appuie sur `E` : tu passes derrière le mur. La salle est plus petite, les
+   monstres y sont plus coriaces, et ses coffres contiennent un butin qu'on ne
+trouve **nulle part ailleurs** (épique ou légendaire).
+3. L'escalier de la salle secrète te ramène dans la salle d'où tu viens, juste
+   devant la fissure. Tu peux y retourner autant de fois que tu veux : les
+   coffres déjà ouverts le restent.
+
+Elle est **facultative** : le donjon est considéré comme nettoyé sans elle.
 
 ### Les trois donjons
 
-| Donjon | Niveau | Danger | Monstres | Coffres | Butin possible |
+| Donjon | Niveau | Salles | Monstres | Coffres | Butin possible |
 | ------ | ------ | ------ | -------- | ------- | -------------- |
-| Crypte des brumes | 1 | Calme | 2 baveux | 3 | dague, tunique de cuir, épée courte |
-| Galerie des échos | 2 | Risqué | 3 squelettes + 1 baveux | 4 | hache de pierre, cotte de mailles, lame des brumes, plastron runique |
-| Antre du gardien | 3 | Mortel | 2 golems + 1 squelette | 3 | épée du gardien, armure du gardien, gantelets de pierre |
+| Crypte des brumes | 1 | 2 + secrète | 5 baveux, 1 araignée en tout | 5 + 1 | dague, tunique de cuir, épée courte ; lame des brumes dans la salle secrète |
+| Galerie des échos | 2 | 2 + secrète | 3 squelettes, 2 baveux, 1 spectre en tout | 6 + 1 | hache de pierre, cotte de mailles, plastron runique, lame des brumes ; épée du gardien dans la salle secrète |
+| Antre du gardien | 3 | 3 + secrète | 4 golems, 1 squelette, 2 araignées, 1 spectre en tout | 8 + 2 | gantelets, plastron, cotte de mailles, armure et épée du gardien ; lame et cape d’ombre dans la salle secrète |
 
-Chaque donjon est **rejouable** : la disposition et le contenu des coffres
-changent à chaque entrée, ce qui permet de récupérer un objet manqué.
+Chaque donjon est **rejouable** : la disposition, le contenu des coffres et la
+place de la fissure changent à chaque entrée, ce qui permet de récupérer un
+objet manqué.
 
 | Monstre | PV | Dégâts par coup | Comportement |
 | ------- | -- | --------------- | ------------ |
 | Baveux | 14 | 2 | lent, poursuit de près |
+| Araignée des fosses | 18 | 3 | très rapide, huit pattes |
 | Squelette | 24 | 5 | rapide |
+| Spectre | 34 | 7 | flotte, frappe fort |
 | Golem | 55 | 10 | lent mais très dangereux |
+| Ombre du gardien | 80 | 13 | boss de la salle secrète de l’Antre |
 
 ### Le combat
 
 - `E` **frappe** le monstre le plus proche (à moins d'une tuile et demie). Un
   coup toutes les 0,42 seconde.
+- Chaque coup est **animé** : le personnage se tourne vers le monstre visé,
+  lève son arme puis la rabat en un quart de seconde, avec une traînée claire
+  qui suit la lame et un sifflement. Le coup porte dès l'appui sur `E` :
+  l'animation ne retarde pas les dégâts.
 - Les dégâts que tu infliges sont ton **ATQ** : 4 à mains nues, plus le bonus de
   ton arme.
 - Les monstres te poursuivent quand tu t'approches et frappent au contact,
@@ -382,14 +476,30 @@ points de vie pour la prochaine visite. **Tu ne perds ni butin ni équipement.**
   Appuie sur `E` : l'objet tombe directement dans ton inventaire.
 - Chaque coffre contient un objet **différent** du donjon.
 - Les monstres laissent parfois tomber un objet (environ une fois sur trois).
-- Le panneau de droite suit ta progression : `coffres ouverts · monstres
-  restants · PV`. Quand tous les coffres sont ouverts, la salle est nettoyée :
-  il ne reste qu'à sortir.
+- Le panneau de droite suit ta progression : `salle · coffres ouverts ·
+  monstres restants · PV`. Quand tous les coffres d'une salle sont ouverts,
+  elle est nettoyée ; quand toutes les salles le sont, le donjon est fini.
 - Ouvre l'inventaire (`I`) et clique sur l'objet puis **Équiper** : il compte
   immédiatement dans tes statistiques (voir la section 5).
 
 Pendant qu'un panneau est ouvert (inventaire, paramètres, portail), le donjon
 est **en pause** : impossible de se faire tuer dans un menu.
+
+### Ce que la victoire ouvre
+
+Chaque donjon garde **une maison et une seule** :
+
+| Donjon | Maison débloquée | Épreuve qui s'y trouve |
+| ------ | ---------------- | ---------------------- |
+| Crypte des brumes | Chaumière des runes | les quatre runes |
+| Galerie des échos | Atelier des cristaux | les six cristaux |
+| Antre du gardien | Maison du sage | les trois énigmes |
+
+La maison est ouverte dès que **toutes les salles ordinaires** du donjon sont
+vidées — inutile de passer par la salle secrète. Le panneau du portail rappelle
+l'état de chaque sceau : **« Garde la porte de … »** (violet) ou **« Conquis — …
+est ouverte »** (vert). La porte, elle, perd son sceau violet et l'invite
+redevient **« Entrer — … »** (voir la section 4).
 
 ### Conseils
 
@@ -401,6 +511,10 @@ est **en pause** : impossible de se faire tuer dans un menu.
   augmente tes PV maximum (2 PV par point de défense).
 - Dans l'Antre, sans armure, un golem te tue en trois coups : n'y va pas les
   mains nues.
+- **Longe les murs** : la fissure ne se signale qu'à un pas et demi. Une lueur
+  violette dans la pierre trahit sa présence.
+- La salle secrète de la Crypte donne une **lame des brumes** : c'est l'arme
+  idéale pour aborder la Galerie.
 
 ---
 
@@ -428,7 +542,10 @@ section correspondante (et la ligne « jeu actuel » en haut) :
 | nouvelle touche ou action | 2 et 6 |
 | nouveau réglage (son, affichage…) | 6 |
 | nouveau donjon, monstre, niveau ou butin | 11, et les tableaux de la section 5 |
+| nouvelle salle, salle secrète, fissure | 11 (Une descente de salle en salle, Les salles secrètes) |
+| maison scellée, donjon gardien, condition d'accès | 3 (tableau des maisons), 4 (Les portes scellées), 8 et 11 |
 | règle de combat (dégâts, PV, répit) | 11 |
+| arme affichée en main, animation de frappe | 5 (Équipement) et 11 (Le combat) |
 | changement de sauvegarde | 8 |
 | limite ou règle multijoueur | 7 |
 | commandes tactiles / mobile | 2, puis retirer la ligne de la section 12 |

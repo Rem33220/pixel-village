@@ -4,6 +4,7 @@
 
 import { TILE_SIZE, T } from './map.js';
 import { getPlayerSprite } from './sprites.js';
+import { drawHeldWeapon } from './weapons.js';
 
 function tileRand(tx, ty, salt) {
   let h = (Math.imul(tx, 374761393) + Math.imul(ty, 668265263) + Math.imul(salt, 1442695041)) | 0;
@@ -580,6 +581,20 @@ export class Renderer {
         : (Math.floor(now / 900) % 2 === 0 ? 0 : -1);
       const sprite = getPlayerSprite(p.color, p.dir, frame);
       ctx.drawImage(sprite, px - 6, py - 15 + bob, 12, 16);
+
+      // Arme équipée en main (`equippedWeapon`, lue dans l'inventaire) et geste
+      // de frappe : pendant le coup, le personnage vise la direction du monstre.
+      const swinging = (p.swing ?? 0) > 0;
+      if (isSelf && (p.equippedWeapon || swinging)) {
+        drawHeldWeapon(ctx, {
+          itemId: p.equippedWeapon,
+          px,
+          py,
+          bob,
+          dir: swinging && p.swingDir ? p.swingDir : p.dir,
+          swing: p.swing ?? 0
+        });
+      }
 
       if (isSelf && p.rewards?.has('medaille')) drawMedal(ctx, px, py - 15 + bob, now);
     }

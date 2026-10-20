@@ -22,7 +22,8 @@ const SLOTS = [
 const RARITY = {
   commun: 'Commun',
   rare: 'Rare',
-  epique: 'Épique'
+  epique: 'Épique',
+  legendaire: 'Légendaire'
 };
 
 const ICONS = {

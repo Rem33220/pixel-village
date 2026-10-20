@@ -3,7 +3,8 @@
 Un jeu de rôle massivement multijoueur minimaliste, jouable **directement dans le
 navigateur** : un village en pixel art, des personnages qui se croisent en temps
 réel, un chat, un mode solo de secours et **trois maisons à visiter, chacune avec
-son épreuve et sa récompense**.
+son épreuve et sa récompense** — mais chaque maison reste scellée tant que le
+donjon qui la garde n'a pas été vaincu.
 
 > **Tu veux juste jouer ?** Le **[guide du joueur](GUIDE.md)** explique les
 > commandes, les maisons, les épreuves, l'inventaire et les paramètres. Ce
@@ -101,7 +102,7 @@ Pixel Village prêt : http://localhost:3000  [WebSocket intégré, zéro dépend
 | Lancer le serveur seul  | `node server/index.js`                                            |
 | Changer le port         | `set PORT=4000` puis `node server/index.js` (PowerShell : `$env:PORT=4000; node server/index.js`) |
 | Arrêter                 | `Ctrl+C` dans la fenêtre du serveur                               |
-| Tester les épreuves     | `node tests/houses.test.mjs`                                      |
+| Tester les épreuves     | `node tests/houses.test.mjs` (épreuves et sceaux des maisons)     |
 | Tester les donjons      | `node tests/dungeons.test.mjs`                                     |
 
 ### Contrôles
@@ -143,11 +144,12 @@ donc aussi bien sur un clavier AZERTY que QWERTY.
         ├── config.js     # réglages partagés client/serveur
         ├── map.js        # génération de la carte + collisions
         ├── houses.js     # maisons, épreuves et récompenses
-        ├── dungeons.js   # portail, donjons, monstres, butin, équipement
+        ├── dungeons.js   # portail, salles, fissures, monstres, butin, équipement
         ├── inventory.js  # panneau d'inventaire (touche I) + icônes
         ├── settings.js   # paramètres : volume et touches personnalisables
         ├── audio.js      # sons synthétisés (aucun fichier audio)
         ├── sprites.js    # pixel art des personnages (dessiné en ASCII)
+        ├── weapons.js    # arme tenue en main + animation de frappe
         ├── renderer.js   # caméra, tuiles, personnages, bulles de chat
         ├── input.js      # clavier
         ├── net.js        # connexion WebSocket
@@ -172,6 +174,8 @@ obtiennent donc **exactement la même grille**, sans envoyer de fichiers.
 | Changer la vitesse             | `public/js/config.js`          | `speed` (tuiles/seconde)             |
 | Changer les couleurs           | `public/js/config.js`          | `colors`                             |
 | Redessiner les personnages     | `public/js/sprites.js`         | tableaux `DOWN_BASE`, `SIDE_BASE`…   |
+| Redessiner les armes en main   | `public/js/weapons.js`         | `paintWeapon`, `REST_ANGLE`          |
+| Régler le geste de frappe      | `public/js/dungeons.js`        | `SWING_TIME`, `swingAngle`           |
 | Changer le look des tuiles     | `public/js/renderer.js`        | `drawTile` et ses fonctions          |
 | Changer le port                | `public/js/config.js`          | `port` (ou variable `PORT`)          |
 | Changer la taille du chat      | `public/js/config.js`          | `maxChatLength`                      |
@@ -196,11 +200,27 @@ Trois maisons du village s'ouvrent avec `E` quand on se place devant leur porte.
 Chacune est une **salle privée** : on y entre seul, et les autres joueurs voient
 simplement l'avatar disparaître (il réapparaît à la même place en sortant).
 
-| Maison                | Épreuve                                                  | Récompense          | Effet |
-| --------------------- | -------------------------------------------------------- | ------------------- | ----- |
-| Chaumière des runes   | reproduire de mémoire la séquence de 4 runes             | Lampe du veilleur   | halo de lumière autour du personnage |
-| Atelier des cristaux  | toucher 6 cristaux en 32 secondes                        | Bottes de vent      | 25 % plus rapide |
-| Maison du sage        | répondre aux 3 énigmes du livre sans erreur               | Médaillon du sage   | aura dorée au-dessus de la tête |
+**Une maison, un donjon.** Chaque maison porte un sceau : sa porte reste fermée
+tant que le donjon associé n'est pas conquis (toutes ses salles ordinaires
+vidées). `HOUSE_SPECS[].requiredDungeon` porte le lien, `houseUnlocked(house,
+conquered)` répond à la question, `houseForDungeon(id, houses)` fait le chemin
+inverse pour annoncer la maison débloquée. Le `Set` des donjons conquis est
+relu/écrit dans `localStorage` sous `pixel-village:dungeons` (`loadConquered`,
+`saveConquered`), et mis à jour par `conquerDungeon` quand `updateRun` émet
+`events.finished`.
+
+| Maison                | Donjon gardien       | Épreuve                                                  | Récompense          | Effet |
+| --------------------- | -------------------- | -------------------------------------------------------- | ------------------- | ----- |
+| Chaumière des runes   | Crypte des brumes    | reproduire de mémoire la séquence de 4 runes             | Lampe du veilleur   | halo de lumière autour du personnage |
+| Atelier des cristaux  | Galerie des échos    | toucher 6 cristaux en 32 secondes                        | Bottes de vent      | 25 % plus rapide |
+| Maison du sage        | Antre du gardien     | répondre aux 3 énigmes du livre sans erreur               | Médaillon du sage   | aura dorée au-dessus de la tête |
+
+Côté rendu, `drawHouseSeal` (`houses.js`) peint le sceau dans le repère du
+monde : barreaux en croix et gemme violette qui pulse quand la porte est close,
+simple lueur verte au linteau quand elle est ouverte. Le décor du village dans
+`main.js` appelle le portail puis un sceau par maison ; l'invite et le refus
+(`enterHouse`) lisent le même `Set`, et le panneau du portail affiche l'état de
+chaque sceau (`Conquis — … est ouverte` / `Garde la porte de …`).
 
 Toute la mécanique vit dans `public/js/houses.js` :
 
@@ -211,12 +231,13 @@ Toute la mécanique vit dans `public/js/houses.js` :
 | Déplacer runes, cristaux, livre        | `RUNE_PADS`, `CRYSTAL_SPOTS`, `TOME`           |
 | Changer les textes et récompenses      | `HOUSE_SPECS` et `REWARDS`                     |
 | Changer la porte d'une maison          | `house(...)` dans `public/js/map.js`           |
+| Changer le donjon qui garde une maison | `requiredDungeon` dans `HOUSE_SPECS`           |
 
 Les récompenses sont conservées dans le navigateur
 (`localStorage`, clé `pixel-village:rewards`) : on les garde d'une session à
 l'autre, sans compte. Un joueur qui refait une épreuve gagnée garde sa
 récompense. Si tu veux tout remettre à zéro, efface cette clé depuis la console
-(F12).
+(F12) — et `pixel-village:dungeons` pour refermer les maisons.
 
 ### Les paramètres (touche P)
 
@@ -262,27 +283,58 @@ logiciel. Le panneau affiche aussi l'**équipement** (arme, armure) et le
 Le portail se trouve au bout nord de la rue nord-sud (`PORTAL` dans
 `public/js/map.js`). Devant lui, `E` ouvre un panneau qui liste les donjons ;
 en choisir un crée une **instance privée** générée par
-`public/js/dungeons.js` : salle, monstres, coffres et butin. Comme pour une
-maison, le serveur ne reçoit que « je suis à l'intérieur » : il ne connaît ni
-les monstres, ni les PV, ni le butin, et rien de tout cela ne peut donc
-désynchroniser les autres joueurs.
+`public/js/dungeons.js` : plusieurs salles, leurs monstres, leurs coffres et une
+salle secrète. Comme pour une maison, le serveur ne reçoit que « je suis à
+l'intérieur » : il ne connaît ni les monstres, ni les PV, ni le butin, et rien
+de tout cela ne peut donc désynchroniser les autres joueurs.
+
+**Une expédition** (`createRun`) construit toutes les salles d'un coup : chaque
+entrée de `dungeon.rooms` donne une salle de 21 × 17 (`buildRoom`), plus une
+salle secrète de 15 × 11 tirée de `dungeon.secret`. L'escalier du bas mène à la
+salle suivante (`nextRoom`) ; celui de la dernière salle sort du donjon. Une
+**fissure** est placée dans une salle ordinaire tirée avec la graine
+(`secretRoomIndex`) : `crackNear` la détecte, `enterSecretRoom` et
+`leaveSecretRoom` font l'aller-retour sans perdre l'état de la salle d'origine.
+Le module ne touche pas au DOM : tout est testable avec `node` seul.
+
+Quand toutes les salles ordinaires sont vidées, `updateRun` passe `run.phase` à
+`won` et renvoie `events.finished` : `main.js` appelle alors `conquerDungeon`,
+qui ajoute l'identifiant à `state.conquered`, l'écrit dans
+`pixel-village:dungeons` et annonce dans le chat la maison qui s'ouvre. C'est le
+seul lien entre un donjon et une maison : `dungeons.js` ignore tout des maisons,
+et `houses.js` ne connaît que l'identifiant du donjon gardien.
 
 Tout se règle en haut du fichier :
 
 | Réglage | Où | Effet |
 | ------- | -- | ----- |
-| `DUNGEONS` | `dungeons.js` | nom, niveau, monstres, nombre de coffres, liste du butin |
+| `DUNGEONS` | `dungeons.js` | salles (`rooms`), salle secrète (`secret`), monstres, coffres, butin de chaque salle |
 | `MONSTERS` | `dungeons.js` | PV, dégâts, vitesse et taille de chaque monstre |
 | `LOOT` | `dungeons.js` | armes et armures : bonus, rareté, couleur d'icône |
 | `BASE_STATS` | `dungeons.js` | attaque, défense et PV de base du personnage |
-| `ENTRY_GRACE`, `MONSTER_AGGRO` | `dungeons.js` | répit à l'arrivée, distance de poursuite |
-| `PLAYER_RADIUS`, `ROOM_W`, `ROOM_H` | `dungeons.js` | taille et collisions des salles |
+| `ENTRY_GRACE`, `MONSTER_AGGRO` | `dungeons.js` | répit à chaque arrivée, distance de poursuite |
+| `SWING_TIME`, `swingAngle` | `dungeons.js` | durée et trajectoire du coup |
+| `WEAPON_ARTS`, `paintWeapon` | `dungeons.js`, `weapons.js` | silhouettes d'armes tenues en main |
+| `LAYOUTS`, `ROOM_W`, `ROOM_H` | `dungeons.js` | tailles, piliers et places des salles et de la salle secrète |
+| `SECRET_RANGE`, `CRACK_TILE`, `CRACK_APPROACH` | `dungeons.js` | position et portée de la fissure |
 
-Pour ajouter un donjon : une entrée dans `DUNGEONS` (avec ses identifiants de
-butin déjà présents dans `LOOT`), et c'est tout — le panneau du portail, le
-compteur de coffres et les tests le prennent automatiquement. Les tests
-vérifient que chaque salle est atteignable à pied, que les coffres et les
-monstres sont sur du sol libre et que le butin vient bien du bon donjon.
+Pour ajouter une salle : une entrée dans `rooms` (nom, intro, monstres,
+nombre de coffres, butin), et c'est tout — la descente, le panneau et les
+tests la prennent automatiquement. Pour ajouter un donjon : une entrée dans
+`DUNGEONS` avec au moins deux salles et une `secret`. Les tests vérifient que
+chaque salle (secrète comprise) est atteignable à pied depuis son arrivée, que
+les coffres et les monstres sont sur du sol libre, que le butin vient bien de
+la salle, que la fissure est atteignable et qu'une même graine redonne la même
+expédition.
+
+L'arme équipée est **visible dans la main** du personnage. Son identifiant vient
+de l'inventaire (`equippedWeapon`), la silhouette est peinte par
+`public/js/weapons.js` (aucun fichier image) et le rendu la fait tourner autour
+de la main. Le coup est purement visuel : `attackRun` applique les dégâts à
+l'appui sur `E` puis arme `run.swing` ; `swingAngle` (fonction pure, testée sans
+navigateur) donne l'angle du geste image par image, avec une traînée claire et
+le personnage tourné vers la cible. Seul le joueur voit son arme : le serveur
+ne connaît pas l'équipement des autres joueurs.
 
 Le serveur reçoit seulement deux informations : *je suis à l'intérieur* (pour
 masquer l'avatar) et *ma vitesse* (pour rester aligné avec les Bottes de vent,

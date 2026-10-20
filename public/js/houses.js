@@ -34,32 +34,60 @@ export const REWARDS = {
   }
 };
 
+// Chaque maison est scellée par un donjon : sa porte reste fermée tant que le
+// donjon associé n'a pas été conquis (toutes ses salles ordinaires vidées).
 const HOUSE_SPECS = [
   {
     id: 'runes',
     name: 'Chaumière des runes',
+    article: 'la',
     challenge: 'runes',
     reward: 'lampe',
+    requiredDungeon: 'crypte',
     goal: 'Allume les quatre runes dans l’ordre qu’elles t’ont montré.',
     rewardLine: 'Récompense : la Lampe du veilleur.'
   },
   {
     id: 'cristaux',
     name: 'Atelier des cristaux',
+    article: 'l’',
     challenge: 'cristaux',
     reward: 'bottes',
+    requiredDungeon: 'galerie',
     goal: 'Réveille les six cristaux avant la fin du sablier (32 s).',
     rewardLine: 'Récompense : les Bottes de vent.'
   },
   {
     id: 'devinettes',
     name: 'Maison du sage',
+    article: 'la',
     challenge: 'devinettes',
     reward: 'medaille',
+    requiredDungeon: 'antre',
     goal: 'Réponds aux trois énigmes du livre, sans une seule erreur.',
     rewardLine: 'Récompense : le Médaillon du sage.'
   }
 ];
+
+// Nom précédé de son article défini : « la Chaumière des runes »,
+// « l’Atelier des cristaux ». Évite les « de Atelier » dans les messages.
+export function houseWithArticle(house) {
+  const article = house?.article ?? 'la';
+  if (!house?.name) return '';
+  return article.endsWith('’') || article.endsWith("'") ? `${article}${house.name}` : `${article} ${house.name}`;
+}
+
+// Une maison est ouverte quand son donjon figure dans les donjons conquis
+// (un `Set` d'identifiants, relu depuis le navigateur).
+export function houseUnlocked(house, cleared) {
+  if (!house?.requiredDungeon) return true;
+  return Boolean(cleared && typeof cleared.has === 'function' && cleared.has(house.requiredDungeon));
+}
+
+// Maison scellée par un donjon donné (pour annoncer la récompense du donjon).
+export function houseForDungeon(dungeonId, list) {
+  return (list ?? []).find((house) => house.requiredDungeon === dungeonId) ?? null;
+}
 
 // Runes disposées en carré autour du tapis central.
 export const RUNE_PADS = [
@@ -457,6 +485,51 @@ function drawExit(ctx, room, now) {
   ctx.lineTo(cx - 5, cy + 1);
   ctx.closePath();
   ctx.fill();
+}
+
+// Sceau du donjon sur la porte d'une maison : deux barreaux croisés et une
+// gemme violette tant que le donjon gardien n'est pas vaincu. Une fois la
+// maison ouverte, il ne reste qu'une petite lueur verte au linteau.
+// Appelé dans le repère du monde (pixels).
+export function drawHouseSeal(ctx, house, unlocked, now) {
+  const cx = (house.door.x + 0.5) * TILE_SIZE;
+  const cy = (house.door.y + 0.55) * TILE_SIZE;
+  const pulse = 0.5 + 0.5 * Math.sin(now / 540);
+
+  if (unlocked) {
+    glow(ctx, cx, cy - 5, 9, `rgba(126, 224, 138, ${0.14 + 0.1 * pulse})`);
+    ctx.fillStyle = `rgba(160, 236, 170, ${0.6 + 0.3 * pulse})`;
+    ctx.fillRect(cx - 2, cy - 7, 4, 1);
+    ctx.fillRect(cx - 1, cy - 6, 2, 2);
+    return;
+  }
+
+  glow(ctx, cx, cy, 16, `rgba(150, 110, 226, ${0.22 + 0.14 * pulse})`);
+
+  // Barreaux de fer en croix sur la porte.
+  ctx.beginPath();
+  ctx.moveTo(cx - 6, cy - 7);
+  ctx.lineTo(cx + 6, cy + 7);
+  ctx.moveTo(cx + 6, cy - 7);
+  ctx.lineTo(cx - 6, cy + 7);
+  ctx.strokeStyle = '#2b2733';
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+  ctx.strokeStyle = '#6f6a80';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Gemme du sceau, qui pulse lentement.
+  ctx.fillStyle = `rgba(196, 164, 255, ${0.65 + 0.35 * pulse})`;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - 3.5);
+  ctx.lineTo(cx + 3.5, cy);
+  ctx.lineTo(cx, cy + 3.5);
+  ctx.lineTo(cx - 3.5, cy);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = '#2b2733';
+  ctx.fillRect(cx - 1, cy - 1, 2, 2);
 }
 
 // Dessine les objets de l'épreuve. Appelé dans le repère du monde (tuiles).

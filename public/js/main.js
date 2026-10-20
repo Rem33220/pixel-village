@@ -15,6 +15,10 @@ import {
   answerQuiz,
   openQuiz,
   drawChallenge,
+  drawHouseSeal,
+  houseForDungeon,
+  houseUnlocked,
+  houseWithArticle,
   nearTome,
   ENTER_RANGE,
   QUIZ,
@@ -27,16 +31,25 @@ import {
   addItem,
   attackRun,
   chestNear,
+  crackNear,
   createRun,
   createVault,
   drawMonster,
   drawPortal,
   drawRun,
+  dungeonTotals,
+  enterSecretRoom,
   equipItem,
+  equippedWeapon,
+  exitAction,
+  leaveSecretRoom,
   monsterNear,
   nearExit as nearRoomExit,
+  nextRoom,
   openChest,
   playerStats,
+  roomCount,
+  roomNumber,
   sanitizeVault,
   updateRun
 } from './dungeons.js';
@@ -63,6 +76,9 @@ const state = {
   inside: null,
   savedPos: null,
   rewards: new Set(),
+  // Donjons vaincus (localStorage « pixel-village:dungeons ») : chaque donjon
+  // conquis ouvre la maison qu'il garde.
+  conquered: new Set(),
   // Butin et équipement (localStorage « pixel-village:loot »).
   vault: createVault(),
   // Donjon en cours : { dungeon, room, monsters, chests, pv… }
@@ -208,6 +224,27 @@ function loadRewards() {
 function saveRewards() {
   try {
     localStorage.setItem('pixel-village:rewards', JSON.stringify(Array.from(state.rewards)));
+  } catch {
+    /* stockage indisponible */
+  }
+}
+
+function loadConquered() {
+  try {
+    const list = JSON.parse(localStorage.getItem('pixel-village:dungeons') || '[]');
+    if (Array.isArray(list)) {
+      for (const id of list) {
+        if (DUNGEONS.some((dungeon) => dungeon.id === id)) state.conquered.add(id);
+      }
+    }
+  } catch {
+    /* stockage indisponible (mode privé) */
+  }
+}
+
+function saveConquered() {
+  try {
+    localStorage.setItem('pixel-village:dungeons', JSON.stringify(Array.from(state.conquered)));
   } catch {
     /* stockage indisponible */
   }
@@ -432,9 +469,34 @@ function houseNear(player) {
   return null;
 }
 
+function entranceDungeon(house) {
+  return DUNGEONS.find((dungeon) => dungeon.id === house.requiredDungeon) ?? null;
+}
+
+// Message affiché devant une porte scellée, et à l'appui sur E.
+function sealText(house) {
+  const dungeon = entranceDungeon(house);
+  return dungeon
+    ? `Porte scellée — donjon « ${dungeon.name} »`
+    : 'Porte scellée';
+}
+
 function enterHouse(house) {
   const me = state.players.get(state.selfId);
   if (!me || state.inside) return;
+
+  // Une maison ne s'ouvre qu'après la victoire sur son donjon gardien.
+  if (!houseUnlocked(house, state.conquered)) {
+    const dungeon = entranceDungeon(house);
+    playSound('fail');
+    pushChat(
+      dungeon
+        ? `La porte de ${houseWithArticle(house)} est scellée : il faut d’abord vaincre le donjon « ${dungeon.name} » (portail, au nord du village).`
+        : `La porte de ${houseWithArticle(house)} est scellée.`,
+      'system'
+    );
+    return;
+  }
 
   const room = buildInterior(house);
   state.savedPos = { x: me.rx, y: me.ry };
@@ -524,15 +586,30 @@ function dungeonCard(dungeon) {
   level.textContent = `Niveau ${dungeon.level}`;
   head.append(name, level);
 
+  const totals = dungeonTotals(dungeon);
   const info = document.createElement('p');
   info.className = 'portal-danger';
-  info.textContent = `${dungeon.danger} · ${dungeon.monsters.length} monstre${
-    dungeon.monsters.length > 1 ? 's' : ''
-  } · ${dungeon.chests} coffre${dungeon.chests > 1 ? 's' : ''}`;
+  info.textContent = `${dungeon.danger} · ${totals.rooms} salle${totals.rooms > 1 ? 's' : ''}${
+    totals.secret ? ' (+ 1 secrète)' : ''
+  } · ${totals.monsters} monstre${totals.monsters > 1 ? 's' : ''} · ${totals.chests} coffre${
+    totals.chests > 1 ? 's' : ''
+  }`;
 
   const intro = document.createElement('p');
   intro.className = 'portal-intro';
   intro.textContent = dungeon.intro;
+
+  // Ce que la victoire ouvre au village : la maison gardée par ce donjon.
+  const house = houseForDungeon(dungeon.id, houses);
+  let seal = null;
+  if (house) {
+    const conquered = state.conquered.has(dungeon.id);
+    seal = document.createElement('p');
+    seal.className = conquered ? 'portal-seal open' : 'portal-seal';
+    seal.textContent = conquered
+      ? `Conquis — ${houseWithArticle(house)} est ouverte`
+      : `Garde la porte de ${houseWithArticle(house)}`;
+  }
 
   const loot = document.createElement('ul');
   loot.className = 'portal-loot';
@@ -552,7 +629,9 @@ function dungeonCard(dungeon) {
   button.textContent = `Entrer — niveau ${dungeon.level}`;
   button.addEventListener('click', () => enterDungeon(dungeon.id));
 
-  card.append(head, info, intro, loot, button);
+  card.append(head, info, intro);
+  if (seal) card.append(seal);
+  card.append(loot, button);
   return card;
 }
 
@@ -581,14 +660,44 @@ function updateDungeonPanel(force = false) {
   if (!run) return;
   const opened = run.chests.filter((chest) => chest.opened).length;
   const alive = run.monsters.filter((monster) => monster.alive).length;
+  const where = `salle ${roomNumber(run)}/${roomCount(run)}${run.inSecret ? ' secrète' : ''}`;
   const status = run.phase === 'won'
-    ? 'Salle nettoyée ! Sors par l’escalier (E) ou avec Échap.'
-    : `${opened}/${run.chests.length} coffre${run.chests.length > 1 ? 's' : ''} ouvert${
+    ? `Donjon nettoyé (${where}) ! Sors par l’escalier (E) ou avec Échap.`
+    : `${where} · ${opened}/${run.chests.length} coffre${run.chests.length > 1 ? 's' : ''} ouvert${
       opened > 1 ? 's' : ''
     } · ${alive} monstre${alive > 1 ? 's' : ''} · PV ${Math.ceil(run.pv)}/${run.pvMax}`;
   if (!force && status === dungeonStatus) return;
   dungeonStatus = status;
   els.challengeStatus.textContent = status;
+}
+
+// Affiche la salle courante : titre, objectif et panneau de droite.
+function refreshRunPanel(run = state.run) {
+  if (!run) return;
+  const spec = run.roomEntry.spec;
+  els.challengeTitle.textContent = run.inSecret
+    ? `Salle secrète — ${run.dungeon.name}`
+    : `${run.dungeon.name} — niveau ${run.dungeon.level}`;
+  els.challengeGoal.textContent = `${spec.name} (${roomNumber(run)}/${roomCount(run)}) — ${spec.intro}`;
+  dungeonStatus = '';
+  updateDungeonPanel(true);
+}
+
+// Place le joueur dans la salle active et recadre la caméra.
+function placeRunPlayer(pos) {
+  const run = state.run;
+  const me = state.players.get(state.selfId);
+  if (!run || !me || !pos) return;
+  me.rx = pos.x;
+  me.ry = pos.y;
+  me.x = pos.x;
+  me.y = pos.y;
+  me.dir = 'up';
+  me.moving = false;
+  state.world = run.room;
+  state.renderer.setWorld(run.room);
+  state.renderer.centerOn(me.rx, me.ry);
+  updatePrompt(true);
 }
 
 function enterDungeon(id) {
@@ -622,18 +731,15 @@ function enterDungeon(id) {
     state.conn.send({ t: 'interior', inside: true });
   }
 
-  els.challengeTitle.textContent = `${dungeon.name} — niveau ${dungeon.level}`;
-  els.challengeGoal.textContent = dungeon.intro;
   els.challengeHelp.textContent = DUNGEON_HELP;
   els.challenge.classList.remove('hidden');
   answersKey = '';
-  dungeonStatus = '';
-  updateDungeonPanel(true);
+  refreshRunPanel(run);
   updatePvHud(true);
   updateGearHud();
   updatePrompt(true);
   playSound('enter');
-  pushChat(`Tu entres dans ${dungeon.name} (niveau ${dungeon.level}). ${dungeon.intro}`, 'system');
+  pushChat(`Tu entres dans ${dungeon.name} (niveau ${dungeon.level}) — ${run.roomEntry.spec.name}.`, 'system');
 }
 
 function exitDungeon(reason = 'sortie') {
@@ -684,7 +790,34 @@ function handleRunInteract() {
   if (!run || !me) return;
 
   if (nearRoomExit(run.room, me)) {
-    exitDungeon('sortie');
+    const action = exitAction(run);
+    if (action === 'out') {
+      exitDungeon('sortie');
+      return;
+    }
+    if (action === 'secret') {
+      leaveSecretRoom(run);
+      placeRunPlayer(run.secretReturn ?? run.room.crack);
+      playSound('click');
+      pushChat(`Tu remontes dans ${run.roomEntry.spec.name}.`, 'system');
+    } else {
+      nextRoom(run);
+      placeRunPlayer(run.room.spawn);
+      playSound('enter');
+      pushChat(`Tu descends : ${run.roomEntry.spec.name}. ${run.roomEntry.spec.intro}`, 'system');
+    }
+    refreshRunPanel();
+    updatePvHud(true);
+    return;
+  }
+
+  if (crackNear(run, me)) {
+    enterSecretRoom(run);
+    placeRunPlayer(run.room.spawn);
+    refreshRunPanel();
+    updatePvHud(true);
+    playSound('rune');
+    pushChat(`La fissure cède : tu entres dans ${run.secret.spec.name} !`, 'system');
     return;
   }
 
@@ -708,6 +841,9 @@ function handleRunInteract() {
   const result = attackRun(run, me, playerStats(state.vault));
   if (!result) return;
 
+  // Le sifflement du coup part toujours ; l'impact a son propre son.
+  playSound('swing');
+
   if (result.killed) {
     playSound('success');
     pushChat(`${result.killed.name} vaincu !`, 'system');
@@ -718,10 +854,27 @@ function handleRunInteract() {
     updateDungeonPanel(true);
   } else if (result.hit) {
     playSound('hit');
-  } else {
-    playSound('click');
   }
   updateDungeonPanel();
+}
+
+// Donjon conquis : mémorisé dans le navigateur, il ouvre la maison qu'il garde
+// (une maison par donjon). La victoire n'est annoncée qu'une seule fois.
+function conquerDungeon(run) {
+  const isNew = !state.conquered.has(run.dungeon.id);
+  if (isNew) {
+    state.conquered.add(run.dungeon.id);
+    saveConquered();
+  }
+  const house = houseForDungeon(run.dungeon.id, houses);
+  if (!house) return;
+  playSound('success');
+  pushChat(
+    isNew
+      ? `Donjon conquis ! Le sceau de ${houseWithArticle(house)} se brise : la porte est ouverte.`
+      : `${houseWithArticle(house)} est déjà ouverte : ce donjon avait été vaincu.`,
+    'system'
+  );
 }
 
 function tickDungeon(dt) {
@@ -741,7 +894,11 @@ function tickDungeon(dt) {
   }
   if (events.cleared) {
     playSound('success');
-    pushChat('Tous les coffres sont ouverts : la salle est nettoyée.', 'system');
+    pushChat(run.message, 'system');
+  }
+  if (events.finished) {
+    pushChat('Tous les coffres du donjon sont ouverts ! Tu peux sortir par l’escalier.', 'system');
+    conquerDungeon(run);
   }
   updateDungeonPanel();
   updatePvHud();
@@ -871,9 +1028,18 @@ function updatePrompt(force = false) {
 
   if (me && (state.mode === 'online' || state.mode === 'solo')) {
     if (state.run) {
-      if (nearRoomExit(state.run.room, me)) text = 'Sortir du donjon';
-      else if (chestNear(state.run, me)) text = 'Ouvrir le coffre';
-      else if (monsterNear(state.run, me)) text = 'Attaquer';
+      const run = state.run;
+      if (nearRoomExit(run.room, me)) {
+        const action = exitAction(run);
+        text = action === 'out'
+          ? 'Sortir du donjon'
+          : action === 'secret'
+            ? 'Remonter dans la salle'
+            : `Descendre — ${run.rooms[run.roomIndex + 1].spec.name}`;
+      } else if (crackNear(run, me)) {
+        text = 'Fissure — entrer dans la salle secrète';
+      } else if (chestNear(run, me)) text = 'Ouvrir le coffre';
+      else if (monsterNear(run, me)) text = 'Attaquer';
     } else if (state.inside) {
       if (nearRoomExit(state.inside.room, me)) {
         text = 'Sortir de la maison';
@@ -886,7 +1052,11 @@ function updatePrompt(force = false) {
       text = 'Portail — choisir un donjon';
     } else {
       const house = houseNear(me);
-      if (house) text = `Entrer — ${house.name}`;
+      if (house) {
+        text = houseUnlocked(house, state.conquered)
+          ? `Entrer — ${house.name}`
+          : sealText(house);
+      }
     }
   }
 
@@ -1138,7 +1308,13 @@ function loop(now) {
     if (state.inside) tickInside(dt);
     else if (state.run) tickDungeon(dt);
     const me = state.players.get(state.selfId);
-    if (me) state.renderer.updateCamera(me.rx, me.ry, dt);
+    if (me) {
+      // Arme en main et geste de frappe : le rendu lit ces trois champs.
+      me.equippedWeapon = equippedWeapon(state.vault);
+      me.swing = state.run ? state.run.swing : 0;
+      me.swingDir = state.run?.swingDir ?? me.dir;
+      state.renderer.updateCamera(me.rx, me.ry, dt);
+    }
     updatePrompt();
   }
 
@@ -1148,7 +1324,13 @@ function loop(now) {
   } else if (state.run) {
     decor = (ctx, time) => drawRun(ctx, state.run, time);
   } else {
-    decor = (ctx, time) => drawPortal(ctx, world.portal, time);
+    // Au village : le portail et le sceau de chaque maison.
+    decor = (ctx, time) => {
+      drawPortal(ctx, world.portal, time);
+      for (const house of houses) {
+        drawHouseSeal(ctx, house, houseUnlocked(house, state.conquered), time);
+      }
+    };
   }
 
   const actors = state.run
@@ -1311,6 +1493,7 @@ initInput();
 buildColorList();
 loadSettings();
 loadRewards();
+loadConquered();
 loadVault();
 updateSwatches();
 updateHud();

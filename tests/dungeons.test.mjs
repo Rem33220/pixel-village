@@ -8,6 +8,22 @@ import {
   BASE_STATS,
   ENTRY_GRACE,
   PORTAL_RANGE,
+  RARITY_ORDER,
+  SECRET_RANGE,
+  SWING_TIME,
+  WEAPON_ARTS,
+  aimDirection,
+  crackNear,
+  dungeonTotals,
+  enterSecretRoom,
+  equippedWeapon,
+  exitAction,
+  isLastRoom,
+  leaveSecretRoom,
+  nextRoom,
+  roomCount,
+  roomNumber,
+  swingAngle,
   ROOM_SPAWN,
   addItem,
   attackRun,
@@ -76,12 +92,37 @@ function reachableFrom(room, start) {
   check('donjons: trois niveaux distincts', DUNGEONS.length === 3
     && new Set(DUNGEONS.map((d) => d.level)).size === 3);
   for (const dungeon of DUNGEONS) {
-    check(`donjon ${dungeon.id}: butin connu`,
-      dungeon.loot.length >= dungeon.chests && dungeon.loot.every((id) => LOOT[id]));
+    const rooms = dungeon.rooms ?? [];
+    const specs = [...rooms, dungeon.secret].filter(Boolean);
+    check(`donjon ${dungeon.id}: au moins deux salles + une secrète`,
+      rooms.length >= 2 && Boolean(dungeon.secret));
+    check(`donjon ${dungeon.id}: butin de chaque salle connu`,
+      specs.every((spec) => spec.loot.every((id) => LOOT[id])));
+    check(`donjon ${dungeon.id}: chaque coffre a un objet`,
+      specs.every((spec) => spec.chests >= 1 && spec.loot.length >= spec.chests
+        && new Set(spec.loot).size === spec.loot.length));
     check(`donjon ${dungeon.id}: monstres connus`,
-      dungeon.monsters.length > 0 && dungeon.monsters.every((type) => MONSTERS[type]));
+      specs.every((spec) => spec.monsters.length > 0
+        && spec.monsters.every((type) => MONSTERS[type])));
     check(`donjon ${dungeon.id}: accent de couleur`, /^#[0-9a-f]{6}$/i.test(dungeon.accent));
+
+    const totals = dungeonTotals(dungeon);
+    check(`donjon ${dungeon.id}: totaux = somme des salles`,
+      totals.rooms === rooms.length
+      && totals.monsters === specs.reduce((sum, spec) => sum + spec.monsters.length, 0)
+      && totals.chests === specs.reduce((sum, spec) => sum + spec.chests, 0)
+      && totals.secret === true);
+
+    const listed = new Set(dungeon.loot);
+    const roomLoot = rooms.flatMap((spec) => spec.loot);
+    check(`donjon ${dungeon.id}: butin du portail complet`,
+      roomLoot.every((id) => listed.has(id))
+      && dungeon.secret.loot.every((id) => listed.has(id)));
+    check(`donjon ${dungeon.id}: une salle secrète cachée`,
+      dungeon.secret.loot.some((id) => !roomLoot.includes(id)), dungeon.secret.loot.join(','));
   }
+
+  const allSpecs = DUNGEONS.flatMap((dungeon) => [...dungeon.rooms, dungeon.secret]);
   const items = new Set(DUNGEONS.flatMap((dungeon) => dungeon.loot));
   check('butin: tous les objets ont un type valide',
     [...items].every((id) => LOOT[id].kind === 'arme' || LOOT[id].kind === 'armure'));
@@ -90,6 +131,32 @@ function reachableFrom(room, start) {
   check('butin: chaque objet vient d’un donjon', [...items].every((id) => (
     DUNGEONS.some((dungeon) => dungeon.loot.includes(id))
   )));
+  check('butin: chaque objet d’un donjon est dans une salle',
+    [...items].every((id) => allSpecs.some((spec) => spec.loot.includes(id))));
+  check('butin: raretés connues',
+    Object.values(LOOT).every((item) => RARITY_ORDER.includes(item.rarity)));
+
+  const legendaires = Object.entries(LOOT)
+    .filter(([, item]) => item.rarity === 'legendaire')
+    .map(([id]) => id);
+  check('butin: objets légendaires présents', legendaires.length >= 2, legendaires.join(','));
+  check('butin: les légendaires ne viennent que des salles secrètes',
+    DUNGEONS.every((dungeon) => dungeon.loot
+      .filter((id) => LOOT[id].rarity === 'legendaire')
+      .every((id) => dungeon.secret.loot.includes(id))));
+  check('butin: au moins un objet épique par donjon',
+    DUNGEONS.every((dungeon) => dungeon.loot.some((id) => LOOT[id].rarity === 'epique')));
+
+  const nouveaux = ['araignee', 'spectre', 'ombre'];
+  check('monstres: trois nouvelles créatures',
+    nouveaux.every((type) => MONSTERS[type] && MONSTERS[type].pv > 0));
+  check('monstres: la salle secrète est au moins aussi dangereuse',
+    DUNGEONS.every((dungeon) => {
+      const pire = (types) => Math.max(...types.map((type) => MONSTERS[type].damage));
+      const normal = dungeon.rooms.flatMap((room) => room.monsters);
+      return pire(dungeon.secret.monsters) >= pire(normal);
+    }));
+
 }
 
 // --- Icônes 16 × 16 -------------------------------------------------------
@@ -106,44 +173,74 @@ function reachableFrom(room, start) {
 // --- Salles praticables et accessibles ------------------------------------
 for (const dungeon of DUNGEONS) {
   const run = createRun(dungeon.id, 42);
-  const room = run.room;
+  const entries = [...run.rooms, run.secret];
 
-  check(`salle ${dungeon.id}: arrivée praticable`, walkable(room, room.spawn.x, room.spawn.y));
-  check(`salle ${dungeon.id}: sortie pas déjà dans la zone de sortie`, !nearExit(room, room.spawn));
-  check(`salle ${dungeon.id}: sortie détectée devant la porte`, nearExit(room, { x: 10.5, y: 15.4 }));
+  for (const entry of entries) {
+    const room = entry.room;
+    const label = `${dungeon.id}/${entry.spec.name}`;
 
-  const seen = reachableFrom(room, {
-    x: Math.floor(room.spawn.x),
-    y: Math.floor(room.spawn.y)
+    check(`${label}: arrivée praticable`, walkable(room, room.spawn.x, room.spawn.y));
+    check(`${label}: sortie pas déjà dans la zone de sortie`, !nearExit(room, room.spawn));
+    check(`${label}: sortie détectée devant l’escalier`,
+      nearExit(room, { x: room.exit.x, y: room.exit.y - 0.7 }));
+
+    const seen = reachableFrom(room, {
+      x: Math.floor(room.spawn.x),
+      y: Math.floor(room.spawn.y)
+    });
+
+    check(`${label}: coffres sur du sol atteignable`, entry.chests.every((chest) => (
+      walkable(room, chest.x, chest.y) && seen.has(`${Math.floor(chest.x)},${Math.floor(chest.y)}`)
+    )));
+
+    check(`${label}: monstres sur du sol atteignable`, entry.monsters.every((monster) => (
+      walkable(room, monster.x, monster.y) && seen.has(`${Math.floor(monster.x)},${Math.floor(monster.y)}`)
+    )));
+
+    const limite = entry.hidden ? 3.4 : 4.9;
+    check(`${label}: monstres loin de l’arrivée`, entry.monsters.every((monster) => (
+      Math.hypot(monster.x - room.spawn.x, monster.y - room.spawn.y) > limite
+    )));
+
+    check(`${label}: coffres et monstres séparés`,
+      entry.chests.every((chest) => entry.monsters.every((m) => (
+        Math.hypot(m.x - chest.x, m.y - chest.y) > 1
+      ))));
+
+    const ids = entry.chests.map((chest) => chest.item);
+    check(`${label}: butin des coffres unique`, new Set(ids).size === ids.length);
+    check(`${label}: butin tiré de la salle`, ids.every((id) => entry.spec.loot.includes(id)));
+  }
+
+  check(`${dungeon.id}: salle secrète plus petite`,
+    run.secret.room.w < run.rooms[0].room.w && run.secret.room.h < run.rooms[0].room.h);
+
+  const host = run.rooms[run.secretRoomIndex];
+  check(`${dungeon.id}: une seule fissure par expédition`,
+    run.rooms.filter((entry) => entry.hasCrack).length === 1 && host.room.hasCrack);
+  check(`${dungeon.id}: la fissure n’est pas un mur plein`,
+    Boolean(host.room.crack) && walkable(host.room, host.room.crack.x, host.room.crack.y));
+  const crackSeen = reachableFrom(host.room, {
+    x: Math.floor(host.room.spawn.x),
+    y: Math.floor(host.room.spawn.y)
   });
-
-  const chestsOk = run.chests.every((chest) => walkable(room, chest.x, chest.y)
-    && seen.has(`${Math.floor(chest.x)},${Math.floor(chest.y)}`));
-  check(`salle ${dungeon.id}: coffres sur du sol atteignable`, chestsOk);
-
-  const monstersOk = run.monsters.every((monster) => walkable(room, monster.x, monster.y)
-    && seen.has(`${Math.floor(monster.x)},${Math.floor(monster.y)}`));
-  check(`salle ${dungeon.id}: monstres sur du sol atteignable`, monstersOk);
-
-  check(`salle ${dungeon.id}: monstres loin de l’escalier`,
-    run.monsters.every((monster) => Math.hypot(monster.x - ROOM_SPAWN.x, monster.y - ROOM_SPAWN.y) > 4.9));
-
-  check(`salle ${dungeon.id}: coffres et monstres séparés`,
-    run.chests.every((chest) => run.monsters.every((m) => Math.hypot(m.x - chest.x, m.y - chest.y) > 1)));
-
-  const ids = run.chests.map((chest) => chest.item);
-  check(`salle ${dungeon.id}: butin des coffres unique`, new Set(ids).size === ids.length);
-  check(`salle ${dungeon.id}: butin tiré du donjon`, ids.every((id) => dungeon.loot.includes(id)));
+  check(`${dungeon.id}: fissure atteignable à pied`,
+    crackSeen.has(`${Math.floor(host.room.crack.x)},${Math.floor(host.room.crack.y)}`));
+  check(`${dungeon.id}: fissure hors de portée au départ`,
+    !crackNear({ ...run, roomIndex: run.secretRoomIndex }, host.room.spawn));
 }
 
 // --- Déterminisme ---------------------------------------------------------
 {
+  const signature = (run) => JSON.stringify({
+    crack: run.secretRoomIndex,
+    rooms: [...run.rooms, run.secret].map((entry) => ({
+      chests: entry.chests.map((chest) => [chest.x, chest.y, chest.item]),
+      monsters: entry.monsters.map((m) => [m.type, m.x, m.y])
+    }))
+  });
   const a = createRun('galerie', 7);
   const b = createRun('galerie', 7);
-  const signature = (run) => JSON.stringify({
-    chests: run.chests.map((chest) => [chest.x, chest.y, chest.item]),
-    monsters: run.monsters.map((m) => [m.type, m.x, m.y])
-  });
   check('génération: même graine = même expédition', signature(a) === signature(b));
   const c = createRun('galerie', 8);
   check('génération: graine différente = disposition différente', signature(a) !== signature(c));
@@ -218,13 +315,12 @@ for (const dungeon of DUNGEONS) {
   check('dégâts: mort quand les PV tombent à zéro', dead?.dead === true && run.phase === 'dead' && run.pv === 0);
 }
 
-// --- Coffres et salle nettoyée -------------------------------------------
+// --- Coffres, salles et fin du donjon ------------------------------------
 {
   const run = createRun('crypte', 5);
   check('coffres: aucun à portée au départ', chestNear(run, run.room.spawn) === null);
 
   let opened = 0;
-  let events = null;
   for (const chest of run.chests) {
     const item = openChest(run, { x: chest.x, y: chest.y });
     if (item) opened += 1;
@@ -232,8 +328,81 @@ for (const dungeon of DUNGEONS) {
   check('coffres: chaque coffre donne son butin', opened === run.chests.length);
   check('coffres: un coffre ne se rouvre pas', openChest(run, { x: run.chests[0].x, y: run.chests[0].y }) === null);
 
-  events = updateRun(run, { rx: 1, ry: 15 }, 0.05, { attack: 4, defense: 0 });
-  check('coffres: salle nettoyée quand tout est ouvert', events.cleared && run.phase === 'won' && run.cleared);
+  let events = updateRun(run, { rx: 1, ry: 15 }, 0.05, { attack: 4, defense: 0 });
+  check('coffres: salle nettoyée quand tout est ouvert',
+    events.cleared && run.roomEntry.cleared && run.cleared && run.phase === 'run');
+  check('coffres: le donjon n’est pas fini après la première salle', !events.finished);
+
+  // Toutes les salles vidées → donjon nettoyé.
+  const full = createRun('crypte', 5);
+  let last = null;
+  for (let i = 0; i < full.rooms.length; i++) {
+    for (const chest of full.chests) openChest(full, { x: chest.x, y: chest.y });
+    last = updateRun(full, { rx: 1, ry: 15 }, 0.05, { attack: 4, defense: 0 });
+    if (i + 1 < full.rooms.length) nextRoom(full);
+  }
+  check('coffres: donjon nettoyé quand toutes les salles sont vidées',
+    last?.cleared === true && last.finished === true && full.phase === 'won' && full.cleared);
+}
+
+// --- Descente de salle en salle ------------------------------------------
+{
+  const run = createRun('antre', 9);
+  check('progression: départ dans la première salle',
+    roomNumber(run) === 1 && roomCount(run) === run.rooms.length + 1 && !run.inSecret);
+  check('progression: l’escalier descend d’une salle', exitAction(run) === 'next');
+  check('progression: nom de salle exposé', Boolean(run.roomEntry.spec.name));
+
+  const first = run.rooms[0];
+  const second = nextRoom(run);
+  check('progression: salle suivante active',
+    second === run.rooms[1] && run.room === second.room
+    && run.monsters === second.monsters && run.chests === second.chests && roomNumber(run) === 2);
+  check('progression: la salle quittée garde son état', first.chests.every((chest) => !chest.opened));
+  check('progression: nouveau répit à l’arrivée', run.grace === ENTRY_GRACE);
+
+  while (exitAction(run) === 'next') nextRoom(run);
+  check('progression: dernière salle = sortie du donjon',
+    isLastRoom(run) && exitAction(run) === 'out' && roomNumber(run) === run.rooms.length);
+  check('progression: impossible de descendre plus bas', nextRoom(run) === null);
+}
+
+// --- Fissure et salle secrète --------------------------------------------
+{
+  const run = createRun('crypte', 42);
+  const hostIndex = run.secretRoomIndex;
+  const host = run.rooms[hostIndex];
+
+  check('secret: la fissure est dans une seule salle',
+    run.rooms.filter((entry) => entry.hasCrack).length === 1 && host.hasCrack);
+  check('secret: pas de fissure dans les autres salles',
+    run.rooms.every((entry, index) => index === hostIndex || !entry.room.hasCrack));
+
+  while (run.roomIndex < hostIndex) nextRoom(run);
+  const away = { x: host.room.spawn.x, y: host.room.spawn.y };
+  check('secret: rien à faire loin du mur', !crackNear(run, away));
+  check('secret: détectée devant le mur', crackNear(run, host.room.crack));
+  check('secret: portée cohérente', SECRET_RANGE > 0.8 && SECRET_RANGE < 2);
+
+  const secret = enterSecretRoom(run);
+  check('secret: salle secrète ouverte', secret === run.secret && run.inSecret
+    && run.secretFound && run.room === secret.room && run.monsters === secret.monsters);
+  check('secret: numérotée après les salles ordinaires', roomNumber(run) === run.rooms.length + 1);
+  check('secret: l’escalier remonte', exitAction(run) === 'secret');
+  check('secret: pas de nouvelle fissure à l’intérieur', !crackNear(run, { x: 1.5, y: 5.5 }));
+
+  const back = leaveSecretRoom(run);
+  check('secret: retour dans la salle d’origine',
+    back === host && !run.inSecret && run.room === host.room && run.monsters === host.monsters);
+
+  // Une salle sans fissure ne s’ouvre pas.
+  const other = createRun('crypte', 42);
+  const plain = other.rooms.findIndex((entry) => !entry.hasCrack);
+  if (plain >= 0) {
+    while (other.roomIndex < plain) nextRoom(other);
+    check('secret: pas de passage secret dans une salle sans fissure',
+      enterSecretRoom(other) === null && !other.secretFound);
+  }
 }
 
 // --- Équipement -----------------------------------------------------------
@@ -269,6 +438,48 @@ for (const dungeon of DUNGEONS) {
 
   addItem(vault, 'dague');
   check('équipement: doublons comptés', itemCount(vault, 'dague') === 2 && ownsItem(vault, 'dague'));
+}
+
+// --- Arme en main et geste de frappe -------------------------------------
+{
+  const weapons = Object.entries(LOOT).filter(([, item]) => item.kind === 'arme');
+  check('armes: chaque arme a une silhouette connue',
+    weapons.length >= 5 && weapons.every(([, item]) => WEAPON_ARTS.includes(item.art)));
+  check('armes: les silhouettes servent toutes',
+    new Set(weapons.map(([, item]) => item.art)).size === WEAPON_ARTS.length);
+  check('armes: armures sans silhouette de main',
+    Object.values(LOOT).filter((item) => item.kind === 'armure').every((item) => !item.art));
+
+  const vault = createVault();
+  check('arme en main: rien à mains nues', equippedWeapon(vault) === null);
+  addItem(vault, 'hache');
+  equipItem(vault, 'hache');
+  check('arme en main: suit l’arme équipée', equippedWeapon(vault) === 'hache');
+  equipItem(vault, 'hache');
+  check('arme en main: disparaît après retrait', equippedWeapon(vault) === null);
+
+  check('geste: repos à zéro au début', swingAngle(0) === 0);
+  check('geste: retour au repos à la fin', Math.abs(swingAngle(1)) < 1e-9);
+  check('geste: armé en arrière', swingAngle(0.3) === -70);
+  check('geste: frappe vers l’avant', swingAngle(0.65) === 90);
+  const strike = [0.3, 0.4, 0.5, 0.6].map(swingAngle);
+  check('geste: l’arme balaie toujours dans le même sens',
+    strike.every((angle, index) => index === 0 || angle > strike[index - 1]), strike.join(' → '));
+  check('geste: valeur bornée hors de [0, 1]',
+    swingAngle(-3) === 0 && Math.abs(swingAngle(4)) < 1e-9 && swingAngle(NaN) === 0);
+
+  const run = createRun('crypte', 21);
+  const monster = run.monsters[0];
+  const player = { rx: monster.x + 1, ry: monster.y, dir: 'up' };
+  const hit = attackRun(run, player, playerStats(createVault()));
+  check('frappe: animation lancée avec le coup', hit?.hit === monster && run.swing === SWING_TIME);
+  check('frappe: le coup vise le monstre', run.swingDir === 'left' && player.dir === 'left', run.swingDir);
+  updateRun(run, { rx: monster.x + 1, ry: monster.y }, SWING_TIME + 0.05, playerStats(createVault()));
+  check('frappe: animation terminée après SWING_TIME', run.swing === 0);
+
+  check('visée: vers le haut', aimDirection({ x: 0, y: 0 }, { x: 0, y: -3 }) === 'up');
+  check('visée: vers la droite', aimDirection({ x: 0, y: 0 }, { x: 4, y: 1 }) === 'right');
+  check('visée: sans cible, on garde le regard', aimDirection({ dir: 'left' }, null) === 'left');
 }
 
 // --- Sauvegarde tolérante ------------------------------------------------

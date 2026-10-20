@@ -16,7 +16,8 @@ export const PORTAL_RANGE = 1.7;
 export const CHEST_RANGE = 1.2;
 export const ATTACK_RANGE = 1.35;
 export const ATTACK_COOLDOWN = 0.42;
-export const ATTACK_TIME = 0.16;
+// Durée du geste de frappe : lever de l'arme, coup, retour au repos.
+export const SWING_TIME = 0.28;
 export const CONTACT_RANGE = 0.95;
 export const MONSTER_COOLDOWN = 1.1;
 export const MONSTER_AGGRO = 5;
@@ -35,6 +36,7 @@ export const LOOT = {
   dague: {
     name: 'Dague rouillée',
     kind: 'arme',
+    art: 'dague',
     attack: 2,
     defense: 0,
     rarity: 'commun',
@@ -53,6 +55,7 @@ export const LOOT = {
   epee_courte: {
     name: 'Épée courte',
     kind: 'arme',
+    art: 'epee',
     attack: 4,
     defense: 0,
     rarity: 'commun',
@@ -62,6 +65,7 @@ export const LOOT = {
   hache: {
     name: 'Hache de pierre',
     kind: 'arme',
+    art: 'hache',
     attack: 6,
     defense: 0,
     rarity: 'rare',
@@ -80,6 +84,8 @@ export const LOOT = {
   lame_brumes: {
     name: 'Lame des brumes',
     kind: 'arme',
+    art: 'lame',
+    glow: true,
     attack: 9,
     defense: 0,
     rarity: 'epique',
@@ -98,6 +104,8 @@ export const LOOT = {
   epee_gardien: {
     name: 'Épée du gardien',
     kind: 'arme',
+    art: 'epee',
+    glow: true,
     attack: 13,
     defense: 0,
     rarity: 'epique',
@@ -121,8 +129,38 @@ export const LOOT = {
     rarity: 'rare',
     color: '#6d747c',
     detail: 'Deux gantelets massifs qui protègent les avant-bras.'
+  },
+  // Butin des salles secrètes : il ne tombe jamais au hasard.
+  lame_ombre: {
+    name: 'Lame d’ombre',
+    kind: 'arme',
+    art: 'lame',
+    glow: true,
+    attack: 18,
+    defense: 0,
+    rarity: 'legendaire',
+    color: '#c78bff',
+    detail: 'Forgée dans le noir de l’antre, elle boit la lumière autour d’elle.'
+  },
+  cape_ombre: {
+    name: 'Cape d’ombre',
+    kind: 'armure',
+    attack: 0,
+    defense: 10,
+    rarity: 'legendaire',
+    color: '#6f4bd6',
+    detail: 'Le tissu se referme sur les coups comme une nuit sans étoiles.'
   }
 };
+
+// Niveaux de rareté, du plus courant au plus rare : sert au tri de
+// l'inventaire et aux couleurs du portail.
+export const RARITY_ORDER = ['commun', 'rare', 'epique', 'legendaire'];
+
+// Silhouettes d'armes dessinées en main (voir public/js/weapons.js) :
+// dague courte, épée, hache et lame longue. Une arme sans `art` connu tombe
+// sur l'épée.
+export const WEAPON_ARTS = ['dague', 'epee', 'hache', 'lame'];
 
 // Icônes 16 × 16 du butin, dessinées en ASCII. `b` prend la couleur de l'objet.
 export const ITEM_ICONS = {
@@ -196,11 +234,44 @@ export const MONSTERS = {
     speed: 1.3,
     size: 15,
     tint: '#6d747c'
+  },
+  // Monstres des salles profondes et des passages secrets.
+  araignee: {
+    name: 'Araignée des fosses',
+    pv: 18,
+    damage: 3,
+    speed: 2.7,
+    size: 11,
+    tint: '#8b5a9e'
+  },
+  spectre: {
+    name: 'Spectre',
+    pv: 34,
+    damage: 7,
+    speed: 1.8,
+    size: 14,
+    tint: '#9fe8f7'
+  },
+  ombre: {
+    name: 'Ombre du gardien',
+    pv: 80,
+    damage: 13,
+    speed: 1.9,
+    size: 16,
+    tint: '#7a5cd6'
   }
 };
 
 // --- Donjons ---------------------------------------------------------------
 
+// Chaque donjon enchaîne plusieurs salles : l'escalier du bas mène à la salle
+// suivante, et celui de la dernière salle ramène au village. Toutes les salles
+// cachent aussi une **fissure** dans un mur (une seule par expédition, tirée
+// avec la graine) qui ouvre une salle secrète : plus petite, plus dangereuse,
+// avec un butin qu'on ne trouve nulle part ailleurs.
+//
+// `loot` liste tout le butin possible du donjon (pour le panneau du portail) ;
+// chaque salle n'utilise que sa propre liste.
 export const DUNGEONS = [
   {
     id: 'crypte',
@@ -208,10 +279,31 @@ export const DUNGEONS = [
     level: 1,
     danger: 'Calme',
     accent: '#7ee08a',
-    intro: 'Des baveux rampent entre les piliers. Trois coffres t’attendent.',
-    monsters: ['baveux', 'baveux'],
-    chests: 3,
-    loot: ['dague', 'tunique', 'epee_courte']
+    intro: 'Deux salles basses sous le village, et des murs qui craquent…',
+    rooms: [
+      {
+        name: 'Crypte des brumes',
+        intro: 'Des baveux rampent entre les piliers. Deux coffres t’attendent.',
+        monsters: ['baveux', 'baveux'],
+        chests: 2,
+        loot: ['dague', 'tunique']
+      },
+      {
+        name: 'Ossuaire effondré',
+        intro: 'Des toiles pleines d’yeux et des baveux : trois coffres au fond.',
+        monsters: ['baveux', 'araignee', 'baveux'],
+        chests: 3,
+        loot: ['epee_courte', 'tunique', 'dague']
+      }
+    ],
+    secret: {
+      name: 'Crypte oubliée',
+      intro: 'Derrière la fissure, une salle que personne n’a pillée.',
+      monsters: ['araignee', 'araignee'],
+      chests: 1,
+      loot: ['lame_brumes']
+    },
+    loot: ['dague', 'tunique', 'epee_courte', 'lame_brumes']
   },
   {
     id: 'galerie',
@@ -219,10 +311,31 @@ export const DUNGEONS = [
     level: 2,
     danger: 'Risqué',
     accent: '#8ff0f7',
-    intro: 'Les squelettes ont entendu tes pas. Quatre coffres brillent dans le noir.',
-    monsters: ['squelette', 'squelette', 'squelette', 'baveux'],
-    chests: 4,
-    loot: ['hache', 'mailles', 'lame_brumes', 'plastron']
+    intro: 'Les squelettes ont entendu tes pas. Un puits descend dans le noir.',
+    rooms: [
+      {
+        name: 'Galerie des échos',
+        intro: 'Trois squelettes montent la garde. Trois coffres brillent dans le noir.',
+        monsters: ['squelette', 'squelette', 'baveux'],
+        chests: 3,
+        loot: ['hache', 'mailles', 'plastron']
+      },
+      {
+        name: 'Puits des murmures',
+        intro: 'La galerie se resserre : un spectre flotte au-dessus des coffres.',
+        monsters: ['squelette', 'spectre', 'baveux'],
+        chests: 3,
+        loot: ['lame_brumes', 'hache', 'mailles']
+      }
+    ],
+    secret: {
+      name: 'Chambre des échos',
+      intro: 'Les murs y répètent chaque pas. Deux spectres gardent un coffre.',
+      monsters: ['spectre', 'spectre'],
+      chests: 1,
+      loot: ['epee_gardien']
+    },
+    loot: ['hache', 'mailles', 'plastron', 'lame_brumes', 'epee_gardien']
   },
   {
     id: 'antre',
@@ -230,10 +343,38 @@ export const DUNGEONS = [
     level: 3,
     danger: 'Mortel',
     accent: '#f6d34d',
-    intro: 'Deux golems montent la garde. Leur butin vaut le détour… si tu survis.',
-    monsters: ['golem', 'golem', 'squelette'],
-    chests: 3,
-    loot: ['epee_gardien', 'armure_gardien', 'gantelets']
+    intro: 'Trois salles de plus en plus profondes. Le gardien n’est pas seul.',
+    rooms: [
+      {
+        name: 'Antre du gardien',
+        intro: 'Deux golems montent la garde. Leur butin vaut le détour… si tu survis.',
+        monsters: ['golem', 'golem', 'squelette'],
+        chests: 3,
+        loot: ['gantelets', 'plastron', 'mailles']
+      },
+      {
+        name: 'Boyau des ombres',
+        intro: 'Un boyau s’enfonce plus loin : araignées, spectre et golem s’y mêlent.',
+        monsters: ['araignee', 'spectre', 'golem'],
+        chests: 3,
+        loot: ['armure_gardien', 'epee_gardien', 'gantelets']
+      },
+      {
+        name: 'Cœur de l’antre',
+        intro: 'Le fond de l’antre. Deux golems et une araignée veillent sur les derniers coffres.',
+        monsters: ['golem', 'araignee', 'golem'],
+        chests: 2,
+        loot: ['epee_gardien', 'armure_gardien']
+      }
+    ],
+    secret: {
+      name: 'Antre oublié',
+      intro: 'L’ombre du gardien t’attend, seule dans le noir. Deux coffres légendaires.',
+      monsters: ['ombre'],
+      chests: 2,
+      loot: ['lame_ombre', 'cape_ombre']
+    },
+    loot: ['gantelets', 'plastron', 'mailles', 'armure_gardien', 'epee_gardien', 'lame_ombre', 'cape_ombre']
   }
 ];
 
@@ -245,46 +386,88 @@ export function dungeonOfItem(id) {
   return DUNGEONS.find((dungeon) => dungeon.loot.includes(id)) ?? null;
 }
 
+// Compte les salles, monstres et coffres d'un donjon (salle secrète comprise) :
+// le panneau du portail affiche ces totaux.
+export function dungeonTotals(dungeon) {
+  const rooms = dungeon?.rooms ?? [];
+  const secret = dungeon?.secret;
+  return {
+    rooms: rooms.length,
+    monsters: rooms.reduce((sum, room) => sum + room.monsters.length, 0)
+      + (secret?.monsters.length ?? 0),
+    chests: rooms.reduce((sum, room) => sum + room.chests, 0) + (secret?.chests ?? 0),
+    secret: Boolean(secret)
+  };
+}
+
 // --- Génération des salles -------------------------------------------------
 
-export const ROOM_W = 21;
-export const ROOM_H = 17;
+// Deux gabarits : les salles ordinaires (21 × 17) et les salles secrètes,
+// plus petites et plus étouffantes (15 × 11).
+const LAYOUTS = {
+  room: {
+    w: 21,
+    h: 17,
+    // Piliers fixes : ils ne bouchent jamais le couloir central.
+    pillars: [[4, 4], [4, 8], [4, 12], [16, 4], [16, 8], [16, 12]],
+    spawn: { x: 10.5, y: 13.6 },
+    exitX: 10,
+    minSpawnDistance: 5,
+    chestSpots: [
+      { x: 2.5, y: 2.5 },
+      { x: 18.5, y: 2.5 },
+      { x: 10.5, y: 3.5 },
+      { x: 3.5, y: 13.5 },
+      { x: 17.5, y: 13.5 },
+      { x: 10.5, y: 9.5 }
+    ],
+    monsterSpots: [
+      { x: 5.5, y: 11.5 },
+      { x: 15.5, y: 11.5 },
+      { x: 7.5, y: 4.5 },
+      { x: 13.5, y: 4.5 },
+      { x: 10.5, y: 7.5 },
+      { x: 4.5, y: 6.5 },
+      { x: 16.5, y: 6.5 },
+      { x: 6.5, y: 14.5 },
+      { x: 14.5, y: 14.5 },
+      { x: 3.5, y: 8.5 },
+      { x: 17.5, y: 8.5 }
+    ]
+  },
+  secret: {
+    w: 15,
+    h: 11,
+    pillars: [[3, 3], [11, 3], [3, 7], [11, 7]],
+    spawn: { x: 7.5, y: 7.6 },
+    exitX: 7,
+    minSpawnDistance: 3.5,
+    chestSpots: [
+      { x: 7.5, y: 2.5 },
+      { x: 2.5, y: 5.5 },
+      { x: 12.5, y: 5.5 }
+    ],
+    monsterSpots: [
+      { x: 4.5, y: 4.5 },
+      { x: 10.5, y: 4.5 },
+      { x: 3.5, y: 8.5 },
+      { x: 11.5, y: 8.5 },
+      { x: 5.5, y: 2.5 },
+      { x: 9.5, y: 2.5 }
+    ]
+  }
+};
 
-// Piliers fixes : ils ne bouchent jamais le couloir central.
-const PILLARS = [
-  [4, 4],
-  [4, 8],
-  [4, 12],
-  [16, 4],
-  [16, 8],
-  [16, 12]
-];
+export const ROOM_W = LAYOUTS.room.w;
+export const ROOM_H = LAYOUTS.room.h;
+export const ROOM_SPAWN = { ...LAYOUTS.room.spawn };
+export const ROOM_EXIT = { x: LAYOUTS.room.exitX + 0.5, y: ROOM_H - 1 + 0.35 };
 
-const CHEST_SPOTS = [
-  { x: 2.5, y: 2.5 },
-  { x: 18.5, y: 2.5 },
-  { x: 10.5, y: 3.5 },
-  { x: 3.5, y: 13.5 },
-  { x: 17.5, y: 13.5 },
-  { x: 10.5, y: 9.5 }
-];
-
-const MONSTER_SPOTS = [
-  { x: 5.5, y: 11.5 },
-  { x: 15.5, y: 11.5 },
-  { x: 7.5, y: 4.5 },
-  { x: 13.5, y: 4.5 },
-  { x: 10.5, y: 7.5 },
-  { x: 4.5, y: 6.5 },
-  { x: 16.5, y: 6.5 },
-  { x: 6.5, y: 14.5 },
-  { x: 14.5, y: 14.5 },
-  { x: 3.5, y: 8.5 },
-  { x: 17.5, y: 8.5 }
-];
-
-export const ROOM_SPAWN = { x: 10.5, y: 13.6 };
-export const ROOM_EXIT = { x: 10.5, y: ROOM_H - 1 + 0.35 };
+// Fissure des salles ordinaires : dans le mur est, à mi-hauteur. On s'en
+// approche depuis l'intérieur de la salle (x = 19,4).
+export const SECRET_RANGE = 1.4;
+export const CRACK_TILE = { x: ROOM_W - 1, y: 8 };
+export const CRACK_APPROACH = { x: ROOM_W - 1.6, y: 8.5 };
 
 function mulberry32(seed) {
   let a = seed >>> 0;
@@ -313,11 +496,12 @@ function canStand(world, x, y, radius = PLAYER_RADIUS) {
     && !isSolid(world, Math.floor(x + radius), Math.floor(y + radius));
 }
 
-// Salle commune : dalles de pierre, plaques de mousse, piliers, escalier de
-// sortie au milieu du mur du bas.
-export function buildRoom(dungeon, seed = 1) {
-  const w = ROOM_W;
-  const h = ROOM_H;
+// Salle commune : dalles de pierre, plaques de mousse, piliers, escalier au
+// milieu du mur du bas. `layoutName` vaut 'room' ou 'secret'.
+export function buildRoom(dungeon, seed = 1, layoutName = 'room') {
+  const layout = LAYOUTS[layoutName] ?? LAYOUTS.room;
+  const w = layout.w;
+  const h = layout.h;
   const tiles = new Uint8Array(w * h);
   const random = mulberry32(seed ^ 0x5f3a91);
 
@@ -330,23 +514,27 @@ export function buildRoom(dungeon, seed = 1) {
     }
   }
 
-  for (const [x, y] of PILLARS) tiles[y * w + x] = T.STONE_WALL;
+  for (const [x, y] of layout.pillars) tiles[y * w + x] = T.STONE_WALL;
 
-  // Escalier de sortie.
-  tiles[(h - 1) * w + 10] = T.DOOR_STONE;
+  // Escalier : vers la salle suivante, la sortie ou la salle d'origine.
+  tiles[(h - 1) * w + layout.exitX] = T.DOOR_STONE;
 
   const room = {
     w,
     h,
     tiles,
     dungeon,
-    spawn: { ...ROOM_SPAWN },
-    exit: { ...ROOM_EXIT }
+    spawn: { ...layout.spawn },
+    exit: { x: layout.exitX + 0.5, y: h - 1 + 0.35 },
+    // Point d'où l'on peut atteindre la fissure (salles ordinaires seulement).
+    crack: layoutName === 'room' ? { ...CRACK_APPROACH } : null,
+    crackTile: layoutName === 'room' ? { ...CRACK_TILE } : null,
+    hasCrack: false
   };
 
   // La place de départ reste toujours dégagée.
-  for (let y = ROOM_SPAWN.y - 1.2; y <= ROOM_SPAWN.y + 1; y++) {
-    for (let x = ROOM_SPAWN.x - 1.2; x <= ROOM_SPAWN.x + 1.2; x++) {
+  for (let y = room.spawn.y - 1.2; y <= room.spawn.y + 1; y++) {
+    for (let x = room.spawn.x - 1.2; x <= room.spawn.x + 1.2; x++) {
       if (!isSolid(room, Math.floor(x), Math.floor(y))) continue;
       room.tiles[Math.floor(y) * w + Math.floor(x)] = T.STONE_FLOOR;
     }
@@ -364,16 +552,17 @@ function shuffled(list, random) {
   return copy;
 }
 
-// Prépare une expédition : salle, monstres, coffres et leur butin. Tout est
-// tiré une fois pour toutes, donc un même `seed` donne exactement la même
+// Prépare une salle : tuiles, monstres, coffres et leur butin. Tout est tiré
+// une fois pour toutes, donc un même `seed` donne exactement la même
 // expédition (utile pour les tests).
-export function createRun(dungeonId, seed = 1) {
-  const dungeon = getDungeon(dungeonId) ?? DUNGEONS[0];
-  const room = buildRoom(dungeon, seed);
+function createRoomEntry(dungeon, spec, seed, { hidden = false } = {}) {
+  const layoutName = hidden ? 'secret' : 'room';
+  const layout = LAYOUTS[layoutName];
   const random = mulberry32(seed ^ 0x9e3779b9);
+  const room = buildRoom(dungeon, seed, layoutName);
 
-  const chestSpots = shuffled(CHEST_SPOTS, random).slice(0, dungeon.chests);
-  const lootPool = shuffled(dungeon.loot, random);
+  const chestSpots = shuffled(layout.chestSpots, random).slice(0, spec.chests);
+  const lootPool = shuffled(spec.loot, random);
   const chests = chestSpots.map((spot, index) => ({
     x: spot.x,
     y: spot.y,
@@ -383,28 +572,25 @@ export function createRun(dungeonId, seed = 1) {
 
   // Les monstres commencent loin de l'escalier : on ne se fait pas encercler
   // à la seconde où l'on pose le pied dans la salle.
-  const monsterSpots = shuffled(MONSTER_SPOTS, random)
-    .filter((spot) => {
-      if (distance(spot, ROOM_SPAWN) < 5) return false;
-      return chests.every((chest) => distance(spot, chest) > 1.4);
-    })
-    .slice(0, dungeon.monsters.length);
+  const monsterSpots = shuffled(layout.monsterSpots, random)
+    .filter((spot) => distance(spot, layout.spawn) >= layout.minSpawnDistance)
+    .filter((spot) => chests.every((chest) => distance(spot, chest) > 1.4));
 
-  const monsters = dungeon.monsters.map((type, index) => {
-    const spec = MONSTERS[type] ?? MONSTERS.baveux;
-    const spot = monsterSpots[index] ?? MONSTER_SPOTS[index % MONSTER_SPOTS.length];
+  const monsters = spec.monsters.map((type, index) => {
+    const stats = MONSTERS[type] ?? MONSTERS.baveux;
+    const spot = monsterSpots[index] ?? layout.monsterSpots[index % layout.monsterSpots.length];
     return {
-      id: `${type}-${index}`,
+      id: `${hidden ? 'secret' : 'salle'}-${index}-${type}`,
       type,
-      name: spec.name,
+      name: stats.name,
       x: spot.x,
       y: spot.y,
-      pv: spec.pv,
-      pvMax: spec.pv,
-      damage: spec.damage,
-      speed: spec.speed,
-      size: spec.size,
-      tint: spec.tint,
+      pv: stats.pv,
+      pvMax: stats.pv,
+      damage: stats.damage,
+      speed: stats.speed,
+      size: stats.size,
+      tint: stats.tint,
       dir: 'down',
       moving: false,
       alive: true,
@@ -413,26 +599,153 @@ export function createRun(dungeonId, seed = 1) {
     };
   });
 
-  return {
+  return { spec, random, room, chests, monsters, cleared: false, hidden };
+}
+
+// Active une salle : c'est elle que le reste du module interroge
+// (`run.room`, `run.monsters`, `run.chests`).
+function activateEntry(run, entry) {
+  run.roomEntry = entry;
+  run.room = entry.room;
+  run.monsters = entry.monsters;
+  run.chests = entry.chests;
+  run.cleared = entry.cleared;
+  run.grace = ENTRY_GRACE;
+}
+
+// Prépare une expédition complète : toutes les salles du donjon, la salle
+// secrète, et la fissure cachée dans l'une des salles ordinaires.
+export function createRun(dungeonId, seed = 1) {
+  const dungeon = getDungeon(dungeonId) ?? DUNGEONS[0];
+  const random = mulberry32(seed ^ 0x51ed27);
+  const rooms = dungeon.rooms.map((spec, index) => (
+    createRoomEntry(dungeon, spec, seed + index * 7919)
+  ));
+
+  // La fissure change de salle selon la graine : il faut explorer à chaque
+  // descente, mais une même graine redonne la même disposition (tests).
+  const secretRoomIndex = Math.floor(random() * rooms.length);
+  rooms[secretRoomIndex].hasCrack = true;
+  rooms[secretRoomIndex].room.hasCrack = true;
+
+  const secretSpec = dungeon.secret ?? dungeon.rooms[dungeon.rooms.length - 1];
+  const secret = createRoomEntry(dungeon, secretSpec, seed ^ 0x7a3d11, { hidden: true });
+
+  const run = {
     dungeon,
-    room,
     seed,
-    monsters,
-    chests,
     random,
+    rooms,
+    secret,
+    secretRoomIndex,
+    secretFound: false,
+    inSecret: false,
+    secretReturn: null,
+    roomIndex: 0,
     pv: BASE_STATS.pv,
     pvMax: BASE_STATS.pv,
     phase: 'run', // run | won | dead
-    cleared: false,
     attackCd: 0,
     swing: 0,
+    swingDir: 'down',
     grace: ENTRY_GRACE,
     floaters: [],
     message: dungeon.intro
   };
+
+  activateEntry(run, rooms[0]);
+  run.message = rooms[0].spec.intro;
+  return run;
+}
+
+// --- Progression entre salles ---------------------------------------------
+
+// Numéro affiché : la salle secrète vient après les salles ordinaires.
+export function roomNumber(run) {
+  return run.inSecret ? run.rooms.length + 1 : run.roomIndex + 1;
+}
+
+export function roomCount(run) {
+  return run.rooms.length + (run.dungeon.secret ? 1 : 0);
+}
+
+export function isLastRoom(run) {
+  return run.inSecret || run.roomIndex >= run.rooms.length - 1;
+}
+
+// Ce que fait l'escalier de la salle courante : descendre, remonter de la
+// salle secrète, ou sortir du donjon.
+export function exitAction(run) {
+  if (run.inSecret) return 'secret';
+  return isLastRoom(run) ? 'out' : 'next';
+}
+
+// Descend d'une salle. Retourne la nouvelle salle, ou null si l'on est déjà
+// au fond (ou dans la salle secrète).
+export function nextRoom(run) {
+  if (run.inSecret || isLastRoom(run)) return null;
+  run.roomIndex += 1;
+  const entry = run.rooms[run.roomIndex];
+  activateEntry(run, entry);
+  run.message = entry.spec.intro;
+  return entry;
+}
+
+// Ouvre la fissure : la salle secrète de l'expédition.
+export function enterSecretRoom(run) {
+  const entry = run.rooms[run.roomIndex];
+  if (run.inSecret || !entry?.hasCrack) return null;
+  run.inSecret = true;
+  run.secretFound = true;
+  run.secretReturn = { ...entry.room.crack };
+  activateEntry(run, run.secret);
+  run.message = run.secret.spec.intro;
+  return run.secret;
+}
+
+// Ressort de la salle secrète vers la salle où se trouve la fissure.
+export function leaveSecretRoom(run) {
+  if (!run.inSecret) return null;
+  run.inSecret = false;
+  const entry = run.rooms[run.roomIndex];
+  activateEntry(run, entry);
+  run.message = entry.spec.intro;
+  return entry;
+}
+
+// Le joueur est-il devant la fissure d'une salle qui en cache une ?
+export function crackNear(run, pos) {
+  const entry = run.rooms[run.roomIndex];
+  if (run.inSecret || !entry?.hasCrack || !entry.room.crack) return false;
+  return distance(pointOf(pos), entry.room.crack) <= SECRET_RANGE;
 }
 
 // --- Combat et exploration -------------------------------------------------
+
+// Angle du geste de frappe, en degrés : 0 = arme vers le haut, positif = sens
+// horaire (vers la droite de l'écran). `progress` va de 0 (début du geste) à 1
+// (retour au repos). Le calcul est pur, donc testable sans navigateur ; le
+// rendu s'en sert pour faire tourner l'arme tenue en main.
+export function swingAngle(progress) {
+  const value = Number.isFinite(progress) ? progress : 0;
+  const p = Math.max(0, Math.min(1, value));
+  if (p < 0.3) return -70 * (p / 0.3); // armé en arrière
+  if (p < 0.65) {
+    const t = (p - 0.3) / 0.35;
+    const ease = 1 - (1 - t) * (1 - t); // départ sec, arrivée souple
+    return -70 + 160 * ease;
+  }
+  return 90 * (1 - (p - 0.65) / 0.35); // retour au repos
+}
+
+// Direction du coup : vers la cible si elle est connue, sinon celle du regard.
+export function aimDirection(from, target) {
+  if (!target) return from?.dir ?? 'down';
+  const dx = target.x - from.x;
+  const dy = target.y - from.y;
+  if (Math.abs(dx) > Math.abs(dy)) return dx < 0 ? 'left' : 'right';
+  return dy < 0 ? 'up' : 'down';
+}
 
 export function addFloater(run, x, y, text, color) {
   run.floaters.push({ x, y, text, color, life: 0.9, drift: 0 });
@@ -491,9 +804,12 @@ export function attackRun(run, player, stats) {
   if (run.attackCd > 0) return null;
 
   run.attackCd = ATTACK_COOLDOWN;
-  run.swing = ATTACK_TIME;
+  run.swing = SWING_TIME;
 
   const target = monsterInRange(run, player);
+  // Le personnage (et son arme) se tournent vers le monstre frappé.
+  run.swingDir = aimDirection(pointOf(player), target);
+  if (player && typeof player === 'object' && 'dir' in player) player.dir = run.swingDir;
   if (!target) return { hit: null, killed: null, drop: null, damage: 0 };
 
   const damage = Math.max(1, Math.round(stats.attack));
@@ -505,8 +821,11 @@ export function attackRun(run, player, stats) {
 
   target.alive = false;
   target.moving = false;
+  // Le butin tombé vient de la salle où l'on se trouve : plus on descend, plus
+  // il est intéressant.
+  const lootPool = run.roomEntry?.spec?.loot ?? run.dungeon.loot;
   const drop = run.random() < DROP_CHANCE
-    ? run.dungeon.loot[Math.floor(run.random() * run.dungeon.loot.length)]
+    ? lootPool[Math.floor(run.random() * lootPool.length)]
     : null;
   return { hit: target, killed: target, drop, damage };
 }
@@ -514,13 +833,13 @@ export function attackRun(run, player, stats) {
 // Avance l'expédition : les monstres poursuivent, frappent au contact, et les
 // coffres tous ouverts déclarent la salle nettoyée.
 export function updateRun(run, player, dt, stats) {
-  const events = { damage: 0, dead: false, cleared: false };
+  const events = { damage: 0, dead: false, cleared: false, finished: false };
   if (run.attackCd > 0) run.attackCd = Math.max(0, run.attackCd - dt);
   if (run.swing > 0) run.swing = Math.max(0, run.swing - dt);
   if (run.grace > 0) run.grace = Math.max(0, run.grace - dt);
   updateFloaters(run, dt);
 
-  if (run.phase !== 'run') return events;
+  if (run.phase === 'dead') return events;
 
   const defense = Math.max(0, stats?.defense ?? 0);
 
@@ -560,11 +879,20 @@ export function updateRun(run, player, dt, stats) {
     }
   }
 
-  if (!events.dead && !run.cleared && run.chests.every((chest) => chest.opened)) {
+  if (!events.dead && !run.roomEntry.cleared && run.chests.every((chest) => chest.opened)) {
+    run.roomEntry.cleared = true;
     run.cleared = true;
-    run.phase = 'won';
     events.cleared = true;
-    run.message = 'Tous les coffres sont ouverts : la salle est nettoyée.';
+    run.message = run.inSecret
+      ? 'La salle secrète est vidée : la fissure reste ouverte derrière toi.'
+      : `Salle nettoyée : ${run.roomEntry.spec.name}.`;
+
+    // Le donjon n'est « fini » que quand toutes les salles ordinaires sont
+    // vidées ; la salle secrète reste un bonus facultatif.
+    if (run.phase === 'run' && run.rooms.every((entry) => entry.cleared)) {
+      run.phase = 'won';
+      events.finished = true;
+    }
   }
 
   return events;
@@ -613,6 +941,13 @@ export function unequipSlot(vault, slot) {
 
 export function isEquipped(vault, id) {
   return Object.values(vault.equipped).includes(id);
+}
+
+// Identifiant de l'arme tenue en main (celle qui s'affiche dans le sprite),
+// ou null à mains nues.
+export function equippedWeapon(vault) {
+  const id = vault?.equipped?.arme;
+  return id && LOOT[id] ? id : null;
 }
 
 export function gearStats(vault) {
@@ -749,23 +1084,32 @@ function drawChest(ctx, chest, now) {
   }
 }
 
-function drawExitStairs(ctx, room, now, accent) {
+// Escalier de la salle : flèche vers le bas quand il mène à la salle suivante,
+// vers le haut quand il ramène au village (ou à la salle d'origine).
+function drawExitStairs(ctx, run, now) {
+  const room = run.room;
   const cx = room.exit.x * TILE_SIZE;
   const cy = (room.h - 1) * TILE_SIZE + 8;
   const pulse = 0.5 + 0.5 * Math.sin(now / 500);
+  const descending = exitAction(run) === 'next';
+  const accent = descending ? run.dungeon.accent : '#f0e2b8';
 
   glow(ctx, cx, cy, 20, `rgba(232, 214, 164, ${0.18 + 0.14 * pulse})`);
+  ctx.save();
+  ctx.translate(cx, cy);
+  if (descending) ctx.scale(1, -1);
   ctx.fillStyle = `rgba(255, 244, 214, ${0.55 + 0.3 * pulse})`;
   ctx.beginPath();
-  ctx.moveTo(cx, cy - 4);
-  ctx.lineTo(cx + 5, cy + 1);
-  ctx.lineTo(cx + 2, cy + 1);
-  ctx.lineTo(cx + 2, cy + 5);
-  ctx.lineTo(cx - 2, cy + 5);
-  ctx.lineTo(cx - 2, cy + 1);
-  ctx.lineTo(cx - 5, cy + 1);
+  ctx.moveTo(0, -4);
+  ctx.lineTo(5, 1);
+  ctx.lineTo(2, 1);
+  ctx.lineTo(2, 5);
+  ctx.lineTo(-2, 5);
+  ctx.lineTo(-2, 1);
+  ctx.lineTo(-5, 1);
   ctx.closePath();
   ctx.fill();
+  ctx.restore();
 
   ctx.fillStyle = accent;
   ctx.globalAlpha = 0.5 + 0.3 * pulse;
@@ -774,9 +1118,41 @@ function drawExitStairs(ctx, room, now, accent) {
   ctx.globalAlpha = 1;
 }
 
-// Décor d'un donjon : escalier de sortie, coffres, chiffres flottants.
+// Fissure d'un mur : elle pulse doucement pour se repérer dans le noir.
+function drawCrack(ctx, room, now) {
+  if (!room?.crackTile) return;
+  const cx = room.crackTile.x * TILE_SIZE + 8;
+  const cy = room.crackTile.y * TILE_SIZE + 8;
+  const pulse = 0.5 + 0.5 * Math.sin(now / 420);
+
+  glow(ctx, cx, cy, 15, `rgba(160, 120, 255, ${0.12 + 0.12 * pulse})`);
+  ctx.strokeStyle = 'rgba(14, 12, 20, 0.9)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(cx - 5, cy - 7);
+  ctx.lineTo(cx - 2, cy - 3);
+  ctx.lineTo(cx - 4, cy);
+  ctx.lineTo(cx - 1, cy + 3);
+  ctx.lineTo(cx - 3, cy + 7);
+  ctx.moveTo(cx - 2, cy - 3);
+  ctx.lineTo(cx + 3, cy - 5);
+  ctx.moveTo(cx - 4, cy);
+  ctx.lineTo(cx + 2, cy + 2);
+  ctx.stroke();
+
+  ctx.strokeStyle = `rgba(190, 150, 255, ${0.3 + 0.35 * pulse})`;
+  ctx.beginPath();
+  ctx.moveTo(cx - 2, cy - 3);
+  ctx.lineTo(cx - 1, cy + 4);
+  ctx.stroke();
+}
+
+// Décor d'un donjon : escalier, fissure éventuelle, coffres, chiffres flottants.
 export function drawRun(ctx, run, now) {
-  drawExitStairs(ctx, run.room, now, run.dungeon.accent);
+  drawExitStairs(ctx, run, now);
+
+  const host = run.inSecret ? run.rooms[run.roomIndex] : run.roomEntry;
+  if (!run.inSecret && host?.hasCrack) drawCrack(ctx, host.room, now);
 
   for (const chest of run.chests) drawChest(ctx, chest, now);
 
@@ -839,6 +1215,59 @@ export function drawMonster(ctx, monster, now) {
     ctx.fillStyle = '#e8e4d0';
     ctx.fillRect(cx - 7, top + 13, 2, 2);
     ctx.fillRect(cx + 5, top + 13, 2, 2);
+  } else if (monster.type === 'araignee') {
+    // Araignée : huit pattes fines et un abdomen violet.
+    ctx.strokeStyle = '#3a2148';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let i = 0; i < 4; i++) {
+      const y = cy - 8 + i * 2;
+      ctx.moveTo(cx - 3, y);
+      ctx.lineTo(cx - 8, y - 2 + i);
+      ctx.moveTo(cx + 3, y);
+      ctx.lineTo(cx + 8, y - 2 + i);
+    }
+    ctx.stroke();
+    ctx.fillStyle = '#6d3f86';
+    ctx.fillRect(cx - 4, cy - 9, 8, 7);
+    ctx.fillRect(cx - 5, cy - 7, 10, 4);
+    ctx.fillStyle = '#9b63b5';
+    ctx.fillRect(cx - 3, cy - 8, 5, 2);
+    ctx.fillStyle = '#f6d34d';
+    ctx.fillRect(cx - 3, cy - 6, 2, 2);
+    ctx.fillRect(cx + 1, cy - 6, 2, 2);
+    ctx.fillStyle = '#241a2b';
+    ctx.fillRect(cx - 3, cy - 5, 1, 1);
+    ctx.fillRect(cx + 2, cy - 5, 1, 1);
+  } else if (monster.type === 'spectre') {
+    // Spectre : une capuche claire qui flotte au-dessus du sol.
+    const float = Math.round(Math.sin(now / 300) * 2);
+    ctx.globalAlpha = 0.9;
+    ctx.fillStyle = '#4c7a92';
+    ctx.fillRect(cx - 6, top + 4 + float, 12, 9);
+    for (let i = 0; i < 3; i++) ctx.fillRect(cx - 6 + i * 4, top + 12 + float, 3, 2);
+    ctx.fillStyle = '#9fe8f7';
+    ctx.fillRect(cx - 5, top + 1 + float, 10, 6);
+    ctx.fillRect(cx - 4, top + 7 + float, 8, 2);
+    ctx.fillStyle = '#0f1a22';
+    ctx.fillRect(cx - 3, top + 3 + float, 2, 2);
+    ctx.fillRect(cx + 1, top + 3 + float, 2, 2);
+    ctx.globalAlpha = 1;
+  } else if (monster.type === 'ombre') {
+    // Ombre du gardien : silhouette noire, yeux et lame violets.
+    ctx.fillStyle = '#141019';
+    ctx.fillRect(cx - 7, top + 3, 14, 11);
+    ctx.fillRect(cx - 9, top + 7, 3, 8);
+    ctx.fillRect(cx + 6, top + 7, 3, 8);
+    ctx.fillStyle = '#3a2b56';
+    ctx.fillRect(cx - 6, top + 1, 12, 6);
+    ctx.fillRect(cx - 6, top + 13, 12, 2);
+    ctx.fillStyle = '#c78bff';
+    ctx.fillRect(cx - 4, top + 3, 2, 2);
+    ctx.fillRect(cx + 2, top + 3, 2, 2);
+    ctx.fillRect(cx + 9, top - 2, 2, 13);
+    ctx.fillStyle = '#7a5cd6';
+    ctx.fillRect(cx + 8, top - 4, 2, 2);
   } else {
     // Golem : gros blocs de pierre.
     ctx.fillStyle = '#565c63';

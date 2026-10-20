@@ -910,6 +910,25 @@ label,
   color: var(--text);
 }
 
+/* Sceau du donjon sur la maison qu'il garde, dans la carte du portail. */
+.portal-seal {
+  display: inline-block;
+  margin: 8px 0 0;
+  padding: 2px 8px;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  color: #c4a4ff;
+  border: 1px solid #4a3f6b;
+  border-radius: 4px;
+  background: rgba(76, 54, 124, 0.28);
+}
+
+.portal-seal.open {
+  color: #a0ecaa;
+  border-color: #3d6b46;
+  background: rgba(46, 96, 60, 0.28);
+}
+
 .portal-loot {
   margin: 8px 0 0;
   padding-left: 16px;
@@ -934,6 +953,11 @@ label,
 
 .rarity-epique {
   color: #f6d34d;
+}
+
+.rarity-legendaire {
+  color: #d7a8ff;
+  text-shadow: 0 0 8px rgba(199, 139, 255, 0.45);
 }
 
 /* --- Inventaire : équipement et butin ---------------------------------- */
