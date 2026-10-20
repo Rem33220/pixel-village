@@ -5,6 +5,10 @@ navigateur** : un village en pixel art, des personnages qui se croisent en temps
 réel, un chat, un mode solo de secours et **trois maisons à visiter, chacune avec
 son épreuve et sa récompense**.
 
+> **Tu veux juste jouer ?** Le **[guide du joueur](GUIDE.md)** explique les
+> commandes, les maisons, les épreuves, l'inventaire et les paramètres. Ce
+> README-ci s'occupe de l'installation, du déploiement et du code.
+
 - Client : HTML + Canvas 2D, **aucune étape de build**, aucun asset à télécharger.
 - Serveur : Node.js + WebSocket, la carte et les collisions sont simulées
   côté serveur.
@@ -124,6 +128,7 @@ donc aussi bien sur un clavier AZERTY que QWERTY.
 
 ```text
 .
+├── GUIDE.md              # guide du joueur (commandes, maisons, inventaire…)
 ├── Lancer le jeu.bat     # double-clic : démarre le serveur + ouvre le navigateur
 ├── package.json          # métadonnées Node uniquement, aucune dépendance
 ├── render.yaml           # déploiement Render en un clic (Blueprint)
