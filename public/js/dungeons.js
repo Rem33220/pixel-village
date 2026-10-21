@@ -2243,7 +2243,13 @@ function drawExitStairs(ctx, run, now) {
   ctx.globalAlpha = 1;
 }
 
-// Fissure d'un mur : elle pulse doucement pour se repérer dans le noir.
+// La fissure ne se révèle que si le joueur est dans sa portée de détection.
+export function crackVisible(run, pos) {
+  const host = run.inSecret ? null : run.rooms[run.roomIndex];
+  return Boolean(host?.hasCrack && crackNear(run, pos));
+}
+
+// Fissure d'un mur : elle pulse doucement, mais ne se révèle qu'à portée.
 function drawCrack(ctx, room, now) {
   if (!room?.crackTile) return;
   const cx = room.crackTile.x * TILE_SIZE + 8;
@@ -2273,11 +2279,14 @@ function drawCrack(ctx, room, now) {
 }
 
 // Décor d'un donjon : escalier, fissure éventuelle, coffres, chiffres flottants.
-export function drawRun(ctx, run, now) {
+export function drawRun(ctx, run, now, pos = null) {
   drawExitStairs(ctx, run, now);
 
   const host = run.inSecret ? run.rooms[run.roomIndex] : run.roomEntry;
-  if (!run.inSecret && host?.hasCrack) drawCrack(ctx, host.room, now);
+  const player = pos ?? run.playerPos;
+  if (player && crackVisible(run, player)) {
+    drawCrack(ctx, host.room, now);
+  }
 
   for (const chest of run.chests) drawChest(ctx, chest, now);
 

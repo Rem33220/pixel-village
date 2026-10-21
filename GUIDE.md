@@ -6,7 +6,7 @@ d'installation ni de code : pour ça, voir [README.md](README.md).
 
 > **Note de maintenance** — ce fichier décrit *toutes* les fonctionnalités
 > jouables et doit être mis à jour à chaque nouveauté (voir la dernière section).
-> État décrit : celui du commit `3e92fa9` — portail, donjons et combat, butin
+> État décrit : celui du commit `2da2dd3` — portail, donjons et combat, butin
 > à rareté pondérée avec armes, armures et talismans, arme tenue en main et
 > animation de frappe, donjons à plusieurs salles dont le nombre croît avec le
 > niveau, un décor propre à chaque donjon, plusieurs salles secrètes par donjon
@@ -586,9 +586,11 @@ de gauche en bas, mur du bas à gauche), le Trône en a six réparties sur tous
 les murs. Les fissures d'un même donjon se trouvent toujours dans **des salles
 ordinaires distinctes**, et l'ordre change à chaque expédition.
 
-1. Approche-toi du mur : l'invite **« Fissure — entrer dans la salle
-   secrète »** apparaît. La fissure pulse d'une lueur violette, sur le mur
-   même (haut, bas, gauche ou droite selon les donjons).
+1. Les fissures restent invisibles à distance. Approche-toi du mur pour les
+   révéler : elles pulsent alors d'une lueur violette, sur le mur même (haut,
+   bas, gauche ou droite selon les donjons). Avec la **Lampe du veilleur**, tu
+   les repères de plus loin. L'invite **« Fissure — entrer dans la salle
+   secrète »** apparaît quand tu es assez près pour l'ouvrir.
 2. Appuie sur `E` : tu passes derrière le mur. La salle est plus petite, les
    monstres y sont au moins aussi coriaces que dehors, et ses coffres
    contiennent un butin qu'on ne trouve **nulle part ailleurs** (épique,
@@ -711,9 +713,9 @@ redevient **« Entrer — … »** (voir la section 4).
   augmente tes PV maximum (2 PV par point de défense).
 - Dans l'Antre, sans armure, un golem te tue en trois coups : n'y va pas les
   mains nues.
-- **Longe les murs** : la fissure ne se signale qu'à un pas et demi (deux pas
-  et demi avec la Lampe du veilleur). Une lueur violette dans la pierre trahit
-  sa présence.
+- **Longe les murs** : la fissure reste invisible jusqu'à ce que tu t'en
+  approches (environ un pas et demi ; deux pas et demi avec la Lampe du
+  veilleur). Alors seulement, sa lueur violette apparaît dans la pierre.
 - Les **récompenses des maisons** comptent aussi en donjon : garde la lampe
   pour les salles secrètes, les bottes pour les longs couloirs et le médaillon
   pour les expéditions profondes.
@@ -828,7 +830,7 @@ section correspondante (et la ligne « jeu actuel » en haut) :
 | nouvelle touche ou action | 2 et 6 |
 | nouveau réglage (son, affichage…) | 6 |
 | nouveau donjon, monstre, niveau ou butin | 11, et les tableaux de la section 5 |
-| nouvelle salle, salle secrète, fissure | 11 (Une descente de salle en salle, Les salles secrètes) |
+| nouvelle salle, salle secrète, fissure ou règle de détection | 11 (Une descente de salle en salle, Les salles secrètes) |
 | décor d'un donjon (sol, murs, motif) | 11 (Le décor de chaque donjon) et le tableau de la section 3 du README |
 | maison scellée, donjon gardien, condition d'accès | 3 (tableau des maisons), 4 (Les portes scellées), 8 et 11 |
 | donjon verrouillé, déblocage progressif, expédition avancée | 11 (Les expéditions avancées) et 8 |

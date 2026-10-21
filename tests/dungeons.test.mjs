@@ -24,6 +24,7 @@ import {
   WEAPON_ARTS,
   aimDirection,
   crackNear,
+  crackVisible,
   CRACK_SPOTS,
   dungeonTotals,
   dungeonUnlocked,
@@ -45,6 +46,7 @@ import {
   addItem,
   attackRun,
   chestNear,
+  drawRun,
   createRun,
   createVault,
   equipItem,
@@ -760,6 +762,12 @@ for (const dungeon of DUNGEONS) {
     Boolean(far)
     && crackNear({ ...lit, roomIndex: index }, far)
     && !crackNear({ ...plain, roomIndex: index }, far));
+
+  const farEnough = crack ? { x: crack.x, y: crack.y + 3 } : null;
+  check('fissure: invisible sans joueur proche', Boolean(farEnough) && !crackVisible(lit, farEnough));
+  check('fissure: visible à portée normale', Boolean(crack) && crackVisible(plain, crack));
+  check('lampe: visible dans sa portée supplémentaire', Boolean(far) && crackVisible(lit, far));
+  check('sans lampe: invisible à cette distance', Boolean(far) && !crackVisible(plain, far));
 
   check('récompenses: statistiques identiques sans récompense',
     playerStats(createVault(), null, relicEffects(new Set()))

@@ -23,8 +23,8 @@ Le jeu officiel suit `main`, et Render redéploie à chaque `git push`.
 demander confirmation : c'est l'autorisation permanente du projet.
 
 1. `node --check` sur les fichiers JS modifiés.
-2. `node tests/houses.test.mjs` (doit sortir en code 0) et les deux autres
-   tests (`dungeons`, `shop`).
+2. `node tests/houses.test.mjs` (doit sortir en code 0) et les trois autres
+   tests (`dungeons`, `shop`, `skills`).
 3. Tester le parcours réel dans le navigateur (`node server/index.js`, puis
    <http://localhost:3000>) quand le changement touche le client : connexion,
    déplacement, entrée dans une maison, épreuve, inventaire, paramètres.

@@ -1742,7 +1742,7 @@ function loop(now) {
   if (state.inside) {
     decor = (ctx, time) => drawChallenge(ctx, state.inside.challenge, state.inside.room, time);
   } else if (state.run) {
-    decor = (ctx, time) => drawRun(ctx, state.run, time);
+    decor = (ctx, time) => drawRun(ctx, state.run, time, state.players.get(state.selfId));
   } else {
     // Au village : le portail et le sceau de chaque maison.
     decor = (ctx, time) => {
