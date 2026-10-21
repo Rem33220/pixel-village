@@ -34,11 +34,15 @@ demander confirmation : c'est l'autorisation permanente du projet.
    node tools/publier.mjs "Message du commit"
    ```
 
-   Le script vérifie la syntaxe de tous les modules, lance les trois tests,
-   refuse de publier si l'un échoue, `git add -A`, commit, mise à jour en
-   avance rapide depuis `origin/main`, puis `git push origin main`. Il ne fait
-   jamais de `reset` ni de `--force` : en cas d'échec, le jeu officiel reste
-   intact. Double-clic équivalent : `Publier sur GitHub.bat`.
+   Le script vérifie la syntaxe de tous les modules, lance les quatre tests,
+   refuse de publier si l'un échoue, `git add -A`, commit, mise à jour depuis
+   `origin/main` (avance rapide, ou report des commits locaux pas encore
+   publiés quand GitHub a reçu des commits entre-temps), puis
+   `git push origin main`. Si `origin/main` avance encore pendant l'envoi, il se
+   resynchronise et réessaie une fois. Il ne fait jamais de `reset`, de
+   `--force` ni de commit vide, et annule tout report en conflit : en cas
+   d'échec, le jeu officiel reste intact. Double-clic équivalent :
+   `Publier sur GitHub.bat`.
 5. Vérifier le déploiement une à deux minutes plus tard sur
    <https://pixel-village-pixel-village-onrender-com.onrender.com> : le
    changement doit être servi, pas seulement poussé.

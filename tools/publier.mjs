@@ -127,36 +127,103 @@ if (nothingStaged) {
 }
 
 // --- 5. Synchronisation puis push ---------------------------------------
-info('Synchronisation avec origin…');
-const fetched = git(['fetch', 'origin'], { quiet: true });
-if (fetched.status !== 0) {
-  console.error(`${fetched.stdout ?? ''}${fetched.stderr ?? ''}`);
-  stop('Impossible de joindre origin (connexion ou droits GitHub).');
+//
+// Le dépôt distant peut avoir avancé (autre ordinateur, modification faite sur
+// GitHub, autre session publiée entre-temps). Un push direct est alors refusé
+// avec « fetch first ». On se synchronise donc d'abord : avance rapide quand
+// c'est possible, sinon report des commits locaux pas encore publiés par-dessus
+// origin/main. Rien n'est écrasé : si le report tombe sur un conflit, il est
+// annulé et le jeu officiel reste intact.
+function fetchOrigin() {
+  const fetched = git(['fetch', 'origin'], { quiet: true });
+  if (fetched.status !== 0) {
+    console.error(`${fetched.stdout ?? ''}${fetched.stderr ?? ''}`);
+    stop('Impossible de joindre origin (connexion, URL du dépôt ou droits GitHub).');
+  }
 }
 
-if (gitText(['rev-parse', '--verify', 'origin/main'])) {
-  const behind = gitText(['rev-list', '--count', 'HEAD..origin/main']);
-  if (behind && behind !== '0') {
+const countCommits = (range) => Number(gitText(['rev-list', '--count', range]) ?? 0);
+
+function syncWithOrigin() {
+  fetchOrigin();
+  if (!gitText(['rev-parse', '--verify', 'origin/main'])) return;
+
+  const behind = countCommits('HEAD..origin/main');
+  if (behind === 0) return;
+  const ahead = countCommits('origin/main..HEAD');
+
+  if (ahead === 0) {
     info(`origin/main a ${behind} commit(s) d’avance : mise à jour en avance rapide…`);
     const merge = git(['merge', '--ff-only', 'origin/main'], { quiet: true });
     if (merge.status !== 0) {
       console.error(`${merge.stdout ?? ''}${merge.stderr ?? ''}`);
-      stop('Historiques divergés : rien n’a été écrasé, il faut fusionner à la main.');
+      stop('Mise à jour impossible : rien n’a été écrasé, il faut fusionner à la main.');
     }
+    return;
+  }
+
+  info(`origin/main a ${behind} commit(s) d’avance : report des ${ahead} commit(s) locaux par-dessus…`);
+  const rebase = git(['rebase', 'origin/main'], { quiet: true });
+  if (rebase.status !== 0) {
+    git(['rebase', '--abort'], { quiet: true });
+    console.error(`${rebase.stdout ?? ''}${rebase.stderr ?? ''}`);
+    stop(
+      'Tes changements et ceux déjà publiés touchent les mêmes lignes : rien n’a été envoyé, ' +
+        'relance la publication après avoir fusionné ces fichiers à la main.'
+    );
   }
 }
 
-const ahead = gitText(['rev-list', '--count', 'origin/main..HEAD']) ?? '0';
-if (ahead === '0') {
+// Git répond « rejected / fetch first » quand origin/main a bougé entre notre
+// synchronisation et l'envoi : c'est un cas normal ici (plusieurs sessions
+// publient), pas un problème de droits.
+function pushFailureCause(output) {
+  if (/non-fast-forward|fetch first|failed to update ref|rejected/i.test(output)) return 'course';
+  if (/permission denied|authentication failed|could not read username|not found|40[13]/i.test(output)) {
+    return 'droits';
+  }
+  return 'reseau';
+}
+
+function pushToOrigin() {
+  const push = git(['push', 'origin', 'main'], { quiet: true });
+  return { ok: push.status === 0, output: `${push.stdout ?? ''}${push.stderr ?? ''}`.trim() };
+}
+
+info('Synchronisation avec origin…');
+syncWithOrigin();
+
+let ahead = countCommits('origin/main..HEAD');
+if (ahead === 0) {
   ok('Le jeu officiel est déjà à jour.');
   console.log('\nAucun envoi nécessaire.');
   process.exit(0);
 }
 
 info(`Envoi de ${ahead} commit(s) vers origin/main…`);
-const push = git(['push', 'origin', 'main']);
-if (push.status !== 0) {
-  stop('Le push a échoué : vérifie la connexion et les droits sur le dépôt.');
+let attempt = pushToOrigin();
+if (!attempt.ok) {
+  const cause = pushFailureCause(attempt.output);
+  if (cause !== 'course') {
+    console.error(attempt.output);
+    stop(
+      cause === 'droits'
+        ? 'GitHub refuse l’envoi : vérifie l’URL du dépôt (git remote get-url origin) et tes droits d’écriture.'
+        : 'Impossible de joindre GitHub : vérifie la connexion internet, puis relance.'
+    );
+  }
+
+  info('origin/main a avancé pendant l’envoi : nouvelle synchronisation, puis nouvel essai…');
+  syncWithOrigin();
+  ahead = countCommits('origin/main..HEAD');
+  attempt = ahead === 0 ? { ok: true, output: '' } : pushToOrigin();
+  if (!attempt.ok) {
+    console.error(attempt.output);
+    stop(
+      'Une autre publication est arrivée en même temps : rien n’a été écrasé, ' +
+        'relance simplement la publication dans un instant.'
+    );
+  }
 }
 
 ok('Publié. Render redéploie automatiquement (compter une à deux minutes).');

@@ -604,6 +604,11 @@ Le port `10000` est normal : Render fournit son propre port via `process.env.POR
 Pour que ce soit **une seule commande**, `node tools/publier.mjs "message"`
 vérifie la syntaxe de tous les modules, lance les quatre tests, refuse d'envoyer
 si l'un échoue, commit, se met à jour depuis GitHub puis pousse sur `main`.
+Si GitHub a reçu des commits entre-temps (autre ordinateur, modification faite
+sur le site), le script reprend tes changements par-dessus ceux déjà publiés
+au lieu d'échouer sur « fetch first » ; si le dépôt avance encore pendant
+l'envoi, il réessaie une fois. Un vrai conflit (mêmes lignes modifiées des deux
+côtés) arrête tout sans rien écraser.
 Le double-clic **`Publier sur GitHub.bat`** fait la même chose en demandant le
 message. Un échec laisse le jeu officiel intact.
 
