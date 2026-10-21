@@ -623,27 +623,35 @@ for (const dungeon of DUNGEONS) {
     while (run.roomIndex < index) nextRoom(run);
     const away = { x: host.room.spawn.x, y: host.room.spawn.y };
     check(`secret/${host.room.crackSpot}: rien à faire loin du mur`, !crackNear(run, away));
-    check(`secret/${host.room.crackSpot}: détectée devant le mur`,
-      crackNear(run, host.room.crack));
+    check(`secret/${host.room.crackSpot}: invisible sans la Lampe du veilleur`,
+      !crackNear(run, host.room.crack) && !crackVisible(run, host.room.crack));
+    check(`secret/${host.room.crackSpot}: inaccessible sans la Lampe du veilleur`,
+      enterSecretRoom(run) === null && !run.inSecret && !run.secretFound);
 
-    const secret = enterSecretRoom(run);
+    const lit = createRun(run.dungeon.id, 42, { secretRange: 1.3 });
+    while (lit.roomIndex < index) nextRoom(lit);
+    const litHost = lit.rooms[index];
+    check(`secret/${host.room.crackSpot}: détectée devant le mur avec la lampe`,
+      crackNear(lit, litHost.room.crack));
+
+    const secret = enterSecretRoom(lit);
     visited.push(secret);
     check(`secret/${host.room.crackSpot}: salle secrète ouverte`,
-      secret === run.secrets[host.crackIndex] && run.inSecret && run.secretFound
-      && run.room === secret.room && run.monsters === secret.monsters);
-    check(`secret/${host.room.crackSpot}: l’escalier remonte`, exitAction(run) === 'secret');
+      secret === lit.secrets[litHost.crackIndex] && lit.inSecret && lit.secretFound
+      && lit.room === secret.room && lit.monsters === secret.monsters);
+    check(`secret/${host.room.crackSpot}: l’escalier remonte`, exitAction(lit) === 'secret');
     check(`secret/${host.room.crackSpot}: pas de fissure à l’intérieur`,
-      !crackNear(run, { x: 1.5, y: 5.5 }));
+      !crackNear(lit, { x: 1.5, y: 5.5 }));
 
-    const back = leaveSecretRoom(run);
+    const back = leaveSecretRoom(lit);
     check(`secret/${host.room.crackSpot}: retour dans la salle d’origine`,
-      back === host && !run.inSecret && run.room === host.room && run.monsters === host.monsters);
+      back === litHost && !lit.inSecret && lit.room === litHost.room && lit.monsters === litHost.monsters);
   }
   check('secret: chaque fissure mène à sa propre salle',
     new Set(visited).size === hosts.length);
 
   // La crypte (une seule secrète) numérote sa salle juste après les salles.
-  const simple = createRun('crypte', 42);
+  const simple = createRun('crypte', 42, { secretRange: 1.3 });
   const simpleHost = simple.rooms.findIndex((entry) => entry.hasCrack);
   while (simple.roomIndex < simpleHost) nextRoom(simple);
   enterSecretRoom(simple);
@@ -651,7 +659,7 @@ for (const dungeon of DUNGEONS) {
     roomNumber(simple) === simple.rooms.length + 1);
 
   // Une salle sans fissure ne s’ouvre pas.
-  const other = createRun('crypte', 42);
+  const other = createRun('crypte', 42, { secretRange: 1.3 });
   const plain = other.rooms.findIndex((entry) => !entry.hasCrack);
   if (plain >= 0) {
     while (other.roomIndex < plain) nextRoom(other);
@@ -764,8 +772,10 @@ for (const dungeon of DUNGEONS) {
     && !crackNear({ ...plain, roomIndex: index }, far));
 
   const farEnough = crack ? { x: crack.x, y: crack.y + 3 } : null;
+  check('fissure: invisible sans lampe même juste devant le mur',
+    Boolean(crack) && !crackVisible(plain, crack));
   check('fissure: invisible sans joueur proche', Boolean(farEnough) && !crackVisible(lit, farEnough));
-  check('fissure: visible à portée normale', Boolean(crack) && crackVisible(plain, crack));
+  check('lampe: visible dans sa portée normale', Boolean(crack) && crackVisible(lit, crack));
   check('lampe: visible dans sa portée supplémentaire', Boolean(far) && crackVisible(lit, far));
   check('sans lampe: invisible à cette distance', Boolean(far) && !crackVisible(plain, far));
 

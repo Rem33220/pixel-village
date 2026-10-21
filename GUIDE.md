@@ -588,11 +588,12 @@ de gauche en bas, mur du bas à gauche), le Trône en a six réparties sur tous
 les murs. Les fissures d'un même donjon se trouvent toujours dans **des salles
 ordinaires distinctes**, et l'ordre change à chaque expédition.
 
-1. Les fissures restent invisibles à distance. Approche-toi du mur pour les
-   révéler : elles pulsent alors d'une lueur violette, sur le mur même (haut,
-   bas, gauche ou droite selon les donjons). Avec la **Lampe du veilleur**, tu
-   les repères de plus loin. L'invite **« Fissure — entrer dans la salle
-   secrète »** apparaît quand tu es assez près pour l'ouvrir.
+1. Sans la **Lampe du veilleur**, les fissures restent invisibles et ne peuvent
+   pas être ouvertes. Obtiens d'abord la récompense de la Chaumière des runes.
+   Avec la lampe, approche-toi d'un mur : la fissure pulse alors d'une lueur
+   violette (haut, bas, gauche ou droite selon le donjon). L'invite
+   **« Fissure — entrer dans la salle secrète »** apparaît quand tu es assez
+   près pour l'ouvrir.
 2. Appuie sur `E` : tu passes derrière le mur. La salle est plus petite, les
    monstres y sont au moins aussi coriaces que dehors, et ses coffres
    contiennent un butin qu'on ne trouve **nulle part ailleurs** (épique,
@@ -715,9 +716,9 @@ redevient **« Entrer — … »** (voir la section 4).
   augmente tes PV maximum (2 PV par point de défense).
 - Dans l'Antre, sans armure, un golem te tue en trois coups : n'y va pas les
   mains nues.
-- **Longe les murs** : la fissure reste invisible jusqu'à ce que tu t'en
-  approches (environ un pas et demi ; deux pas et demi avec la Lampe du
-  veilleur). Alors seulement, sa lueur violette apparaît dans la pierre.
+- **La Lampe du veilleur est nécessaire pour les salles secrètes** : sans elle,
+  la fissure reste invisible et ne peut pas être ouverte. Une fois la lampe
+  obtenue, longe les murs pour repérer sa lueur violette.
 - Les **récompenses des maisons** comptent aussi en donjon : garde la lampe
   pour les salles secrètes, les bottes pour les longs couloirs et le médaillon
   pour les expéditions profondes.

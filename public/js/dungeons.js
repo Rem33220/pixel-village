@@ -1676,7 +1676,7 @@ export function nextRoom(run) {
 // Ouvre la fissure : la salle secrète de l'expédition.
 export function enterSecretRoom(run) {
   const entry = run.rooms[run.roomIndex];
-  if (run.inSecret || !entry?.hasCrack) return null;
+  if (run.inSecret || !entry?.hasCrack || !hasSecretLamp(run)) return null;
   const index = entry.crackIndex ?? 0;
   const secret = run.secrets?.[index];
   if (!secret) return null;
@@ -1701,9 +1701,13 @@ export function leaveSecretRoom(run) {
 }
 
 // Le joueur est-il devant la fissure d'une salle qui en cache une ?
+function hasSecretLamp(run) {
+  return Number(run.relics?.secretRange) > 0;
+}
+
 export function crackNear(run, pos) {
   const entry = run.rooms[run.roomIndex];
-  if (run.inSecret || !entry?.hasCrack || !entry.room.crack) return false;
+  if (run.inSecret || !entry?.hasCrack || !entry.room.crack || !hasSecretLamp(run)) return false;
   return distance(pointOf(pos), entry.room.crack) <= (run.secretRange ?? SECRET_RANGE);
 }
 
