@@ -6,113 +6,18 @@ import { fileURLToPath } from 'node:url';
 import { generateWorld, isSolid } from '../public/js/map.js';
 import { CONFIG } from '../public/js/config.js';
 
-// WebSocket maison (server/websocket.js) : aucune dépendance.
+// WebSocket maison (server/websocket.js) : aucune dépendance, donc aucun
+// « npm install » à faire. « node server/index.js » suffit.import { createClient } from '@supabase/supabase-js';
 import { WebSocketServer } from './websocket.js';
 
-const SUPABASE_URL = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+const supabase = createClient(
+  process.env.SUPABASE_URL || '',
+  process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+);
 
-const wsBackend = SUPABASE_URL && SUPABASE_SERVICE_KEY
+const wsBackend = process.env.SUPABASE_URL
   ? 'WebSocket + Supabase (identité/perso)'
   : 'WebSocket intégré, zéro dépendance';
-
-function decodeSupabaseJwt(token) {
-  try {
-    const parts = String(token || '').split('.');
-    if (parts.length < 2) return null;
-    const payload = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-    const padded = payload + '==='.slice((payload.length % 4));
-    const json = Buffer.from(padded, 'base64').toString('utf8');
-    const data = JSON.parse(json);
-    if (data && data.sub) return data;
-    return null;
-  } catch {
-    return null;
-  }
-}
-
-async function supabaseAuthGetUser(token) {
-  if (!token) return { user: null, error: 'missing' };
-  const payload = decodeSupabaseJwt(token);
-  if (payload && payload.sub) {
-    return { user: { id: payload.sub, email: payload.email }, error: null };
-  }
-  if (SUPABASE_URL && SUPABASE_SERVICE_KEY) {
-    try {
-      const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
-        method: 'GET',
-        headers: {
-          apikey: SUPABASE_SERVICE_KEY,
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      if (!res.ok) {
-        const text = await res.text().catch(() => '');
-        return { user: null, error: text || `auth ${res.status}` };
-      }
-      const user = await res.json();
-      return { user, error: null };
-    } catch (e) {
-      return { user: null, error: e?.message || String(e) };
-    }
-  }
-  return { user: null, error: 'missing' };
-}
-
-async function supabaseSelectCharacter(id) {
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY || !id) return { data: null, error: 'missing' };
-  try {
-    const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/characters?id=eq.${encodeURIComponent(id)}&select=*`,
-      {
-        method: 'GET',
-        headers: {
-          apikey: SUPABASE_SERVICE_KEY,
-          Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
-          Accept: 'application/vnd.pgrst.object+json',
-        },
-      }
-    );
-    if (res.status === 406) {
-      // no rows
-      return { data: null, error: null };
-    }
-    if (!res.ok) {
-      const text = await res.text().catch(() => '');
-      return { data: null, error: text || `rest ${res.status}` };
-    }
-    const data = await res.json();
-    return { data, error: null };
-  } catch (e) {
-    return { data: null, error: e?.message || String(e) };
-  }
-}
-
-async function supabaseUpsertCharacter(payload) {
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) return { data: null, error: 'missing' };
-  try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/characters?on_conflict=id`, {
-      method: 'POST',
-      headers: {
-        apikey: SUPABASE_SERVICE_KEY,
-        Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
-        'Content-Type': 'application/json',
-        Prefer: 'resolution=merge-duplicates,return=representation',
-      },
-      body: JSON.stringify(payload),
-    });
-    if (!res.ok) {
-      const text = await res.text().catch(() => '');
-      return { data: null, error: text || `rest ${res.status}` };
-    }
-    const data = await res.json();
-    // return single row
-    const row = Array.isArray(data) ? data[0] : data;
-    return { data: row, error: null };
-  } catch (e) {
-    return { data: null, error: e?.message || String(e) };
-  }
-}
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = path.resolve(__dirname, '..', 'public');
@@ -150,6 +55,8 @@ function broadcast(message) {
 }
 
 function playerList() {
+  // Les joueurs qui visitent une maison disparaissent de la carte : leur
+  // intérieur est une instance privée, gérée uniquement par leur client.
   const visible = Array.from(players.values()).filter((player) => !player.inside);
   return visible.map((player) => ({
     id: player.id,
@@ -232,6 +139,7 @@ function stepPlayer(player) {
 }
 
 // --- Serveur HTTP / fichiers statiques -------------------------------------
+
 async function serveStatic(req, res) {
   const url = new URL(req.url ?? '/', 'http://localhost');
   let pathname = decodeURIComponent(url.pathname);
@@ -271,13 +179,18 @@ const server = http.createServer((req, res) => {
 });
 
 // --- WebSocket -------------------------------------------------------------
+
 const wss = new WebSocketServer({ server, path: CONFIG.wsPath, maxPayload: 4096 });
 const sockets = new Map();
 
 wss.on('connection', (ws) => {
   ws.isAlive = true;
-  ws.on('error', () => {});
-  ws.on('pong', () => { ws.isAlive = true; });
+  ws.on('error', () => {
+    /* la déconnexion est traitée par l'événement « close » */
+  });
+  ws.on('pong', () => {
+    ws.isAlive = true;
+  });
 
   ws.on('message', (raw, isBinary) => {
     if (isBinary) return;
@@ -294,3 +207,206 @@ wss.on('connection', (ws) => {
       join(ws, message);
       return;
     }
+
+    const player = sockets.get(ws);
+    if (!player) return;
+
+    if (message.t === 'input') {
+      const dx = Number(message.dx);
+      const dy = Number(message.dy);
+      if (Number.isFinite(dx) && Number.isFinite(dy)) {
+        player.dx = Math.max(-1, Math.min(1, dx));
+        player.dy = Math.max(-1, Math.min(1, dy));
+        player.lastInputAt = Date.now();
+      }
+      return;
+    }
+
+    if (message.t === 'interior') {
+      // Le joueur entre dans une maison (ou en sort). On le fige sur place :
+      // sa position dans l'intérieur n'a pas à être connue du serveur.
+      player.inside = message.inside === true;
+      player.dx = 0;
+      player.dy = 0;
+      player.moving = false;
+      player.lastInputAt = Date.now();
+      return;
+    }
+
+    if (message.t === 'gear') {
+      // Multiplicateur de vitesse validé côté serveur (Bottes de vent).
+      const speed = Number(message.speed);
+      if (Number.isFinite(speed)) {
+        player.speed = Math.max(1, Math.min(1.6, speed));
+      }
+      return;
+    }
+
+    if (message.t === 'chat') {
+      const now = Date.now();
+      if (now - player.lastChat < 500) return;
+      const text = cleanChat(message.text);
+      if (!text) return;
+      player.lastChat = now;
+      broadcast({
+        t: 'chat',
+        id: player.id,
+        name: player.name,
+        color: player.color,
+        text
+      });
+    }
+  });
+
+  ws.on('close', () => {
+    const player = sockets.get(ws);
+    if (!player) return;
+    sockets.delete(ws);
+    players.delete(player.id);
+    broadcast({ t: 'left', id: player.id });
+  });
+});
+
+async function join(ws, message) {
+  if (sockets.has(ws)) return;
+  if (players.size >= MAX_PLAYERS) {
+    sendJson(ws, { t: 'system', text: 'Serveur complet, réessaie dans un instant.' });
+    ws.close();
+    return;
+  }
+
+  // --- Connexion avec compte Supabase (optionnel) --------------------------------
+  let supabaseId = null;
+  let resolvedName = cleanName(message.name);
+  let resolvedColor = CONFIG.colors.includes(message.color) ? message.color : CONFIG.colors[0];
+
+  if (message.token && supabase) {
+    const { data, error } = await supabase.auth.getUser(message.token);
+    if (!error && data?.user) {
+      supabaseId = data.user.id;
+      if (!resolvedName || resolvedName === 'Aventurier') {
+        resolvedName = cleanName(data.user.email?.split('@')[0] ?? 'Habitant');
+      }
+    } else {
+      console.warn(`Token Supabase invalide : ${error?.message ?? 'inconnu'}`);
+    }
+  }
+
+  // --- Perso Supabase : récupérer / créer ----------------------------------
+  let character = null;
+  if (supabaseId) {
+    const { data: existing, error: fetchError } = await supabase
+      .from('characters')
+      .select('*')
+      .eq('id', supabaseId)
+      .maybeSingle();
+    if (fetchError) {
+      console.warn(`Erreur lecture perso Supabase : ${fetchError.message}`);
+    } else {
+      character = existing;
+    }
+
+    if (!character) {
+      const payload = {
+        id: supabaseId,
+        display_name: resolvedName,
+        class: 'paysan',
+        level: 1,
+        coins: 0,
+        state: {},
+        x: world.spawn.x,
+        y: world.spawn.y,
+      };
+      const { data: inserted, error: insertError } = await supabase
+        .from('characters')
+        .upsert(payload, { onConflict: 'id' })
+        .select()
+        .single();
+      if (insertError) {
+        console.warn(`Erreur création perso Supabase : ${insertError.message}`);
+      } else {
+        character = inserted;
+      }
+    }
+
+    if (character) {
+      resolvedName = cleanName(character.display_name ?? resolvedName);
+      resolvedColor =
+        message.color && CONFIG.colors.includes(message.color)
+          ? message.color
+          : (character.color ?? CONFIG.colors[0]);
+    }
+  }
+
+  // --- Création du joueur (monde) ------------------------------------------
+  const id = String(nextId++);
+  const player = {
+    id,
+    supabaseId,
+    ws,
+    name: resolvedName,
+    color: resolvedColor,
+    x: character?.x ?? world.spawn.x,
+    y: character?.y ?? world.spawn.y,
+    dx: 0,
+    dy: 0,
+    dir: 'down',
+    moving: false,
+    speed: 1,
+    inside: false,
+    lastInputAt: Date.now(),
+    lastChat: 0
+  };
+
+  players.set(id, player);
+  sockets.set(ws, player);
+
+  sendJson(ws, {
+    t: 'welcome',
+    id,
+    supabaseId,
+    spawn: world.spawn,
+    players: playerList(),
+    ...(character ?? {}),
+  });
+  broadcast({ t: 'system', text: `${player.name} rejoint le village.` });
+  console.log(`${player.name} (${id}${supabaseId ? ' [' + supabaseId.slice(0, 8) + '…]' : ''}) a rejoint — ${players.size} joueur(s).`);
+}
+
+setInterval(() => {
+  for (const player of players.values()) stepPlayer(player);
+  broadcast({ t: 'state', players: playerList() });
+}, TICK_MS);
+
+const heartbeat = setInterval(() => {
+  for (const ws of wss.clients) {
+    if (ws.isAlive === false) {
+      ws.terminate();
+      continue;
+    }
+    ws.isAlive = false;
+    ws.ping();
+  }
+}, 30000);
+heartbeat.unref?.();
+
+server.listen(PORT, () => {
+  console.log(`Pixel Village prêt : http://localhost:${PORT}  [${wsBackend}]`);
+});
+
+function shutdown() {
+  console.log('\nArrêt du serveur…');
+  for (const player of players.values()) {
+    try {
+      player.ws.close();
+    } catch {
+      /* ignore */
+    }
+  }
+  wss.close();
+  server.close(() => process.exit(0));
+  setTimeout(() => process.exit(0), 1500).unref();
+}
+
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);
