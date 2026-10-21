@@ -3,6 +3,7 @@
 // simplement recopiée avec la caméra : c'est rapide et ça reste net.
 
 import { TILE_SIZE, T } from './map.js';
+import { DECORS, DEFAULT_DECOR } from './decor.js';
 import { getPlayerSprite } from './sprites.js';
 import { drawHeldWeapon } from './weapons.js';
 
@@ -210,57 +211,274 @@ function drawCrate(ctx, px, py) {
 
 // --- Tuiles de donjon ------------------------------------------------------
 
-function drawStoneFloor(ctx, px, py, tx, ty, moss) {
-  ctx.fillStyle = '#2b2f3a';
+// Sol d'une salle de donjon. Chaque décor a son propre motif : dalles
+// irrégulières de la Crypte, marbre poli de la Galerie, terre battue de
+// l'Antre, pierre ruisselante des Abysses, basalte de la Forge, marbre noir
+// du Trône. `accent` remplace la tuile de mousse par le motif du décor
+// (mousse, rune, racine, flaque, braise ou éclat du néant).
+function drawDungeonFloor(ctx, px, py, tx, ty, decor, accent) {
+  const f = decor.floor;
+  ctx.fillStyle = f.base;
   ctx.fillRect(px, py, 16, 16);
 
-  // Dalles : joints irréguliers pour éviter un damier trop propre.
-  ctx.fillStyle = '#23262f';
-  ctx.fillRect(px, py + 7, 16, 1);
-  ctx.fillRect(px + ((tx * 5 + ty * 3) % 14), py, 1, 7);
-  ctx.fillRect(px + ((tx * 3 + ty * 7) % 14), py + 8, 1, 8);
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.045)';
-  ctx.fillRect(px + 1, py + 1, 6, 1);
-  if (tileRand(tx, ty, 4) > 0.72) {
-    ctx.fillStyle = '#1d2028';
-    ctx.fillRect(px + 5, py + 11, 3, 1);
-    ctx.fillRect(px + 9, py + 3, 2, 1);
+  if (decor.id === 'galerie') {
+    // Grandes dalles polies : biseau clair et veine d'écho en diagonale.
+    ctx.fillStyle = f.joint;
+    ctx.fillRect(px, py + 15, 16, 1);
+    ctx.fillRect(px + 15, py, 1, 16);
+    ctx.fillStyle = f.hi;
+    ctx.fillRect(px, py, 15, 1);
+    ctx.fillRect(px, py, 1, 15);
+    ctx.fillStyle = f.speck;
+    ctx.fillRect(px + 15, py + 15, 1, 1);
+    if (tileRand(tx, ty, 6) > 0.55) {
+      ctx.strokeStyle = f.vein;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(px + 4, py + 13);
+      ctx.lineTo(px + 12, py + 4);
+      ctx.stroke();
+    }
+  } else if (decor.id === 'antre') {
+    // Terre battue : taches, cailloux et une racine affleurante.
+    for (let i = 0; i < 3; i++) {
+      const x = px + 1 + Math.floor(tileRand(tx, ty, i + 2) * 13);
+      const y = py + 1 + Math.floor(tileRand(tx, ty, i + 7) * 13);
+      ctx.fillStyle = i % 2 === 0 ? f.speck : f.hi;
+      ctx.fillRect(x, y, 2, 1);
+    }
+    ctx.fillStyle = f.joint;
+    ctx.fillRect(px + Math.floor(tileRand(tx, ty, 12) * 12), py + 9, 3, 1);
+  } else if (decor.id === 'abysses') {
+    // Dalles noyées : joints sombres et film d'eau qui luit.
+    ctx.fillStyle = f.joint;
+    ctx.fillRect(px, py + 15, 16, 1);
+    ctx.fillRect(px + ((tx * 7 + ty) % 12) + 2, py, 1, 15);
+    ctx.fillStyle = f.hi;
+    ctx.fillRect(px + 1, py + 3, 8, 1);
+    ctx.fillRect(px + 5, py + 11, 7, 1);
+    ctx.fillStyle = f.speck;
+    ctx.fillRect(px + 10, py + 6, 2, 1);
+  } else if (decor.id === 'forge') {
+    // Plaques de basalte soudées par la chaleur.
+    ctx.fillStyle = f.joint;
+    ctx.fillRect(px, py + 15, 16, 1);
+    ctx.fillRect(px + 15, py, 1, 16);
+    ctx.fillStyle = f.hi;
+    ctx.fillRect(px, py, 13, 1);
+    ctx.fillRect(px + 2, py + 2, 1, 6);
+    if (tileRand(tx, ty, 8) > 0.7) {
+      ctx.fillStyle = f.vein;
+      ctx.fillRect(px + 4, py + 10, 5, 1);
+      ctx.fillRect(px + 9, py + 11, 1, 2);
+    }
+  } else if (decor.id === 'trone') {
+    // Marbre noir poli, veines de vide.
+    ctx.fillStyle = f.joint;
+    ctx.fillRect(px, py + 15, 16, 1);
+    ctx.fillRect(px + 15, py, 1, 16);
+    ctx.fillStyle = f.hi;
+    ctx.fillRect(px, py, 15, 1);
+    ctx.fillRect(px, py, 1, 15);
+    ctx.strokeStyle = f.vein;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(px + 3, py + 12);
+    ctx.lineTo(px + 7, py + 8);
+    ctx.lineTo(px + 6, py + 5);
+    ctx.lineTo(px + 11, py + 2);
+    ctx.stroke();
+    if (tileRand(tx, ty, 9) > 0.8) {
+      ctx.fillStyle = f.vein;
+      ctx.fillRect(px + 11, py + 10, 2, 1);
+    }
+  } else {
+    // Crypte : dalles irrégulières, joints décalés pour éviter le damier.
+    ctx.fillStyle = f.joint;
+    ctx.fillRect(px, py + 7, 16, 1);
+    ctx.fillRect(px + ((tx * 5 + ty * 3) % 14), py, 1, 7);
+    ctx.fillRect(px + ((tx * 3 + ty * 7) % 14), py + 8, 1, 8);
+    ctx.fillStyle = f.hi;
+    ctx.fillRect(px + 1, py + 1, 6, 1);
+    if (tileRand(tx, ty, 4) > 0.72) {
+      ctx.fillStyle = f.speck;
+      ctx.fillRect(px + 5, py + 11, 3, 1);
+      ctx.fillRect(px + 9, py + 3, 2, 1);
+    }
   }
 
-  if (moss) {
-    ctx.fillStyle = '#3c6b3f';
+  if (accent) drawDungeonAccent(ctx, px, py, tx, ty, decor);
+}
+
+// Motif décoratif posé sur les tuiles `MOSS` : c'est lui qui donne son
+// caractère au décor (la Crypte reverdit, la Forge couve, le Trône se constelle).
+function drawDungeonAccent(ctx, px, py, tx, ty, decor) {
+  const a = decor.accent;
+
+  if (a.kind === 'rune') {
+    // Éclat de cristal serti dans la dalle.
+    const cx = px + 8;
+    const cy = py + 8;
+    ctx.fillStyle = a.a;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - 5);
+    ctx.lineTo(cx + 3, cy);
+    ctx.lineTo(cx, cy + 5);
+    ctx.lineTo(cx - 3, cy);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = a.b;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - 3);
+    ctx.lineTo(cx + 1, cy);
+    ctx.lineTo(cx, cy + 3);
+    ctx.lineTo(cx - 1, cy);
+    ctx.closePath();
+    ctx.fill();
+  } else if (a.kind === 'racine') {
+    ctx.strokeStyle = a.a;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(px + 2, py + 3);
+    ctx.lineTo(px + 8, py + 8);
+    ctx.lineTo(px + 13, py + 7);
+    ctx.lineTo(px + 11, py + 13);
+    ctx.stroke();
+    ctx.fillStyle = a.b;
+    ctx.fillRect(px + 4, py + 10, 2, 1);
+    ctx.fillRect(px + 12, py + 4, 1, 2);
+  } else if (a.kind === 'flaque') {
+    // Flaque d'eau noire, cerclée d'un reflet froid.
+    ctx.fillStyle = a.a;
+    ctx.beginPath();
+    ctx.ellipse(px + 8, py + 9, 6, 3.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 0.4;
+    ctx.fillStyle = a.b;
+    ctx.fillRect(px + 5, py + 7, 4, 1);
+    ctx.fillRect(px + 9, py + 10, 2, 1);
+    ctx.globalAlpha = 1;
+  } else if (a.kind === 'braise') {
+    // Fissure incandescente sous la dalle.
+    ctx.fillStyle = a.a;
+    ctx.fillRect(px + 2, py + 6, 5, 2);
+    ctx.fillRect(px + 6, py + 8, 2, 3);
+    ctx.fillStyle = a.b;
+    ctx.fillRect(px + 3, py + 7, 3, 1);
+    ctx.fillRect(px + 10, py + 11, 3, 1);
+  } else if (a.kind === 'neant') {
+    // Trou de néant piqué d'étoiles violettes.
+    ctx.globalAlpha = 0.35;
+    ctx.fillStyle = a.a;
+    ctx.fillRect(px + 2, py + 3, 12, 10);
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = a.b;
+    ctx.fillRect(px + 5, py + 6, 1, 1);
+    ctx.fillRect(px + 9, py + 5, 1, 1);
+    ctx.fillRect(px + 7, py + 9, 1, 1);
+    ctx.fillRect(px + 11, py + 10, 1, 1);
+  } else {
+    // Mousse de la Crypte.
+    ctx.fillStyle = a.a;
     for (let i = 0; i < 4; i++) {
       const x = px + 1 + Math.floor(tileRand(tx, ty, i + 5) * 13);
       const y = py + 1 + Math.floor(tileRand(tx, ty, i + 9) * 13);
       ctx.fillRect(x, y, 2 + (i % 2), 1);
     }
-    ctx.fillStyle = '#4f8a52';
+    ctx.fillStyle = a.b;
     ctx.fillRect(px + 3, py + 12, 2, 1);
   }
 }
 
-function drawStoneWall(ctx, px, py, tx, ty) {
-  ctx.fillStyle = '#3f444f';
+// Mur d'une salle de donjon : même palette que le sol, motif propre au décor.
+function drawDungeonWall(ctx, px, py, tx, ty, decor) {
+  const w = decor.wall;
+
+  if (decor.id === 'antre') {
+    // Roche brute : cailloux arrondis empilés, sans assises régulières.
+    ctx.fillStyle = w.base;
+    ctx.fillRect(px, py, 16, 16);
+    for (let i = 0; i < 3; i++) {
+      const x = px + 3 + Math.floor(tileRand(tx, ty, i + 31) * 9);
+      const y = py + 3 + i * 5;
+      ctx.fillStyle = i % 2 === 0 ? w.lower : w.joint;
+      ctx.beginPath();
+      ctx.ellipse(x, y, 4.5, 2.8, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.fillStyle = w.hi;
+    ctx.fillRect(px + 3, py + 2, 3, 1);
+    ctx.fillStyle = w.shadow;
+    ctx.fillRect(px, py, 16, 2);
+    if (tileRand(tx, ty, 27) > 0.82) {
+      ctx.fillStyle = w.trim;
+      ctx.globalAlpha = 0.5;
+      ctx.fillRect(px + 2, py + 11, 2, 2);
+      ctx.globalAlpha = 1;
+    }
+    return;
+  }
+
+  // Assises de pierre communes aux cinq autres décors.
+  ctx.fillStyle = w.base;
   ctx.fillRect(px, py, 16, 16);
-  ctx.fillStyle = '#2c3038';
+  ctx.fillStyle = w.lower;
   ctx.fillRect(px, py + 8, 16, 8);
   ctx.fillRect(px, py + 15, 16, 1);
   const offset = ty % 2 === 0 ? 0 : 4;
-  ctx.fillStyle = '#22252c';
+  ctx.fillStyle = w.joint;
   ctx.fillRect(px + ((offset + 5) % 16), py, 1, 8);
   ctx.fillRect(px + ((offset + 12) % 16), py + 8, 1, 8);
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.07)';
+  ctx.fillStyle = w.hi;
   ctx.fillRect(px + 1, py + 1, 7, 1);
   ctx.fillRect(px + 9, py + 9, 5, 1);
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+  ctx.fillStyle = w.shadow;
   ctx.fillRect(px, py, 16, 2);
-  if (tileRand(tx, ty, 21) > 0.85) {
-    ctx.fillStyle = '#4f8a52';
+
+  if (decor.id === 'galerie') {
+    // Liseré d'écho : la pierre rend la lumière des cristaux.
+    if (tileRand(tx, ty, 22) > 0.78) {
+      ctx.fillStyle = w.trim;
+      ctx.globalAlpha = 0.55;
+      ctx.fillRect(px + 2, py + 12, 6, 1);
+      ctx.globalAlpha = 1;
+    }
+  } else if (decor.id === 'abysses') {
+    // Suintement : traînée sombre, goutte claire en bas.
+    if (tileRand(tx, ty, 24) > 0.6) {
+      const dx = px + 3 + Math.floor(tileRand(tx, ty, 25) * 10);
+      ctx.fillStyle = 'rgba(10, 20, 26, 0.45)';
+      ctx.fillRect(dx, py + 5, 2, 9);
+      ctx.fillStyle = w.trim;
+      ctx.globalAlpha = 0.4;
+      ctx.fillRect(dx, py + 13, 2, 1);
+      ctx.globalAlpha = 1;
+    }
+  } else if (decor.id === 'forge') {
+    // Soudure encore chaude et têtes de rivet.
+    if (tileRand(tx, ty, 26) > 0.7) {
+      ctx.fillStyle = w.trim;
+      ctx.globalAlpha = 0.45;
+      ctx.fillRect(px + 2, py + 13, 5, 1);
+      ctx.globalAlpha = 1;
+    }
+    ctx.fillStyle = w.hi;
+    ctx.fillRect(px + 2, py + 3, 1, 1);
+    ctx.fillRect(px + 13, py + 11, 1, 1);
+  } else if (decor.id === 'trone') {
+    // Liseré violet au bas des blocs, comme un reflet du néant.
+    ctx.fillStyle = w.trim;
+    ctx.globalAlpha = 0.35;
+    ctx.fillRect(px + 1, py + 15, 14, 1);
+    ctx.globalAlpha = 1;
+  } else if (tileRand(tx, ty, 21) > 0.85) {
+    // Crypte : une touffe de mousse dans la pierre.
+    ctx.fillStyle = w.trim;
     ctx.fillRect(px + 2, py + 10, 1, 3);
   }
 }
 
-function drawTile(ctx, px, py, tile, tx, ty) {
+function drawTile(ctx, px, py, tile, tx, ty, decor = null) {
   switch (tile) {
     case T.WATER: {
       ctx.fillStyle = '#3c7ed0';
@@ -349,13 +567,13 @@ function drawTile(ctx, px, py, tile, tx, ty) {
       drawCrate(ctx, px, py);
       break;
     case T.STONE_FLOOR:
-      drawStoneFloor(ctx, px, py, tx, ty, false);
+      drawDungeonFloor(ctx, px, py, tx, ty, decor ?? DECORS[DEFAULT_DECOR], false);
       break;
     case T.MOSS:
-      drawStoneFloor(ctx, px, py, tx, ty, true);
+      drawDungeonFloor(ctx, px, py, tx, ty, decor ?? DECORS[DEFAULT_DECOR], true);
       break;
     case T.STONE_WALL:
-      drawStoneWall(ctx, px, py, tx, ty);
+      drawDungeonWall(ctx, px, py, tx, ty, decor ?? DECORS[DEFAULT_DECOR]);
       break;
     default:
       drawGrass(ctx, px, py, tx, ty, false);
@@ -369,9 +587,17 @@ function buildMapCanvas(world) {
   mapCanvas.height = world.h * TILE_SIZE;
   const ctx = mapCanvas.getContext('2d');
   ctx.imageSmoothingEnabled = false;
+  // Une salle de donjon porte son décor (`world.decor`) ; le village et les
+  // maisons n'en ont pas et gardent les tuiles habituelles.
+  const decor = world.decor ? DECORS[world.decor] ?? null : null;
+  // Décalage de motif propre à la salle (`world.variant`) : dans un même
+  // donjon, deux salles n'ont donc pas les dalles fendues ni les éclats de
+  // mousse au même endroit. Le village et les maisons gardent un décalage nul.
+  const shift = decor ? (world.variant ?? 0) : 0;
   for (let y = 0; y < world.h; y++) {
     for (let x = 0; x < world.w; x++) {
-      drawTile(ctx, x * TILE_SIZE, y * TILE_SIZE, world.tiles[y * world.w + x], x, y);
+      drawTile(ctx, x * TILE_SIZE, y * TILE_SIZE, world.tiles[y * world.w + x],
+        x + shift * 53, y + shift * 31, decor);
     }
   }
   return mapCanvas;

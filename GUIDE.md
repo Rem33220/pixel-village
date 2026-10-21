@@ -469,6 +469,24 @@ Le panneau de droite indique toujours où tu en es : `salle 2/4` pour une salle
 ordinaire, `salle secrète 3/6` pour une salle secrète (elles ont leur propre
 numérotation, puisqu'on y entre par les fissures et dans n'importe quel ordre).
 
+### Le décor de chaque donjon
+
+Chaque donjon a **son propre décor**, reconnaissable au premier regard :
+
+| Donjon | Sol | Murs | Motif au sol |
+| --- | --- | --- | --- |
+| Crypte des brumes | dalles irrégulières grises | pierre moussue | touffes de mousse verte |
+| Galerie des échos | grandes dalles polies bleutées | pierre à liseré clair | éclats de cristal turquoise |
+| Antre du gardien | terre battue ocre | roche brute arrondie | racines affleurantes |
+| Abysses noyées | dalles noyées, joints sombres | pierre qui suinte | flaques d'eau noire au reflet froid |
+| Forge des cendres | plaques de basalte | pierre soudée par la chaleur | braises incandescentes |
+| Trône du néant | marbre noir veiné | marbre violet | trous de néant constellés |
+
+D'un donjon à l'autre, **rien ne se ressemble** ; et à l'intérieur d'un même
+donjon, les salles ne sont pas des copier-coller : le dessin des dalles, la
+densité du motif et la place des éclats changent d'une salle à l'autre. Une
+salle secrète reprend le décor de son donjon, en plus petit.
+
 - L'**escalier** au bas de chaque salle est marqué d'une flèche. **Flèche vers
   le bas** : `E` descend dans la salle suivante (le panneau affiche alors
   « Descendre — Ossuaire effondré »). **Flèche vers le haut**, dans la dernière
@@ -642,6 +660,7 @@ section correspondante (et la ligne « jeu actuel » en haut) :
 | nouveau réglage (son, affichage…) | 6 |
 | nouveau donjon, monstre, niveau ou butin | 11, et les tableaux de la section 5 |
 | nouvelle salle, salle secrète, fissure | 11 (Une descente de salle en salle, Les salles secrètes) |
+| décor d'un donjon (sol, murs, motif) | 11 (Le décor de chaque donjon) et le tableau de la section 3 du README |
 | maison scellée, donjon gardien, condition d'accès | 3 (tableau des maisons), 4 (Les portes scellées), 8 et 11 |
 | donjon verrouillé, déblocage progressif, expédition avancée | 11 (Les expéditions avancées) et 8 |
 | nouvelle rareté (mythique), prix de vente | 5 (Butin, Vendre) et 11 |

@@ -1,4 +1,5 @@
-import { generateWorld, isSolid } from '../public/js/map.js';
+import { generateWorld, isSolid, T } from '../public/js/map.js';
+import { DECORS } from '../public/js/decor.js';
 import { buildHouses, buildInterior, nearExit as houseNearExit } from '../public/js/houses.js';
 import {
   DUNGEONS,
@@ -293,6 +294,55 @@ for (const dungeon of DUNGEONS) {
     check(`${dungeon.id}/${entry.room.crackSpot}: fissure hors de portée au départ`,
       !crackNear({ ...run, roomIndex: run.rooms.indexOf(entry) }, entry.room.spawn));
   }
+}
+
+// --- Décors des salles ----------------------------------------------------
+{
+  const used = DUNGEONS.map((dungeon) => dungeon.decor);
+  check('chaque donjon déclare un décor connu',
+    used.every((key) => Boolean(DECORS[key])), used.join(', '));
+  check('les six donjons ont six décors différents',
+    new Set(used).size === DUNGEONS.length);
+  check('tous les décors servent',
+    Object.keys(DECORS).length === new Set(used).size);
+  // Le rendu compare `decor.id` aux noms de décor : un identifiant oublié
+  // ferait retomber toutes les salles sur le dessin de la Crypte.
+  check('chaque palette porte son identifiant',
+    Object.entries(DECORS).every(([key, palette]) => palette.id === key));
+
+  for (const dungeon of DUNGEONS) {
+    const palette = DECORS[dungeon.decor];
+    check(`${dungeon.id}: palette complète`,
+      ['floor', 'wall', 'accent'].every((part) => Boolean(palette?.[part]))
+      && Boolean(palette?.accent?.kind));
+
+    const entries = [
+      ...createRun(dungeon.id, 77).rooms,
+      ...createRun(dungeon.id, 77).secrets
+    ];
+    check(`${dungeon.id}: ses salles portent son décor`,
+      entries.every((entry) => entry.room.decor === dungeon.decor));
+    check(`${dungeon.id}: sol, murs et escalier seulement`,
+      entries.every((entry) => entry.room.tiles.every((tile) => (
+        tile === T.STONE_FLOOR || tile === T.MOSS
+        || tile === T.STONE_WALL || tile === T.DOOR_STONE
+      ))));
+    check(`${dungeon.id}: chaque salle a des tuiles de motif`,
+      entries.every((entry) => entry.room.tiles.includes(T.MOSS)));
+  }
+
+  // La densité du motif et le décalage des dalles dépendent de la salle, pas
+  // seulement du donjon : deux salles d'une même descente ne doivent pas être
+  // le même copier-coller.
+  for (const dungeon of DUNGEONS) {
+    const variants = new Set(createRun(dungeon.id, 5).rooms.map((entry) => entry.room.variant));
+    check(`${dungeon.id}: variantes de motif d’une salle à l’autre`,
+      variants.size > 1, [...variants].join(','));
+  }
+  check('les variantes restent dans les bornes du rendu',
+    DUNGEONS.every((dungeon) => createRun(dungeon.id, 9).rooms.every((entry) => (
+      entry.room.variant >= 0 && entry.room.variant <= 2
+    ))));
 }
 
 // --- Déterminisme ---------------------------------------------------------

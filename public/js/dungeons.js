@@ -7,6 +7,7 @@
 // (voir tests/dungeons.test.mjs).
 
 import { T, TILE_SIZE, isSolid } from './map.js';
+import { DECORS, DEFAULT_DECOR } from './decor.js';
 
 // --- Réglages --------------------------------------------------------------
 
@@ -495,6 +496,9 @@ export const DUNGEONS = [
     level: 1,
     danger: 'Calme',
     accent: '#7ee08a',
+    // Décor de ses salles (voir public/js/decor.js) : la Crypte est la seule
+    // en pierre moussue, chaque autre donjon a le sien.
+    decor: 'crypte',
     intro: 'Deux salles basses sous le village, et des murs qui craquent…',
     // Où se trouvent les fissures : une par salle secrète, sur des murs
     // différents d'un donjon à l'autre.
@@ -532,6 +536,7 @@ export const DUNGEONS = [
     level: 2,
     danger: 'Risqué',
     accent: '#8ff0f7',
+    decor: 'galerie',
     intro: 'Les squelettes ont entendu tes pas. Un puits descend dans le noir.',
     cracks: ['ouest_milieu', 'nord_ouest'],
     rooms: [
@@ -581,6 +586,7 @@ export const DUNGEONS = [
     level: 3,
     danger: 'Mortel',
     accent: '#f6d34d',
+    decor: 'antre',
     intro: 'Trois salles de plus en plus profondes. Le gardien n’est pas seul.',
     cracks: ['est_haut', 'ouest_bas', 'sud_ouest'],
     rooms: [
@@ -648,6 +654,7 @@ export const DUNGEONS = [
     level: 4,
     danger: 'Sans retour',
     accent: '#5fd0ff',
+    decor: 'abysses',
     requires: ['crypte', 'galerie', 'antre'],
     intro: 'Sous l’antre, l’eau noire monte. Il faut les trois sceaux pour y descendre.',
     cracks: ['nord_ouest', 'sud_est', 'est_bas', 'ouest_haut'],
@@ -727,6 +734,7 @@ export const DUNGEONS = [
     level: 5,
     danger: 'Infernal',
     accent: '#ff9a5c',
+    decor: 'forge',
     requires: ['abysses'],
     intro: 'Les abysses n’étaient que l’entrée : la fournaise tourne encore, seule.',
     cracks: ['ouest_haut', 'nord_est', 'sud_ouest', 'est_bas', 'nord_ouest'],
@@ -820,6 +828,7 @@ export const DUNGEONS = [
     level: 6,
     danger: 'Néant',
     accent: '#ff5f7a',
+    decor: 'trone',
     requires: ['forge'],
     intro: 'Au-delà de la forge, un trône attend celui qui a tout vaincu.',
     cracks: ['sud_ouest', 'est_milieu', 'ouest_bas', 'nord_ouest', 'sud_est', 'est_haut'],
@@ -1082,18 +1091,29 @@ function canStand(world, x, y, radius = PLAYER_RADIUS) {
 // Salle commune : dalles de pierre, plaques de mousse, piliers, escalier au
 // milieu du mur du bas. `layoutName` vaut 'room' ou 'secret'. `crackSpot` est
 // la clé de la fissure à placer dans ce mur (salles ordinaires seulement).
+// La salle retient aussi le décor de son donjon (`decor`) : c'est le rendu qui
+// choisit ainsi les dalles et les murs, sans que dungeons.js connaisse les
+// couleurs.
 export function buildRoom(dungeon, seed = 1, layoutName = 'room', crackSpot = null) {
   const layout = LAYOUTS[layoutName] ?? LAYOUTS.room;
   const w = layout.w;
   const h = layout.h;
   const tiles = new Uint8Array(w * h);
   const random = mulberry32(seed ^ 0x5f3a91);
+  const decor = DECORS[dungeon.decor] ? dungeon.decor : DEFAULT_DECOR;
+  // Variante de décor propre à la salle : elle change la densité du motif
+  // (mousse, runes, braises…) et le décalage des dalles, donc deux salles ne se
+  // ressemblent pas tout à fait. Les graines des salles diffèrent de 7919,
+  // qui n'est pas un multiple de 3 : trois salles de suite prennent donc les
+  // trois variantes.
+  const variant = (seed >>> 0) % 3;
+  const accentChance = 0.04 + variant * 0.015;
 
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
       const edge = x === 0 || y === 0 || x === w - 1 || y === h - 1;
       let tile = edge ? T.STONE_WALL : T.STONE_FLOOR;
-      if (!edge && ((x * 3 + y * 5) % 7 === 0 || random() < 0.05)) tile = T.MOSS;
+      if (!edge && ((x * 3 + y * 5) % 7 === 0 || random() < accentChance)) tile = T.MOSS;
       tiles[y * w + x] = tile;
     }
   }
@@ -1109,6 +1129,8 @@ export function buildRoom(dungeon, seed = 1, layoutName = 'room', crackSpot = nu
     h,
     tiles,
     dungeon,
+    decor,
+    variant,
     spawn: { ...layout.spawn },
     exit: { x: layout.exitX + 0.5, y: h - 1 + 0.35 },
     // Point d'où l'on peut atteindre la fissure (salles ordinaires seulement).

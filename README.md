@@ -151,6 +151,7 @@ donc aussi bien sur un clavier AZERTY que QWERTY.
         ├── map.js        # génération de la carte + collisions
         ├── houses.js     # maisons, épreuves et récompenses
         ├── dungeons.js   # portail, salles, fissures, monstres, butin, équipement, bourse
+        ├── decor.js      # décors des salles de donjon (palettes et motifs)
         ├── shop.js       # échoppe : vente du butin, panneau, décor du comptoir
         ├── inventory.js  # panneau d'inventaire (touche I) + icônes
         ├── settings.js   # paramètres : volume et touches personnalisables
@@ -184,6 +185,7 @@ obtiennent donc **exactement la même grille**, sans envoyer de fichiers.
 | Redessiner les armes en main   | `public/js/weapons.js`         | `paintWeapon`, `REST_ANGLE`          |
 | Régler le geste de frappe      | `public/js/dungeons.js`        | `SWING_TIME`, `swingAngle`           |
 | Changer le look des tuiles     | `public/js/renderer.js`        | `drawTile` et ses fonctions          |
+| Changer le décor d'un donjon   | `public/js/decor.js`           | `DECORS` (sol, murs, motif)          |
 | Changer le port                | `public/js/config.js`          | `port` (ou variable `PORT`)          |
 | Changer la taille du chat      | `public/js/config.js`          | `maxChatLength`                      |
 | Changer les touches par défaut | `public/js/settings.js`        | `DEFAULT_BINDINGS`                   |
@@ -352,6 +354,19 @@ testable avec `node` seul.
 **Le nombre de salles croît avec le niveau** : 2, 3, 4, 5, 6 puis 7, et les
 salles secrètes suivent (1, 2, 3, 4, 5, 6). Un test vérifie ces deux croissances
 et que le donjon de niveau N est plus long que le précédent.
+
+**Chaque donjon a son décor** : `public/js/decor.js` ne contient que des
+données (couleurs du sol, des murs et motif de l'accent), sans DOM, et
+`dungeons.js` ne fait que retenir la clé du décor de son donjon sur chaque
+salle (`room.decor`). C'est `renderer.js` qui dessine : dalles irrégulières et
+mousse pour la Crypte, marbre et cristaux pour la Galerie, terre battue et
+racines pour l'Antre, pierre noyée et flaques pour les Abysses, basalte et
+braises pour la Forge, marbre noir et néant pour le Trône. Chaque salle tire
+en plus une `variant` (0 à 2) qui change la densité du motif et le décalage des
+dalles : deux salles d'une même descente ne se ressemblent pas. Un test
+vérifie que les six donjons ont six décors distincts, que chaque palette porte
+son identifiant (le rendu compare `decor.id`) et que les salles d'un donjon
+n'ont pas toutes la même variante.
 
 Quand toutes les salles ordinaires sont vidées, `updateRun` passe `run.phase` à
 `won` et renvoie `events.finished` : `main.js` appelle alors `conquerDungeon`,
