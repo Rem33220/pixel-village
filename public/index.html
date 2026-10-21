@@ -18,9 +18,15 @@
       <span id="hud-pv-fill"></span>
       <span id="hud-pv-text">24 / 24</span>
     </div>
+    <div id="hud-xp" class="hidden" role="status" aria-label="Expérience">
+      <span id="hud-level">Niv. 1</span>
+      <span id="hud-xp-fill"></span>
+      <span id="hud-xp-text">0 / 30 XP</span>
+    </div>
     <span class="chip hidden" id="hud-gear" title="Équipement">ATQ 4 · DÉF 0</span>
     <span class="chip hidden" id="hud-coins" title="Bourse">0 pièce</span>
     <div id="hud-rewards" class="hidden"></div>
+    <button type="button" id="skills-btn" class="chip chip-btn">Compétences (K)</button>
     <button type="button" id="inventory-btn" class="chip chip-btn">Sac (I)</button>
     <button type="button" id="settings-btn" class="chip chip-btn">Paramètres</button>
   </div>
@@ -35,6 +41,19 @@
   <div id="prompt" class="hidden" aria-live="polite">
     <kbd>E</kbd>
     <span id="prompt-text"></span>
+  </div>
+
+  <div id="abilities" class="hidden" aria-label="Capacités">
+    <div id="ability-dash" class="ability locked">
+      <kbd>Espace</kbd>
+      <span class="ability-name">Ruade</span>
+      <span class="ability-state">à débloquer</span>
+    </div>
+    <div id="ability-special" class="ability locked">
+      <kbd>F</kbd>
+      <span class="ability-name">Tourbillon</span>
+      <span class="ability-state">à débloquer</span>
+    </div>
   </div>
 
   <aside id="challenge" class="hidden" aria-live="polite">
@@ -152,10 +171,36 @@
     </div>
   </div>
 
+  <div id="skills" class="hidden" role="dialog" aria-modal="true" aria-labelledby="skills-title">
+    <div class="skills-panel">
+      <div class="inventory-head">
+        <h2 id="skills-title">Compétences</h2>
+        <span id="skills-points" class="skills-points">0 point</span>
+        <button type="button" id="skills-close" class="inventory-close" aria-label="Fermer les compétences">✕</button>
+      </div>
+
+      <div class="skills-summary">
+        <span id="skills-level" class="skills-level">Niveau 1</span>
+        <div class="skills-xp" aria-hidden="true"><span id="skills-xp-fill"></span></div>
+        <span id="skills-xp-text" class="skills-xp-text">0 / 30 XP</span>
+      </div>
+
+      <p class="skills-note">
+        Chaque niveau rapporte un point. Choisis une branche : les compétences
+        d’un palier demandent celle du palier d’avant. Les points se dépensent
+        quand tu veux, et rien ne se perd.
+      </p>
+
+      <div id="skills-tree" class="skills-tree"></div>
+      <div id="skills-detail" class="skills-detail"></div>
+      <p class="inventory-help">K ou Échap : fermer</p>
+    </div>
+  </div>
+
   <div id="login">
     <div class="panel">
       <h1>PIXEL VILLAGE</h1>
-      <p class="tagline">Mini MMO RPG — un village, trois maisons, trois épreuves, six donjons et une échoppe.</p>
+      <p class="tagline">Mini MMO RPG — un village, trois maisons, trois épreuves, six donjons, une échoppe et un arbre de compétences.</p>
 
       <form id="login-form" autocomplete="off">
         <label for="name-input">Nom du personnage</label>
@@ -171,7 +216,7 @@
       <button type="button" id="settings-menu-btn" class="btn ghost">Paramètres (son et touches)</button>
       <button type="button" id="reset-btn" class="btn ghost danger">Réinitialiser le personnage</button>
       <p id="reset-note" class="reset-note" aria-live="polite">
-        Efface récompenses, butin, pièces et donjons conquis de ce navigateur.
+        Efface récompenses, butin, pièces, expérience, compétences et donjons conquis de ce navigateur.
       </p>
 
       <p class="hint-panel">

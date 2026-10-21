@@ -6,8 +6,11 @@ réel, un chat, un mode solo de secours et **trois maisons à visiter, chacune a
 son épreuve et sa récompense** — mais chaque maison reste scellée tant que le
 donjon qui la garde n'a pas été vaincu. Les trois donjons du portail en cachent
 trois autres, des **expéditions avancées** qui se débloquent dans l'ordre et
-gardent un butin mythique. Au nord-est, l'**échoppe du colporteur** rachète le
-butin en trop contre des pièces.
+gardent un butin mythique. Chaque monstre vaincu rapporte de l'**expérience** :
+les niveaux donnent des points à dépenser dans un **arbre de compétences** à
+quatre branches, qui améliore les statistiques et débloque la **ruade** et le
+**tourbillon**. Au nord-est, l'**échoppe du colporteur** rachète le butin en trop
+contre des pièces.
 
 > **Tu veux juste jouer ?** Le **[guide du joueur](GUIDE.md)** explique les
 > commandes, les maisons, les épreuves, l'inventaire et les paramètres. Ce
@@ -108,8 +111,9 @@ Pixel Village prêt : http://localhost:3000  [WebSocket intégré, zéro dépend
 | Tester les épreuves     | `node tests/houses.test.mjs` (épreuves et sceaux des maisons)     |
 | Tester les donjons      | `node tests/dungeons.test.mjs`                                     |
 | Tester l'échoppe et la carte | `node tests/shop.test.mjs`                                    |
+| Tester l'expérience et les compétences | `node tests/skills.test.mjs`                        |
 | Publier une modification | `node tools/publier.mjs "Message du commit"` (ou double-clic sur **`Publier sur GitHub.bat`**) |
-| Vérifier tout + publier | le script lance `node --check` et les trois tests avant d'envoyer |
+| Vérifier tout + publier | le script lance `node --check` et les quatre tests avant d'envoyer |
 
 ### Contrôles
 
@@ -117,6 +121,9 @@ Pixel Village prêt : http://localhost:3000  [WebSocket intégré, zéro dépend
 | ------------------------------ | ----------------------------- |
 | `ZQSD` / `WASD` / flèches      | se déplacer                   |
 | `E`                            | entrer dans une maison, sortir, agir, ouvrir le portail, frapper, ouvrir un coffre |
+| `K`                            | ouvrir / fermer l'arbre de compétences |
+| `Espace`                       | ruade (donjon, compétence)    |
+| `F`                            | tourbillon (donjon, compétence) |
 | `I`                            | ouvrir / fermer l'inventaire  |
 | `P`                            | ouvrir / fermer les paramètres |
 | `1` `2` `3`                    | répondre aux énigmes          |
@@ -152,6 +159,8 @@ donc aussi bien sur un clavier AZERTY que QWERTY.
         ├── houses.js     # maisons, épreuves et récompenses
         ├── dungeons.js   # portail, salles, fissures, monstres, butin, équipement, bourse
         ├── decor.js      # décors des salles de donjon (palettes et motifs)
+        ├── skills.js     # expérience, niveaux, arbre de compétences, capacités
+        ├── skills-panel.js # panneau de l'arbre (touche K)
         ├── shop.js       # échoppe : vente du butin, panneau, décor du comptoir
         ├── inventory.js  # panneau d'inventaire (touche I) + icônes
         ├── settings.js   # paramètres : volume et touches personnalisables
@@ -186,6 +195,8 @@ obtiennent donc **exactement la même grille**, sans envoyer de fichiers.
 | Régler le geste de frappe      | `public/js/dungeons.js`        | `SWING_TIME`, `swingAngle`           |
 | Changer le look des tuiles     | `public/js/renderer.js`        | `drawTile` et ses fonctions          |
 | Changer le décor d'un donjon   | `public/js/decor.js`           | `DECORS` (sol, murs, motif)          |
+| Régler l'XP et l'arbre         | `public/js/skills.js`          | `MAX_LEVEL`, `xpNeeded`, `SKILLS`, `BRANCHES` |
+| Régler ruade et tourbillon     | `public/js/skills.js`          | `DASH_TIME`, `DASH_SPEED`, `SPECIAL_RANGE`, `SPECIAL_MULT` |
 | Changer le port                | `public/js/config.js`          | `port` (ou variable `PORT`)          |
 | Changer la taille du chat      | `public/js/config.js`          | `maxChatLength`                      |
 | Changer les touches par défaut | `public/js/settings.js`        | `DEFAULT_BINDINGS`                   |
@@ -368,6 +379,29 @@ vérifie que les six donjons ont six décors distincts, que chaque palette porte
 son identifiant (le rendu compare `decor.id`) et que les salles d'un donjon
 n'ont pas toutes la même variante.
 
+**L'expérience et l'arbre** vivent dans `public/js/skills.js`, qui ne touche
+pas au DOM : `MONSTERS[type].xp` donne la valeur d'un monstre, `xpForKill`
+applique la profondeur du donjon (`1 + 0,2 × (niveau − 1)`) et le bonus
+d'Érudit, et `gainXp` gère les niveaux en chaîne (un point par niveau,
+20 niveaux maximum, 16 compétences). `playerStats(vault, skills)` fusionne
+équipement et effets de l'arbre : c'est le seul point d'entrée utilisé par le
+combat, donc les anciens appels sans compétences gardent exactement les
+statistiques d'avant. `sanitizeSkills` recalcule les points à partir du niveau
+et des prérequis : une sauvegarde trafiquée ne peut pas offrir plus de
+compétences que de points gagnés. Le panneau (`skills-panel.js`) ne fait
+qu'afficher l'arbre et remonter les clics ; `main.js` sauvegarde, recalcule les
+statistiques et annonce les niveaux.
+
+**Les capacités** sont des fonctions pures de `skills.js` qui manipulent les
+compteurs de l'expédition : `prepareAbilities` arme les charges à l'entrée,
+`tickAbilities` fait avancer les délais (même quand un panneau met le donjon
+en pause), `startDash` consomme une ruade et `abilityState` alimente la barre
+du bas. Le tourbillon, lui, est résolu par `specialAttack` dans `dungeons.js` :
+il frappe tous les monstres d'un rayon, applique `SPECIAL_MULT` et renvoie les
+morts et leur butin, que `main.js` transforme en XP et en objets. `updateRun`
+gère la régénération (après `REGEN_DELAY` secondes sans coup) et le second
+souffle (`events.revived`, 35 % des PV, deux secondes d'invulnérabilité).
+
 Quand toutes les salles ordinaires sont vidées, `updateRun` passe `run.phase` à
 `won` et renvoie `events.finished` : `main.js` appelle alors `conquerDungeon`,
 qui ajoute l'identifiant à `state.conquered`, l'écrit dans
@@ -391,7 +425,7 @@ Tout se règle en haut du fichier :
 | Réglage | Où | Effet |
 | ------- | -- | ----- |
 | `DUNGEONS` | `dungeons.js` | salles (`rooms`), salles secrètes (`secrets`), fissures (`cracks`), monstres, coffres, butin |
-| `MONSTERS` | `dungeons.js` | PV, dégâts, vitesse et taille de chaque monstre |
+| `MONSTERS` | `dungeons.js` | PV, dégâts, XP, vitesse et taille de chaque monstre |
 | `requires`, `dungeonUnlocked` | `dungeons.js` | chaîne de déblocage des expéditions avancées |
 | `LOOT` | `dungeons.js` | armes et armures : bonus, rareté, couleur d'icône |
 | `BASE_STATS` | `dungeons.js` | attaque, défense et PV de base du personnage |

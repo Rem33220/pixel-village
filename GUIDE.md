@@ -31,8 +31,9 @@ d'installation ni de code : pour ça, voir [README.md](README.md).
 9. [Astuces](#9-astuces)
 10. [En cas de problème](#10-en-cas-de-problème)
 11. [Les donjons et le portail](#11-les-donjons-et-le-portail)
-12. [Ce qui n'existe pas encore](#12-ce-qui-nexiste-pas-encore)
-13. [Mettre ce guide à jour](#13-mettre-ce-guide-à-jour)
+12. [Expérience et compétences](#12-expérience-et-compétences)
+13. [Ce qui n'existe pas encore](#13-ce-qui-nexiste-pas-encore)
+14. [Mettre ce guide à jour](#14-mettre-ce-guide-à-jour)
 
 ---
 
@@ -75,14 +76,19 @@ chemins.
 | `ZQSD` / `WASD` / flèches | se déplacer (les diagonales fonctionnent) |
 | `E` | entrer dans une maison, sortir, lire le livre des énigmes, ouvrir le portail, vendre à l’échoppe, frapper un monstre, ouvrir un coffre, descendre d’une salle, ouvrir une fissure |
 | `I` | ouvrir / fermer l'inventaire |
+| `K` | ouvrir / fermer l'arbre de compétences |
+| `Espace` | **ruade** (donjon, compétence à apprendre) |
+| `F` | **tourbillon** (donjon, compétence à apprendre) |
 | `P` | ouvrir / fermer les paramètres |
 | `Entrée` | ouvrir le chat (puis `Entrée` pour envoyer) |
 | `Échap` | fermer le chat, un panneau, quitter une maison ou un donjon |
 | `1` `2` `3` | répondre aux énigmes de la Maison du sage |
 
-Deux boutons sont aussi disponibles en haut à gauche : **Sac (I)** et
-**Paramètres**. Toutes les touches de déplacement et d'action se changent dans
-les paramètres ; les flèches restent toujours actives.
+Trois boutons sont aussi disponibles en haut à gauche : **Compétences (K)**,
+**Sac (I)** et **Paramètres**. Toutes les touches de déplacement et d'action se
+changent dans les paramètres ; les flèches restent toujours actives. `K`,
+`Espace` et `F` sont fixes, parce qu'elles dépendent de l'arbre (voir la
+section 12).
 
 Un rappel des touches est affiché en bas à droite pendant la partie.
 
@@ -384,6 +390,7 @@ Aucun compte, aucun mot de passe : tout est enregistré **dans ce navigateur**
 | `pixel-village:rewards` | tes récompenses |
 | `pixel-village:loot` | ton butin, ton équipement et ta **bourse** (`coins`) |
 | `pixel-village:dungeons` | les donjons conquis : les maisons ouvertes **et les expéditions débloquées** |
+| `pixel-village:skills` | ton niveau, ton expérience, tes points et tes compétences |
 | `pixel-village:keys` | tes touches personnalisées |
 | `pixel-village:settings` | volume et sourdine |
 
@@ -400,6 +407,7 @@ d'accueil (deux clics). Sinon, depuis la console (F12) :
 localStorage.removeItem('pixel-village:rewards');
 localStorage.removeItem('pixel-village:loot');
 localStorage.removeItem('pixel-village:dungeons');
+localStorage.removeItem('pixel-village:skills');
 localStorage.removeItem('pixel-village:keys');
 localStorage.removeItem('pixel-village:settings');
 ```
@@ -635,12 +643,92 @@ redevient **« Entrer — … »** (voir la section 4).
 
 ---
 
-## 12. Ce qui n'existe pas encore
+## 12. Expérience et compétences
+
+### Gagner de l'expérience
+
+Chaque monstre vaincu rapporte de l'**expérience (XP)**, même si tu meurs
+juste après : le niveau, lui, ne se perd jamais. La barre au-dessus du village,
+à côté de ton nom, affiche ton niveau, ton XP et tes points en attente.
+
+| Monstre | XP | Monstre | XP |
+| --- | --- | --- | --- |
+| Baveux | 10 | Noyé des abysses | 30 |
+| Araignée des fosses | 13 | Gargouille | 34 |
+| Squelette | 16 | Golem | 36 |
+| Spectre | 24 | Ombre du gardien | 55 |
+| — | — | Seigneur du néant | 90 |
+
+Un donjon plus profond rapporte plus : l'XP d'un monstre est multipliée par
+`1 + 0,2 × (niveau du donjon − 1)`. Le premier niveau demande 30 XP, le
+deuxième 50, le troisième 78, le quatrième 114… jusqu'au **niveau 20**, le
+maximum. Une expédition complète de la Crypte suffit en général à gagner un
+niveau, le Trône en rapporte bien plus.
+
+### Les points et l'arbre (`K`)
+
+Chaque niveau donne **1 point de compétence** (2 au niveau 2, 4 au niveau 4…).
+La touche `K` ouvre l'arbre : quatre branches de quatre compétences, chaque
+palier demandant celle du palier précédent. Une compétence coûte **1 point**,
+ne s'achète qu'une fois, et rien ne se perd : les points s'accumulent et se
+dépensent quand tu veux, au village comme dans un donjon.
+
+| Branche | Palier 1 | Palier 2 | Palier 3 | Palier 4 |
+| --- | --- | --- | --- | --- |
+| **Lame** | Frappe affûtée : +2 ATQ | Tourbillon : `F`, coup circulaire | Fureur : +3 ATQ | Exécution : +60 % contre un monstre sous 35 % de PV |
+| **Ombre** | Ruade : `Espace` | Pas léger : +12 % de vitesse | Esquive : invulnérable pendant la ruade, recharge −1 s | Double ruade : 2 charges |
+| **Gardien** | Vigueur : +12 PV | Peau de pierre : +2 DÉF | Régénération : +0,7 PV/s après 4 s sans coup | Second souffle : se relève une fois par expédition |
+| **Fortune** | Érudit : +20 % d'XP | Œil du fouilleur : +15 % de butin | Vif-argent : −12 % de délai entre deux coups | Œil vif : +0,35 de portée |
+
+Les compétences passives comptent immédiatement : l'attaque, la défense et les
+PV maximum s'ajoutent à l'équipement dans le bandeau **ATQ / DÉF**, et les PV
+maximum gagnés en cours de donjon sont ajoutés sans te soigner ni te blesser.
+
+### La ruade (`Espace`)
+
+Une courte accélération de 0,24 seconde, trois fois plus rapide que la marche,
+dans la direction où tu regardes (ou celle où tu te déplaces). Elle sert à
+traverser une salle, à sortir d'un cercle de monstres ou à rejoindre un coffre.
+Après chaque ruade, une **recharge de 3,4 secondes** (2,4 s avec Esquive) ;
+Double ruade en garde deux d'avance. Avec Esquive, **aucun monstre ne peut te
+toucher pendant la ruade**.
+
+### Le tourbillon (`F`)
+
+Un coup circulaire qui frappe **tous** les monstres dans un rayon de 2,3
+tuiles, à 1,8 fois les dégâts d'un coup normal, avec un délai de 6 secondes.
+C'est la réponse aux salles où les monstres t'encerclent : il peut tuer
+plusieurs baveux ou squelettes d'un seul geste, et chacun rapporte son XP et
+son butin. Les deux capacités ne servent **qu'en donjon** (le village reste un
+lieu de promenade) ; leur état s'affiche en bas à droite : `prête`, `1/2`
+pour les charges, ou le nombre de secondes restantes.
+
+### Survivre plus longtemps
+
+- **Régénération** : après 4 secondes sans être touché, les PV remontent de
+  0,7 par seconde, sans dépasser le maximum.
+- **Second souffle** : le premier coup fatal d'une expédition ne te tue pas ;
+  tu te relèves à 35 % de tes PV, avec 2 secondes d'invulnérabilité. Il ne
+  fonctionne **qu'une fois par descente** (il se recharge en entrant à nouveau).
+- **Exécution** : un monstre déjà sous 35 % de ses PV encaisse 60 % de dégâts
+  en plus, ce qui achève vite les gros golems.
+
+### Ce qui est conservé
+
+Le niveau, l'XP, les points et les compétences sont enregistrés dans
+`pixel-village:skills` : ils survivent au rechargement, à la mort et au
+changement de donjon. Le bouton **Réinitialiser le personnage** les efface
+autant que le butin (voir la section 8).
+
+---
+
+## 13. Ce qui n'existe pas encore
 
 Pour éviter les fausses attentes, voici ce qui **n'est pas** dans le jeu
 aujourd'hui :
 
-- pas de compétences, de sorts ni de progression par expérience ;
+- pas de sorts à lancer ni de mana : les capacités sont physiques et se
+  rechargent seules ;
 - pas d'échange d'objets ni de pièces entre joueurs (l'échoppe n'achète qu'au
   colporteur) ;
 - pas de commandes tactiles pour téléphone ;
@@ -648,7 +736,7 @@ aujourd'hui :
 
 ---
 
-## 13. Mettre ce guide à jour
+## 14. Mettre ce guide à jour
 
 À chaque nouvelle fonctionnalité **visible par le joueur**, mettre à jour la
 section correspondante (et la ligne « jeu actuel » en haut) :
@@ -671,4 +759,7 @@ section correspondante (et la ligne « jeu actuel » en haut) :
 | arme affichée en main, animation de frappe | 5 (Équipement) et 11 (Le combat) |
 | changement de sauvegarde | 8 |
 | limite ou règle multijoueur | 7 |
-| commandes tactiles / mobile | 2, puis retirer la ligne de la section 12 |
+| expérience, niveau, point de compétence | 12 (Gagner de l'expérience), 8 et le HUD de la section 2 |
+| compétence, arbre, capacité (ruade, tourbillon) | 12 (Les points et l'arbre, La ruade, Le tourbillon) et 2 |
+| règle de survie (régénération, second souffle, exécution) | 12 (Survivre plus longtemps) |
+| commandes tactiles / mobile | 2, puis retirer la ligne de la section 13 |

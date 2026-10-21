@@ -92,6 +92,17 @@ const SOUNDS = {
     tone({ freq: 900, endFreq: 300, duration: 0.13, type: 'triangle', gain: 0.055 });
     tone({ freq: 1500, endFreq: 700, duration: 0.08, type: 'sine', gain: 0.03 });
   },
+  // Ruade : un souffle court qui monte, puis retombe.
+  dash: () => {
+    tone({ freq: 220, endFreq: 560, duration: 0.14, type: 'sine', gain: 0.07 });
+    tone({ freq: 120, endFreq: 80, duration: 0.16, type: 'triangle', gain: 0.05 });
+  },
+  // Niveau gagné : trois notes montantes.
+  level: () => {
+    tone({ freq: 620, duration: 0.09, type: 'triangle', gain: 0.09 });
+    tone({ freq: 830, start: 0.08, duration: 0.1, type: 'triangle', gain: 0.09 });
+    tone({ freq: 1240, start: 0.17, duration: 0.18, type: 'sine', gain: 0.08 });
+  },
   fail: () => tone({ freq: 250, endFreq: 120, duration: 0.3, type: 'sawtooth', gain: 0.08 }),
   // Combat : un coup sec pour frapper, un grondement grave pour être touché.
   hit: () => {

@@ -9,6 +9,22 @@ import { createShopPanel, drawShop, nearShop, sellAll, sellItem } from './shop.j
 import { createSettingsPanel, getBindings, labelFor } from './settings.js';
 import { playSound } from './audio.js';
 import {
+  DASH_SPEED,
+  abilityState,
+  createSkills,
+  gainXp,
+  prepareAbilities,
+  progress,
+  sanitizeSkills,
+  serializeSkills,
+  skillEffects,
+  startDash,
+  tickAbilities,
+  unlockSkill,
+  xpForKill
+} from './skills.js';
+import { createSkillPanel } from './skills-panel.js';
+import {
   buildHouses,
   buildInterior,
   createChallenge,
@@ -54,6 +70,7 @@ import {
   playerStats,
   roomLabel,
   sanitizeVault,
+  specialAttack,
   updateRun
 } from './dungeons.js';
 
@@ -84,6 +101,8 @@ const state = {
   conquered: new Set(),
   // Butin et équipement (localStorage « pixel-village:loot »).
   vault: createVault(),
+  // Expérience et arbre de compétences (localStorage « pixel-village:skills »).
+  skills: createSkills(),
   // Donjon en cours : { dungeon, room, monsters, chests, pv… }
   run: null
 };
@@ -119,8 +138,18 @@ const els = {
   hudPv: document.getElementById('hud-pv'),
   hudPvFill: document.getElementById('hud-pv-fill'),
   hudPvText: document.getElementById('hud-pv-text'),
+  hudXp: document.getElementById('hud-xp'),
+  hudLevel: document.getElementById('hud-level'),
+  hudXpFill: document.getElementById('hud-xp-fill'),
+  hudXpText: document.getElementById('hud-xp-text'),
   hudGear: document.getElementById('hud-gear'),
   hudCoins: document.getElementById('hud-coins'),
+  skillsBtn: document.getElementById('skills-btn'),
+  abilities: document.getElementById('abilities'),
+  abilityDash: document.getElementById('ability-dash'),
+  abilityDashState: document.querySelector('#ability-dash .ability-state'),
+  abilitySpecial: document.getElementById('ability-special'),
+  abilitySpecialState: document.querySelector('#ability-special .ability-state'),
   resetBtn: document.getElementById('reset-btn'),
   resetNote: document.getElementById('reset-note'),
   portal: document.getElementById('portal'),
@@ -129,11 +158,14 @@ const els = {
 };
 
 const HOUSE_HELP = 'E : sortir · Échap : quitter la maison';
-const DUNGEON_HELP = 'E : attaquer, ouvrir un coffre, sortir · Échap : quitter le donjon';
+const DUNGEON_HELP = 'E : attaquer, ouvrir un coffre, sortir · Espace : ruade · F : tourbillon · K : compétences · Échap : quitter';
 
 // Panneaux modaux : le déplacement est coupé tant que l'un d'eux est ouvert.
 function refreshInputState() {
-  setInputEnabled(!(inventory.isOpen() || settingsPanel.isOpen() || isPortalOpen() || isShopOpen()));
+  setInputEnabled(!(
+    inventory.isOpen() || settingsPanel.isOpen() || isPortalOpen()
+    || isShopOpen() || skillsPanel.isOpen()
+  ));
 }
 
 const settingsPanel = createSettingsPanel({
@@ -163,6 +195,15 @@ const shopPanel = createShopPanel({
     playSound('click');
   },
   onSell: (id, amount) => sellLoot(id, amount)
+});
+
+const skillsPanel = createSkillPanel({
+  getSkills: () => state.skills,
+  onUnlock: (id) => unlockSkillFromUi(id),
+  onToggle: () => {
+    refreshInputState();
+    playSound('click');
+  }
 });
 
 // --- Personnages -----------------------------------------------------------
@@ -267,9 +308,11 @@ function saveConquered() {
 
 function syncGear() {
   if (state.mode !== 'online' || !state.conn) return;
+  // Les bottes et Pas léger se cumulent ; le serveur borne la vitesse à 1,6.
+  const boots = state.rewards.has('bottes') ? SPEED_WITH_BOOTS : 1;
   state.conn.send({
     t: 'gear',
-    speed: state.rewards.has('bottes') ? SPEED_WITH_BOOTS : 1
+    speed: boots * (1 + skillEffects(state.skills).speed)
   });
 }
 
@@ -317,6 +360,187 @@ function saveVault() {
   }
 }
 
+// --- Expérience et compétences --------------------------------------------
+
+function loadSkills() {
+  try {
+    state.skills = sanitizeSkills(JSON.parse(localStorage.getItem('pixel-village:skills') || 'null'));
+  } catch {
+    state.skills = createSkills();
+  }
+}
+
+function saveSkills() {
+  try {
+    localStorage.setItem('pixel-village:skills', JSON.stringify(serializeSkills(state.skills)));
+  } catch {
+    /* stockage indisponible */
+  }
+}
+
+// HUD : niveau, barre d'expérience et rappel des points en attente.
+function updateSkillsHud() {
+  if (!els.hudXp) return;
+  const info = progress(state.skills);
+  const points = state.skills.points;
+  els.hudXp.classList.remove('hidden');
+  els.hudLevel.textContent = points > 0
+    ? `Niv. ${info.level} · ${points} pt${points > 1 ? 's' : ''}`
+    : `Niv. ${info.level}`;
+  els.hudLevel.title = `${points} point${points > 1 ? 's' : ''} de compétence à dépenser (K).`;
+  els.hudXpText.textContent = info.maxed ? 'niveau maximum' : `${info.xp} / ${info.need} XP`;
+  els.hudXpFill.style.width = `${Math.round(info.ratio * 100)}%`;
+  els.hudXp.title = info.maxed
+    ? 'Niveau maximum atteint.'
+    : `Encore ${info.need - info.xp} XP avant le niveau ${info.level + 1}.`;
+}
+
+// Compétence achetée depuis le panneau : on sauvegarde, on recalcule les
+// statistiques et on ajuste les PV courants sans soigner ni blesser.
+function unlockSkillFromUi(id) {
+  const result = unlockSkill(state.skills, id);
+  if (!result.ok) return result;
+  saveSkills();
+  syncGear();
+  applyGearToRun();
+  updateGearHud();
+  updatePvHud(true);
+  updateSkillsHud();
+  playSound('rune');
+  pushChat(`Compétence apprise : ${result.node.name}.`, 'system');
+  return result;
+}
+
+// Expérience gagnée en tuant : la valeur du monstre dépend de sa puissance et
+// de la profondeur du donjon, et Érudit l'augmente.
+function grantKillXp(killed) {
+  const run = state.run;
+  const monsters = (Array.isArray(killed) ? killed : [killed]).filter(Boolean);
+  if (!run || monsters.length === 0) return 0;
+
+  const stats = playerStats(state.vault, state.skills);
+  let gained = 0;
+  for (const monster of monsters) {
+    gained += xpForKill(monster, run.dungeon.level, stats.xpBonus);
+  }
+  if (gained <= 0) return 0;
+
+  const result = gainXp(state.skills, gained);
+  saveSkills();
+  updateSkillsHud();
+  // Le panneau est fermé pendant un combat : inutile de le redessiner.
+  if (skillsPanel.isOpen()) skillsPanel.render();
+
+  if (result.levels > 0) {
+    playSound('level');
+    const suffix = result.levels > 1 ? ` (+${result.levels} niveaux)` : '';
+    pushChat(
+      `Niveau ${result.level}${suffix} ! +${result.levels} point${result.levels > 1 ? 's' : ''} de compétence — K pour ouvrir l’arbre.`,
+      'system'
+    );
+  }
+  return gained;
+}
+
+// Barre des capacités (ruade et tourbillon), visible seulement en donjon.
+function paintAbility(element, stateText, data, key, name) {
+  if (!element) return;
+  element.classList.remove('ready', 'cooling', 'locked', 'active');
+  if (!data.unlocked) {
+    element.classList.add('locked');
+    stateText.textContent = 'à débloquer (K)';
+    return;
+  }
+  if (data.cooldown > 0) {
+    element.classList.add('cooling');
+    stateText.textContent = `${data.cooldown.toFixed(1)} s`;
+    return;
+  }
+  element.classList.add('ready');
+  if (key === 'dash' && data.max > 1) stateText.textContent = `${data.charges}/${data.max}`;
+  else stateText.textContent = key === 'special' ? 'prêt' : 'prête';
+  if (name) element.title = name;
+}
+
+let abilitySignature = '';
+
+function updateAbilityBar(force = false) {
+  if (!els.abilities) return;
+  const run = state.run;
+  // La boucle appelle cette fonction à chaque image : on ne touche au DOM que
+  // quand un compteur change réellement.
+  const signature = run
+    ? `${run.dashCharges}|${Math.ceil(run.dashCd * 10)}|${Math.ceil(run.specialCd * 10)}|${run.dashTime > 0}`
+    : 'none';
+  if (!force && signature === abilitySignature) return;
+  abilitySignature = signature;
+
+  els.abilities.classList.toggle('hidden', !run);
+  if (!run) return;
+  const data = abilityState(state.skills, run);
+  paintAbility(els.abilityDash, els.abilityDashState, data.dash, 'dash', 'Ruade (Espace)');
+  paintAbility(els.abilitySpecial, els.abilitySpecialState, data.special, 'special', 'Tourbillon (F)');
+  els.abilityDash.classList.toggle('active', (run.dashTime ?? 0) > 0);
+}
+
+// Ruade : direction du déplacement, ou du regard si l'on est à l'arrêt.
+const FACING = {
+  up: { x: 0, y: -1 },
+  down: { x: 0, y: 1 },
+  left: { x: -1, y: 0 },
+  right: { x: 1, y: 0 }
+};
+
+function tryDash() {
+  const run = state.run;
+  const me = state.players.get(state.selfId);
+  if (!run || !me) return false;
+  if (inventory.isOpen() || settingsPanel.isOpen() || isPortalOpen()
+    || isShopOpen() || skillsPanel.isOpen()) return false;
+
+  const vector = moveVector();
+  const dir = vector.x || vector.y ? vector : FACING[me.dir] ?? FACING.down;
+  if (!startDash(state.skills, run, dir)) return false;
+
+  playSound('dash');
+  updateAbilityBar();
+  return true;
+}
+
+// Tourbillon : frappe tous les monstres autour de soi. Les monstres vaincus
+// rapportent leur expérience et leur butin comme un coup normal.
+function useSpecial() {
+  const run = state.run;
+  const me = state.players.get(state.selfId);
+  if (!run || !me) return false;
+
+  const result = specialAttack(run, me, playerStats(state.vault, state.skills));
+  if (!result) return false;
+
+  playSound('swing');
+  if (result.hits > 0) playSound('hit');
+
+  if (result.kills.length > 0) {
+    playSound('success');
+    const count = result.kills.length;
+    pushChat(
+      `Tourbillon : ${count} monstre${count > 1 ? 's' : ''} vaincu${count > 1 ? 's' : ''} d’un seul geste !`,
+      'system'
+    );
+    for (const drop of result.drops) {
+      grantLoot(drop);
+      pushChat(`Il laisse tomber : ${LOOT[drop].name}.`, 'system');
+    }
+    grantKillXp(result.kills);
+    updateDungeonPanel(true);
+  } else {
+    updateDungeonPanel();
+  }
+
+  updateAbilityBar();
+  return true;
+}
+
 function grantLoot(id) {
   if (!LOOT[id]) return false;
   addItem(state.vault, id);
@@ -351,7 +575,7 @@ function toggleEquip(id) {
 function applyGearToRun() {
   const run = state.run;
   if (!run) return;
-  const stats = playerStats(state.vault);
+  const stats = playerStats(state.vault, state.skills);
   const delta = stats.pvMax - run.pvMax;
   run.pvMax = stats.pvMax;
   run.pv = Math.max(1, Math.min(run.pvMax, run.pv + delta));
@@ -359,7 +583,7 @@ function applyGearToRun() {
 
 function updateGearHud() {
   if (!els.hudGear) return;
-  const stats = playerStats(state.vault);
+  const stats = playerStats(state.vault, state.skills);
   els.hudGear.classList.remove('hidden');
   els.hudGear.textContent = `ATQ ${stats.attack} · DÉF ${stats.defense}`;
   els.hudGear.title = equipmentSummary(state.vault) || 'Aucun équipement — ouvre les coffres des donjons.';
@@ -632,6 +856,7 @@ const RESET_KEYS = [
   'pixel-village:rewards',
   'pixel-village:loot',
   'pixel-village:dungeons',
+  'pixel-village:skills',
   'pixel-village:name',
   'pixel-village:color'
 ];
@@ -648,6 +873,7 @@ function resetCharacter() {
   state.rewards.clear();
   state.conquered.clear();
   state.vault = createVault();
+  state.skills = createSkills();
   state.name = 'Aventurier';
   state.color = CONFIG.colors[0];
 
@@ -658,10 +884,12 @@ function resetCharacter() {
   updateRewardsHud();
   updateGearHud();
   updateCoinsHud();
+  updateSkillsHud();
   inventory.render();
   shopPanel.render();
+  skillsPanel.render();
   playSound('success');
-  els.resetNote.textContent = 'Personnage réinitialisé : récompenses, butin, pièces et donjons conquis effacés.';
+  els.resetNote.textContent = 'Personnage réinitialisé : récompenses, butin, pièces, expérience et compétences effacés.';
   return true;
 }
 
@@ -834,9 +1062,11 @@ function enterDungeon(id) {
   closePortal();
 
   const run = createRun(id, Math.floor(Math.random() * 0x7fffffff));
-  const stats = playerStats(state.vault);
+  const stats = playerStats(state.vault, state.skills);
+  prepareAbilities(state.skills, run);
   run.pvMax = stats.pvMax;
   run.pv = stats.pvMax;
+  run.sinceHit = 0;
 
   state.savedPos = { x: me.rx, y: me.ry };
   state.run = run;
@@ -964,7 +1194,7 @@ function handleRunInteract() {
     }
   }
 
-  const result = attackRun(run, me, playerStats(state.vault));
+  const result = attackRun(run, me, playerStats(state.vault, state.skills));
   if (!result) return;
 
   // Le sifflement du coup part toujours ; l'impact a son propre son.
@@ -977,6 +1207,7 @@ function handleRunInteract() {
       grantLoot(result.drop);
       pushChat(`Il laisse tomber : ${LOOT[result.drop].name}.`, 'system');
     }
+    grantKillXp(result.killed);
     updateDungeonPanel(true);
   } else if (result.hit) {
     playSound('hit');
@@ -1022,13 +1253,19 @@ function tickDungeon(dt) {
   const run = state.run;
   if (!run) return;
   // Les panneaux mettent le donjon en pause : on ne meurt pas dans un menu.
-  if (inventory.isOpen() || settingsPanel.isOpen() || isPortalOpen() || isShopOpen()) return;
+  if (inventory.isOpen() || settingsPanel.isOpen() || isPortalOpen()
+    || isShopOpen() || skillsPanel.isOpen()) return;
 
   const me = state.players.get(state.selfId);
   if (!me) return;
 
-  const events = updateRun(run, me, dt, playerStats(state.vault));
+  const events = updateRun(run, me, dt, playerStats(state.vault, state.skills));
   if (events.damage > 0) playSound('hurt');
+  if (events.revived) {
+    playSound('level');
+    pushChat('Second souffle ! Tu te relèves, une fois par expédition.', 'system');
+    updatePvHud(true);
+  }
   if (events.dead) {
     exitDungeon('defeat');
     return;
@@ -1043,6 +1280,7 @@ function tickDungeon(dt) {
   }
   updateDungeonPanel();
   updatePvHud();
+  updateAbilityBar();
 }
 
 function interact() {
@@ -1372,21 +1610,35 @@ function updateLocal(dt) {
   const me = state.players.get(state.selfId);
   if (!me) return;
 
-  const vector = moveVector();
-  me.moving = vector.x !== 0 || vector.y !== 0;
+  // Pas léger : le bonus de vitesse des compétences s'ajoute aux bottes.
+  const skillSpeed = 1 + skillEffects(state.skills).speed;
+  // Une ruade en cours prend la main sur la marche normale.
+  const dash = state.run && state.run.dashTime > 0 ? state.run.dashDir : null;
+  const beforeX = me.rx;
+  const beforeY = me.ry;
 
-  if (me.moving) {
-    if (Math.abs(vector.x) > Math.abs(vector.y)) {
-      me.dir = vector.x < 0 ? 'left' : 'right';
-    } else {
-      me.dir = vector.y < 0 ? 'up' : 'down';
+  if (dash) {
+    const speed = CONFIG.speed * DASH_SPEED;
+    moveWithCollision(me, dash.x * speed * dt, dash.y * speed * dt);
+    me.moving = true;
+    if (Math.abs(dash.x) > Math.abs(dash.y)) me.dir = dash.x < 0 ? 'left' : 'right';
+    else me.dir = dash.y < 0 ? 'up' : 'down';
+  } else {
+    const vector = moveVector();
+    me.moving = vector.x !== 0 || vector.y !== 0;
+
+    if (me.moving) {
+      if (Math.abs(vector.x) > Math.abs(vector.y)) {
+        me.dir = vector.x < 0 ? 'left' : 'right';
+      } else {
+        me.dir = vector.y < 0 ? 'up' : 'down';
+      }
+      const speed = CONFIG.speed * (me.speed ?? 1) * skillSpeed;
+      moveWithCollision(me, vector.x * speed * dt, vector.y * speed * dt);
     }
-    const speed = CONFIG.speed * (me.speed ?? 1);
-    const beforeX = me.rx;
-    const beforeY = me.ry;
-    moveWithCollision(me, vector.x * speed * dt, vector.y * speed * dt);
-    advanceWalk(me, Math.hypot(me.rx - beforeX, me.ry - beforeY));
   }
+
+  if (me.moving) advanceWalk(me, Math.hypot(me.rx - beforeX, me.ry - beforeY));
 
   if (state.mode === 'solo' || state.inside || state.run) {
     me.x = me.rx;
@@ -1451,6 +1703,9 @@ function loop(now) {
   lastFrame = now;
 
   if (state.mode === 'online' || state.mode === 'solo') {
+    // Les délais des capacités avancent même quand le donjon est en pause :
+    // une ruade ne doit pas rester bloquée parce qu'on a ouvert l'inventaire.
+    if (state.run) tickAbilities(state.skills, state.run, dt);
     updateLocal(dt);
     updateRemotes(dt);
     if (state.inside) tickInside(dt);
@@ -1461,6 +1716,7 @@ function loop(now) {
       me.equippedWeapon = equippedWeapon(state.vault);
       me.swing = state.run ? state.run.swing : 0;
       me.swingDir = state.run?.swingDir ?? me.dir;
+      updateAbilityBar();
       state.renderer.updateCamera(me.rx, me.ry, dt);
     }
     updatePrompt();
@@ -1537,6 +1793,11 @@ els.inventoryBtn.addEventListener('click', () => {
   inventory.toggle();
 });
 
+els.skillsBtn.addEventListener('click', () => {
+  if (state.mode === 'menu' || state.mode === 'connecting') return;
+  skillsPanel.toggle();
+});
+
 els.settingsBtn.addEventListener('click', () => settingsPanel.toggle());
 els.settingsMenuBtn.addEventListener('click', () => settingsPanel.open());
 
@@ -1575,7 +1836,7 @@ els.portal.addEventListener('click', (event) => {
 function updateHint() {
   const keys = getBindings();
   const move = `${labelFor(keys.up)}${labelFor(keys.left)}${labelFor(keys.down)}${labelFor(keys.right)}`;
-  els.hint.textContent = `${move} ou flèches : bouger · ${labelFor(keys.interact)} : agir · ${labelFor(keys.inventory)} : sac · ${labelFor(keys.settings)} : paramètres`;
+  els.hint.textContent = `${move} ou flèches : bouger · ${labelFor(keys.interact)} : agir · K : compétences · ${labelFor(keys.inventory)} : sac · ${labelFor(keys.settings)} : paramètres`;
 }
 
 window.addEventListener('keydown', (event) => {
@@ -1589,14 +1850,24 @@ window.addEventListener('keydown', (event) => {
     return;
   }
 
+  // Arbre de compétences : K, depuis le village comme depuis un donjon.
+  if (event.code === 'KeyK' && !isTyping(event)
+    && state.mode !== 'menu' && state.mode !== 'connecting') {
+    event.preventDefault();
+    skillsPanel.toggle();
+    return;
+  }
+
   // Un panneau modal capte Échap et sa propre touche, et bloque le reste.
-  if (inventory.isOpen() || settingsPanel.isOpen() || isPortalOpen() || isShopOpen()) {
+  if (inventory.isOpen() || settingsPanel.isOpen() || isPortalOpen()
+    || isShopOpen() || skillsPanel.isOpen()) {
     if (event.code === 'Escape' || event.code === 'Enter') {
       event.preventDefault();
       inventory.close();
       settingsPanel.close();
       closePortal();
       shopPanel.close();
+      skillsPanel.close();
     }
     return;
   }
@@ -1630,6 +1901,20 @@ window.addEventListener('keydown', (event) => {
   if (event.code === keys.interact && (state.mode === 'online' || state.mode === 'solo')) {
     event.preventDefault();
     interact();
+    return;
+  }
+
+  // Capacités de l'arbre : la ruade et le tourbillon ne servent qu'en donjon,
+  // là où le client est seul maître du déplacement et des monstres.
+  if (event.code === 'Space' && state.run) {
+    event.preventDefault();
+    tryDash();
+    return;
+  }
+
+  if (event.code === 'KeyF' && state.run) {
+    event.preventDefault();
+    useSpecial();
     return;
   }
 
@@ -1671,10 +1956,13 @@ loadSettings();
 loadRewards();
 loadConquered();
 loadVault();
+loadSkills();
 updateSwatches();
 updateHud();
 updateRewardsHud();
 updateGearHud();
 updateCoinsHud();
+updateSkillsHud();
+updateAbilityBar();
 updateHint();
 requestAnimationFrame(loop);

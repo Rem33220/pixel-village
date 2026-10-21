@@ -8,6 +8,15 @@
 
 import { T, TILE_SIZE, isSolid } from './map.js';
 import { DECORS, DEFAULT_DECOR } from './decor.js';
+import {
+  EXECUTE_THRESHOLD,
+  REGEN_DELAY,
+  SECOND_WIND_RATIO,
+  SPECIAL_COOLDOWN,
+  SPECIAL_MULT,
+  SPECIAL_RANGE,
+  skillEffects
+} from './skills.js';
 
 // --- Réglages --------------------------------------------------------------
 
@@ -407,6 +416,7 @@ export const MONSTERS = {
     name: 'Baveux',
     pv: 14,
     damage: 2,
+    xp: 10,
     speed: 1.6,
     size: 12,
     tint: '#4fbf6a'
@@ -415,6 +425,7 @@ export const MONSTERS = {
     name: 'Squelette',
     pv: 24,
     damage: 5,
+    xp: 16,
     speed: 2.1,
     size: 13,
     tint: '#e8e4d0'
@@ -423,6 +434,7 @@ export const MONSTERS = {
     name: 'Golem',
     pv: 55,
     damage: 10,
+    xp: 36,
     speed: 1.3,
     size: 15,
     tint: '#6d747c'
@@ -432,6 +444,7 @@ export const MONSTERS = {
     name: 'Araignée des fosses',
     pv: 18,
     damage: 3,
+    xp: 13,
     speed: 2.7,
     size: 11,
     tint: '#8b5a9e'
@@ -440,6 +453,7 @@ export const MONSTERS = {
     name: 'Spectre',
     pv: 34,
     damage: 7,
+    xp: 24,
     speed: 1.8,
     size: 14,
     tint: '#9fe8f7'
@@ -448,6 +462,7 @@ export const MONSTERS = {
     name: 'Ombre du gardien',
     pv: 80,
     damage: 13,
+    xp: 55,
     speed: 1.9,
     size: 16,
     tint: '#7a5cd6'
@@ -457,6 +472,7 @@ export const MONSTERS = {
     name: 'Noyé des abysses',
     pv: 42,
     damage: 8,
+    xp: 30,
     speed: 1.7,
     size: 14,
     tint: '#4f9ec0'
@@ -465,6 +481,7 @@ export const MONSTERS = {
     name: 'Gargouille',
     pv: 46,
     damage: 9,
+    xp: 34,
     speed: 2.6,
     size: 13,
     tint: '#8d7f6a'
@@ -473,6 +490,7 @@ export const MONSTERS = {
     name: 'Seigneur du néant',
     pv: 130,
     damage: 16,
+    xp: 90,
     speed: 1.6,
     size: 17,
     tint: '#ff5f7a'
@@ -1196,6 +1214,7 @@ function createRoomEntry(dungeon, spec, seed, { hidden = false, crackSpot = null
       pv: stats.pv,
       pvMax: stats.pv,
       damage: stats.damage,
+      xp: stats.xp ?? 0,
       speed: stats.speed,
       size: stats.size,
       tint: stats.tint,
@@ -1283,6 +1302,18 @@ export function createRun(dungeonId, seed = 1) {
     swing: 0,
     swingDir: 'down',
     grace: ENTRY_GRACE,
+    // Capacités du personnage : `prepareAbilities` (skills.js) remplit les
+    // charges de ruade selon l'arbre ; les compteurs existent dès la création
+    // pour que le rendu et les tests n'aient jamais de champ manquant.
+    dashMax: 0,
+    dashCharges: 0,
+    dashCd: 0,
+    dashTime: 0,
+    dashDir: null,
+    specialCd: 0,
+    invuln: 0,
+    reviveUsed: false,
+    sinceHit: REGEN_DELAY,
     floaters: [],
     message: dungeon.intro
   };
@@ -1409,20 +1440,38 @@ function updateFloaters(run, dt) {
   run.floaters = run.floaters.filter((floater) => floater.life > 0);
 }
 
-function monsterInRange(run, pos) {
+function monsterInRange(run, pos, range = ATTACK_RANGE) {
   let best = null;
   let bestDistance = Infinity;
   const point = pointOf(pos);
   for (const monster of run.monsters) {
     if (!monster.alive) continue;
     const d = distance(point, monster);
-    if (d > ATTACK_RANGE) continue;
+    if (d > range) continue;
     if (d < bestDistance) {
       bestDistance = d;
       best = monster;
     }
   }
   return best;
+}
+
+// Butin laissé par un monstre : la chance dépend de l'équipement de fortune
+// (Œil du fouilleur) et la liste vient de la salle où l'on se trouve.
+function rollDrop(run, stats) {
+  const chance = Math.min(0.95, stats?.dropChance ?? DROP_CHANCE);
+  if (run.random() >= chance) return null;
+  const pool = run.roomEntry?.spec?.loot ?? run.dungeon.loot;
+  return pool[Math.floor(run.random() * pool.length)] ?? null;
+}
+
+// Dégâts d'un coup : Exécution ajoute un bonus contre un monstre déjà
+// affaibli, et la valeur reste toujours au moins 1.
+function strikeDamage(stats, target) {
+  const base = Math.max(1, Math.round(stats.attack));
+  const weakened = target.pvMax > 0 && target.pv / target.pvMax <= EXECUTE_THRESHOLD;
+  const bonus = weakened ? 1 + Math.max(0, stats.execute ?? 0) : 1;
+  return Math.max(1, Math.round(base * bonus));
 }
 
 // Monstre à portée de coup, ou null : sert aussi à l'invite « Attaquer ».
@@ -1452,16 +1501,17 @@ export function attackRun(run, player, stats) {
   if (run.phase === 'dead') return null;
   if (run.attackCd > 0) return null;
 
-  run.attackCd = ATTACK_COOLDOWN;
+  run.attackCd = stats?.attackCd ?? ATTACK_COOLDOWN;
   run.swing = SWING_TIME;
 
-  const target = monsterInRange(run, player);
+  const range = ATTACK_RANGE + Math.max(0, (stats?.range ?? ATTACK_RANGE) - ATTACK_RANGE);
+  const target = monsterInRange(run, player, range);
   // Le personnage (et son arme) se tournent vers le monstre frappé.
   run.swingDir = aimDirection(pointOf(player), target);
   if (player && typeof player === 'object' && 'dir' in player) player.dir = run.swingDir;
   if (!target) return { hit: null, killed: null, drop: null, damage: 0 };
 
-  const damage = Math.max(1, Math.round(stats.attack));
+  const damage = strikeDamage(stats, target);
   target.pv = Math.max(0, target.pv - damage);
   target.flash = 0.16;
   addFloater(run, target.x, target.y - 1, `-${damage}`, '#ffe9a8');
@@ -1472,25 +1522,85 @@ export function attackRun(run, player, stats) {
   target.moving = false;
   // Le butin tombé vient de la salle où l'on se trouve : plus on descend, plus
   // il est intéressant.
-  const lootPool = run.roomEntry?.spec?.loot ?? run.dungeon.loot;
-  const drop = run.random() < DROP_CHANCE
-    ? lootPool[Math.floor(run.random() * lootPool.length)]
-    : null;
+  const drop = rollDrop(run, stats);
   return { hit: target, killed: target, drop, damage };
+}
+
+// Tourbillon (touche F) : un coup circulaire qui frappe **tous** les monstres
+// autour du personnage. Il faut l'avoir débloqué et attendre la fin du délai.
+// Retourne { hits, kills, drops } ou null si le coup ne part pas.
+export function specialAttack(run, player, stats) {
+  if (run.phase === 'dead') return null;
+  if (!stats?.special) return null;
+  if (run.specialCd > 0) return null;
+
+  run.specialCd = SPECIAL_COOLDOWN;
+  run.swing = SWING_TIME * 1.7;
+
+  const point = pointOf(player);
+  const bonusRange = Math.max(0, (stats.range ?? ATTACK_RANGE) - ATTACK_RANGE);
+  const reach = SPECIAL_RANGE + bonusRange;
+  const targets = run.monsters.filter((monster) => (
+    monster.alive && distance(point, monster) <= reach
+  ));
+
+  // On se tourne vers le monstre le plus proche, même hors de portée : le
+  // geste ne part jamais dans le vide quand un ennemi est visible.
+  let nearest = null;
+  let nearestDistance = Infinity;
+  for (const monster of run.monsters) {
+    if (!monster.alive) continue;
+    const d = distance(point, monster);
+    if (d < nearestDistance) {
+      nearestDistance = d;
+      nearest = monster;
+    }
+  }
+  run.swingDir = nearest ? aimDirection(point, nearest) : (player?.dir ?? 'down');
+  if (player && typeof player === 'object' && 'dir' in player) player.dir = run.swingDir;
+
+  const kills = [];
+  const drops = [];
+  for (const target of targets) {
+    const damage = Math.max(1, Math.round(strikeDamage(stats, target) * SPECIAL_MULT));
+    target.pv = Math.max(0, target.pv - damage);
+    target.flash = 0.16;
+    addFloater(run, target.x, target.y - 1, `-${damage}`, '#ffd08a');
+    if (target.pv > 0) continue;
+
+    target.alive = false;
+    target.moving = false;
+    kills.push(target);
+    const drop = rollDrop(run, stats);
+    if (drop) drops.push(drop);
+  }
+
+  return { hits: targets.length, kills, drops };
 }
 
 // Avance l'expédition : les monstres poursuivent, frappent au contact, et les
 // coffres tous ouverts déclarent la salle nettoyée.
 export function updateRun(run, player, dt, stats) {
-  const events = { damage: 0, dead: false, cleared: false, finished: false };
+  const events = { damage: 0, dead: false, cleared: false, finished: false, healed: 0, revived: false };
   if (run.attackCd > 0) run.attackCd = Math.max(0, run.attackCd - dt);
   if (run.swing > 0) run.swing = Math.max(0, run.swing - dt);
   if (run.grace > 0) run.grace = Math.max(0, run.grace - dt);
+  if (run.invuln > 0) run.invuln = Math.max(0, run.invuln - dt);
   updateFloaters(run, dt);
 
   if (run.phase === 'dead') return events;
 
   const defense = Math.max(0, stats?.defense ?? 0);
+
+  // Régénération : elle ne démarre qu'après REGEN_DELAY secondes sans coup
+  // encaissé, sinon elle rendrait chaque combat interminable.
+  run.sinceHit = (run.sinceHit ?? 0) + dt;
+  const regen = Math.max(0, stats?.regen ?? 0);
+  if (regen > 0 && run.sinceHit >= REGEN_DELAY && run.pv < run.pvMax) {
+    const heal = Math.min(run.pvMax - run.pv, regen * dt);
+    run.pv += heal;
+    events.healed += heal;
+  }
 
   for (const monster of run.monsters) {
     if (!monster.alive) continue;
@@ -1514,13 +1624,27 @@ export function updateRun(run, player, dt, stats) {
       monster.moving = false;
     }
 
-    if (d <= CONTACT_RANGE && monster.cd <= 0 && run.grace <= 0) {
+    // Pendant une ruade avec Esquive, aucun contact ne porte.
+    if (d <= CONTACT_RANGE && monster.cd <= 0 && run.grace <= 0 && run.invuln <= 0) {
       const amount = Math.max(1, monster.damage - defense);
       monster.cd = MONSTER_COOLDOWN;
       run.pv = Math.max(0, run.pv - amount);
+      run.sinceHit = 0;
       events.damage += amount;
       addFloater(run, player.rx, player.ry - 1.2, `-${amount}`, '#ff9a8a');
       if (run.pv <= 0) {
+        // Second souffle : une fois par expédition, on se relève au lieu de
+        // mourir, avec un court répit pour sortir du cercle.
+        if (stats?.revive && !run.reviveUsed) {
+          run.reviveUsed = true;
+          run.pv = Math.max(1, Math.round(run.pvMax * SECOND_WIND_RATIO));
+          run.invuln = 2;
+          run.grace = Math.max(run.grace, 1);
+          run.sinceHit = 0;
+          events.revived = true;
+          addFloater(run, player.rx, player.ry - 1.6, 'Second souffle !', '#8ff0f7');
+          continue;
+        }
         run.phase = 'dead';
         events.dead = true;
         break;
@@ -1616,14 +1740,28 @@ export function gearStats(vault) {
   return stats;
 }
 
-// Statistiques réelles du personnage : base + équipement. L'armure ajoute
-// aussi des points de vie (2 par point de défense).
-export function playerStats(vault) {
-  const gear = gearStats(vault);
+// Statistiques réelles du personnage : base + équipement + compétences.
+// L'armure ajoute aussi des points de vie (2 par point de défense). Sans
+// arbre fourni, on obtient exactement les statistiques d'avant les
+// compétences, ce qui garde les anciens appels (et les tests) valables.
+export function playerStats(vault, skills = null) {
+  const gear = gearStats(vault ?? createVault());
+  const bonus = skills ? skillEffects(skills) : skillEffects(null);
   return {
-    attack: BASE_STATS.attack + gear.attack,
-    defense: gear.defense,
-    pvMax: BASE_STATS.pv + gear.defense * 2
+    attack: BASE_STATS.attack + gear.attack + bonus.attack,
+    defense: gear.defense + bonus.defense,
+    pvMax: BASE_STATS.pv + gear.defense * 2 + bonus.pv,
+    // Effets utilitaires : consommés par le combat et le déplacement.
+    speed: bonus.speed,
+    xpBonus: bonus.xpBonus,
+    dropChance: Math.min(0.95, DROP_CHANCE + bonus.dropBonus),
+    attackCd: ATTACK_COOLDOWN * bonus.attackCd,
+    range: ATTACK_RANGE + bonus.range,
+    execute: bonus.execute,
+    regen: bonus.regen,
+    revive: bonus.revive,
+    special: bonus.special,
+    dash: bonus.dash
   };
 }
 
