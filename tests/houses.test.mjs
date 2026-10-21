@@ -13,7 +13,9 @@ import {
   CRYSTAL_SPOTS,
   houseUnlocked,
   houseForDungeon,
-  houseWithArticle
+  houseWithArticle,
+  REWARDS,
+  relicEffects
 } from '../public/js/houses.js';
 import { DUNGEONS } from '../public/js/dungeons.js';
 
@@ -50,6 +52,33 @@ const check = (label, ok, extra = '') => {
   check('sceaux: article défini correct',
     houseWithArticle(houses.find((h) => h.id === 'runes')) === 'la Chaumière des runes'
     && houseWithArticle(houses.find((h) => h.id === 'cristaux')) === 'l’Atelier des cristaux');
+}
+
+// --- Récompenses : chaque maison donne un avantage en donjon ----------------
+{
+  const ids = Object.keys(REWARDS);
+  check('récompenses: trois récompenses connues', ids.length === 3
+    && ['lampe', 'bottes', 'medaille'].every((id) => REWARDS[id]));
+  check('récompenses: chacune a un effet de donjon chiffré',
+    ids.every((id) => Boolean(REWARDS[id].dungeonEffect) && Boolean(REWARDS[id].relic)));
+
+  const none = relicEffects(new Set());
+  check('récompenses: sans récompense, aucun bonus',
+    Object.values(none).every((value) => value === 0));
+  check('récompenses: sauvegarde absente ou invalide ignorée',
+    Object.values(relicEffects(null)).every((value) => value === 0)
+    && Object.values(relicEffects(new Set(['licorne']))).every((value) => value === 0));
+
+  const all = relicEffects(new Set(ids));
+  check('récompenses: les trois effets s’additionnent',
+    all.secretRange === 1.3 && all.dropBonus === 0.1
+    && all.xpBonus === 0.15 && all.pv === 5
+    && all.regen === 0.5 && all.speed === 0.25,
+    JSON.stringify(all));
+  const lamp = relicEffects(new Set(['lampe']));
+  check('récompenses: la lampe seule aide à trouver les fissures',
+    lamp.secretRange > 0 && lamp.dropBonus > 0
+    && lamp.xpBonus === 0 && lamp.pv === 0);
 }
 
 // --- Épreuve des runes : séquence reproduite correctement -------------------

@@ -234,9 +234,9 @@ relu/écrit dans `localStorage` sous `pixel-village:dungeons` (`loadConquered`,
 
 | Maison                | Donjon gardien       | Épreuve                                                  | Récompense          | Effet |
 | --------------------- | -------------------- | -------------------------------------------------------- | ------------------- | ----- |
-| Chaumière des runes   | Crypte des brumes    | reproduire de mémoire la séquence de 4 runes             | Lampe du veilleur   | halo de lumière autour du personnage |
-| Atelier des cristaux  | Galerie des échos    | toucher 6 cristaux en 32 secondes                        | Bottes de vent      | 25 % plus rapide |
-| Maison du sage        | Antre du gardien     | répondre aux 3 énigmes du livre sans erreur               | Médaillon du sage   | aura dorée au-dessus de la tête |
+| Chaumière des runes   | Crypte des brumes    | reproduire de mémoire la séquence de 4 runes             | Lampe du veilleur   | halo · fissures à +1,3 tuile · +10 % de butin |
+| Atelier des cristaux  | Galerie des échos    | toucher 6 cristaux en 32 secondes                        | Bottes de vent      | +25 % de vitesse au village et en donjon |
+| Maison du sage        | Antre du gardien     | répondre aux 3 énigmes du livre sans erreur               | Médaillon du sage   | aura · +15 % XP · +5 PV · +0,5 PV/s |
 
 Côté rendu, `drawHouseSeal` (`houses.js`) peint le sceau dans le repère du
 monde : barreaux en croix et gemme violette qui pulse quand la porte est close,
@@ -253,6 +253,7 @@ Toute la mécanique vit dans `public/js/houses.js` :
 | Changer la durée des cristaux          | `createChallenge('cristaux')`, champ `time`    |
 | Déplacer runes, cristaux, livre        | `RUNE_PADS`, `CRYSTAL_SPOTS`, `TOME`           |
 | Changer les textes et récompenses      | `HOUSE_SPECS` et `REWARDS`                     |
+| Changer l'effet d'une récompense       | `relic` dans `REWARDS`, puis `relicEffects`    |
 | Changer la porte d'une maison          | `house(...)` dans `public/js/map.js`           |
 | Changer le donjon qui garde une maison | `requiredDungeon` dans `HOUSE_SPECS`           |
 
@@ -261,6 +262,17 @@ Les récompenses sont conservées dans le navigateur
 l'autre, sans compte. Un joueur qui refait une épreuve gagnée garde sa
 récompense. Si tu veux tout remettre à zéro, efface cette clé depuis la console
 (F12) — et `pixel-village:dungeons` pour refermer les maisons.
+
+Chaque entrée de `REWARDS` porte un objet `relic` (chiffres) et un
+`dungeonEffect` (texte affiché dans l'inventaire). `relicEffects(rewards)`
+additionne ces chiffres sans toucher au DOM ; `main.js` garde le résultat dans
+`state.relics`, le recalcule à chaque récompense et le passe à
+`playerStats(vault, skills, relics)` ainsi qu'à `createRun(id, seed, relics)`.
+C'est ce qui rend les récompenses utiles sous terre : le médaillon ajoute PV,
+XP et régénération, la lampe allonge `run.secretRange` (lu par `crackNear`) et
+ajoute du butin, les bottes augmentent `player.speed` au village comme en
+donjon. Sans récompense, `relicEffects` renvoie des zéros et les statistiques
+restent exactement celles d'avant.
 
 ### Les paramètres (touche P)
 

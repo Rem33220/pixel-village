@@ -169,7 +169,7 @@ et un donjon ne garde qu'une seule maison.
   cette tentative : observe bien.
 - Quand le panneau affiche « À toi », marche sur les dalles dans le même ordre.
 - Une erreur relance l'observation depuis le début (même ordre, rien n'est perdu).
-- **Récompense : la Lampe du veilleur** — un halo de lumière t'accompagne.
+- **Récompense : la Lampe du veilleur** — un halo de lumière t'accompagne et, en donjon, les fissures se repèrent de **1,3 tuile plus loin** (+10 % de butin).
 
 *Astuce : les quatre dalles entourent le tapis ; commence par la plus proche de
 toi pour ne pas traverser la salle inutilement.*
@@ -180,7 +180,7 @@ toi pour ne pas traverser la salle inutilement.*
 - Tu as **32 secondes** pour les toucher tous : il suffit de marcher dessus.
 - Le panneau affiche `x/6 cristaux` et le temps restant.
 - Temps écoulé : les cristaux se rallument et le sablier repart de zéro.
-- **Récompense : les Bottes de vent** — tu marches 25 % plus vite, partout.
+- **Récompense : les Bottes de vent** — tu marches **25 % plus vite**, au village comme en donjon.
 
 *Astuce : fais le tour de la salle dans un sens sans revenir en arrière ; les
 cristaux des coins sont les plus rapides à enchaîner.*
@@ -192,7 +192,7 @@ cristaux des coins sont les plus rapides à enchaîner.*
 - Trois énigmes, trois réponses possibles chacune. Réponds en cliquant sur le
   bouton, ou avec les touches `1`, `2`, `3`.
 - **Une seule erreur** renvoie à la première énigme : il faut les trois d'affilée.
-- **Récompense : le Médaillon du sage** — une aura dorée au-dessus de la tête.
+- **Récompense : le Médaillon du sage** — une aura dorée au-dessus de la tête, et en donjon **+15 % d'XP, +5 PV et +0,5 PV/s**.
 
 ### Après une épreuve
 
@@ -332,11 +332,17 @@ Clique sur un emplacement pour lire sa fiche. Pendant que l'inventaire est
 ouvert, ton personnage ne bouge pas (et les autres joueurs ne te voient pas
 glisser). Ferme avec `I`, `Échap`, `Entrée` ou un clic à côté du panneau.
 
-| Objet | Effet réel |
-| ----- | ---------- |
-| Lampe du veilleur | halo de lumière autour du personnage |
-| Bottes de vent | vitesse de marche +25 % (aussi côté serveur) |
-| Médaillon du sage | aura dorée au-dessus de la tête |
+| Objet | Au village | En donjon |
+| ----- | ---------- | --------- |
+| Lampe du veilleur | halo de lumière autour du personnage | fissures repérées à 1,3 tuile de plus · +10 % de butin |
+| Bottes de vent | vitesse de marche +25 % | vitesse +25 %, ruades comprises |
+| Médaillon du sage | aura dorée au-dessus de la tête | +15 % d'XP · +5 PV · +0,5 PV/s |
+
+Les trois récompenses **servent donc aussi dans les donjons** : la lampe aide à
+trouver les salles secrètes et remplit un peu plus le sac, les bottes rendent les
+salles plus faciles à traverser, et le médaillon soutient les longues descentes.
+Elles se cumulent avec l'équipement et l'arbre de compétences ; inutile de les
+rééquiper, elles restent actives en permanence une fois gagnées.
 
 ### Vendre à l'échoppe du colporteur
 
@@ -464,8 +470,8 @@ Puis recharge la page.
   les Bottes de vent rendent l'épreuve bien plus facile.
 - Commence par la **Crypte des brumes** : elle ouvre la Chaumière des runes et
   sa lampe, puis sert de première marche vers la Galerie et l'Antre.
-- La Lampe du veilleur est purement visuelle : elle ne remplace pas les
-  récompenses de vitesse.
+- La Lampe du veilleur n'est pas qu'un décor : elle fait apparaître l'invite
+  des fissures de plus loin et augmente le butin. Longe les murs avec elle.
 - Une porte marquée d'un **sceau violet** n'est pas cassée : il faut d'abord
   vaincre le donjon qu'elle indique (section 4).
 - Si une porte semble bloquée, contourne par le chemin : il y a toujours un
@@ -681,8 +687,12 @@ redevient **« Entrer — … »** (voir la section 4).
   augmente tes PV maximum (2 PV par point de défense).
 - Dans l'Antre, sans armure, un golem te tue en trois coups : n'y va pas les
   mains nues.
-- **Longe les murs** : la fissure ne se signale qu'à un pas et demi. Une lueur
-  violette dans la pierre trahit sa présence.
+- **Longe les murs** : la fissure ne se signale qu'à un pas et demi (deux pas
+  et demi avec la Lampe du veilleur). Une lueur violette dans la pierre trahit
+  sa présence.
+- Les **récompenses des maisons** comptent aussi en donjon : garde la lampe
+  pour les salles secrètes, les bottes pour les longs couloirs et le médaillon
+  pour les expéditions profondes.
 - La salle secrète de la Crypte donne une **lame des brumes** : c'est l'arme
   idéale pour aborder la Galerie.
 
@@ -808,4 +818,5 @@ section correspondante (et la ligne « jeu actuel » en haut) :
 | expérience, niveau, point de compétence | 12 (Gagner de l'expérience), 8 et le HUD de la section 2 |
 | compétence, arbre, capacité (ruade, tourbillon) | 12 (Les points et l'arbre, La ruade, Le tourbillon) et 2 |
 | règle de survie (régénération, second souffle, exécution) | 12 (Survivre plus longtemps) |
+| récompense de maison, effet en donjon | 4 (chaque maison), 5 (Récompenses du village) et 11 (Conseils) |
 | commandes tactiles / mobile | 2, puis retirer la ligne de la section 13 |

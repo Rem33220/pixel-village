@@ -1544,8 +1544,9 @@ function activateEntry(run, entry) {
 // secrètes, et les fissures cachées dans des salles ordinaires distinctes.
 // Chaque salle secrète possède sa propre fissure, à l'emplacement déclaré par
 // le donjon (`cracks`) : elles ne sont donc jamais toutes au même mur.
-export function createRun(dungeonId, seed = 1) {
+export function createRun(dungeonId, seed = 1, relics = null) {
   const dungeon = getDungeon(dungeonId) ?? DUNGEONS[0];
+  const relic = relics ?? {};
   const random = mulberry32(seed ^ 0x51ed27);
   const rooms = dungeon.rooms.map((spec, index) => (
     createRoomEntry(dungeon, spec, seed + index * 7919)
@@ -1589,6 +1590,10 @@ export function createRun(dungeonId, seed = 1) {
     dungeon,
     seed,
     random,
+    // Effets chiffrés des récompenses du village (voir `relicEffects` dans
+    // houses.js). La lampe allonge la portée de détection des fissures.
+    relics: { ...relic },
+    secretRange: SECRET_RANGE + Math.max(0, Number(relic.secretRange) || 0),
     rooms,
     secrets,
     secretRoomIndices,
@@ -1699,7 +1704,7 @@ export function leaveSecretRoom(run) {
 export function crackNear(run, pos) {
   const entry = run.rooms[run.roomIndex];
   if (run.inSecret || !entry?.hasCrack || !entry.room.crack) return false;
-  return distance(pointOf(pos), entry.room.crack) <= SECRET_RANGE;
+  return distance(pointOf(pos), entry.room.crack) <= (run.secretRange ?? SECRET_RANGE);
 }
 
 // --- Combat et exploration -------------------------------------------------
@@ -2066,21 +2071,24 @@ export function gearStats(vault) {
 // L'armure ajoute aussi des points de vie (2 par point de défense). Sans
 // arbre fourni, on obtient exactement les statistiques d'avant les
 // compétences, ce qui garde les anciens appels (et les tests) valables.
-export function playerStats(vault, skills = null) {
+export function playerStats(vault, skills = null, relics = null) {
   const gear = gearStats(vault ?? createVault());
   const bonus = skills ? skillEffects(skills) : skillEffects(null);
+  const relic = relics ?? {};
   return {
     attack: BASE_STATS.attack + gear.attack + bonus.attack,
     defense: gear.defense + bonus.defense,
-    pvMax: BASE_STATS.pv + gear.defense * 2 + gear.pv + bonus.pv,
+    pvMax: BASE_STATS.pv + gear.defense * 2 + gear.pv + bonus.pv
+      + (Number(relic.pv) || 0),
     // Effets utilitaires : consommés par le combat et le déplacement.
     speed: bonus.speed,
-    xpBonus: bonus.xpBonus + gear.xpBonus,
-    dropChance: Math.min(0.95, DROP_CHANCE + bonus.dropBonus + gear.dropBonus),
+    xpBonus: bonus.xpBonus + gear.xpBonus + (Number(relic.xpBonus) || 0),
+    dropChance: Math.min(0.95, DROP_CHANCE + bonus.dropBonus + gear.dropBonus
+      + (Number(relic.dropBonus) || 0)),
     attackCd: ATTACK_COOLDOWN * bonus.attackCd * gear.attackCd,
     range: ATTACK_RANGE + bonus.range + gear.range,
     execute: bonus.execute + gear.execute,
-    regen: bonus.regen + gear.regen,
+    regen: bonus.regen + gear.regen + (Number(relic.regen) || 0),
     revive: bonus.revive,
     special: bonus.special,
     dash: bonus.dash

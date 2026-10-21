@@ -213,8 +213,15 @@ export function createInventory({ getRewards, getVault, onChange, onEquip }) {
     if (owned) {
       const effect = document.createElement('p');
       effect.className = 'inventory-effect';
-      effect.textContent = `Effet : ${item.effect}`;
+      effect.textContent = `Au village : ${item.effect}`;
       detail.append(effect);
+
+      if (item.dungeonEffect) {
+        const dungeon = document.createElement('p');
+        dungeon.className = 'inventory-effect';
+        dungeon.textContent = `En donjon : ${item.dungeonEffect}`;
+        detail.append(dungeon);
+      }
     }
   }
 

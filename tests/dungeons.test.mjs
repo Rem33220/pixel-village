@@ -1,6 +1,11 @@
 import { generateWorld, isSolid, T } from '../public/js/map.js';
 import { DECORS } from '../public/js/decor.js';
-import { buildHouses, buildInterior, nearExit as houseNearExit } from '../public/js/houses.js';
+import {
+  buildHouses,
+  buildInterior,
+  nearExit as houseNearExit,
+  relicEffects
+} from '../public/js/houses.js';
 import {
   DUNGEONS,
   LOOT,
@@ -724,6 +729,41 @@ for (const dungeon of DUNGEONS) {
   check('armures: les PV de l’objet s’ajoutent à ceux de la défense',
     playerStats(armoured).pvMax
       === BASE_STATS.pv + LOOT.heaume_gardien.defense * 2 + LOOT.heaume_gardien.pv);
+}
+
+// --- Récompenses du village, utiles en donjon ------------------------------
+{
+  const relics = relicEffects(new Set(['lampe', 'bottes', 'medaille']));
+  const base = playerStats(createVault());
+  const boosted = playerStats(createVault(), null, relics);
+  check('récompenses: l’attaque et la défense de base ne changent pas',
+    boosted.attack === base.attack && boosted.defense === base.defense);
+  check('récompenses: les PV du médaillon s’ajoutent',
+    boosted.pvMax === base.pvMax + 5);
+  check('récompenses: XP, butin et régénération en donjon',
+    Math.abs(boosted.xpBonus - 0.15) < 1e-9
+    && Math.abs(boosted.dropChance - Math.min(0.95, base.dropChance + 0.1)) < 1e-9
+    && boosted.regen === 0.5);
+  check('récompenses: les bottes gardent leur vitesse', relics.speed === 0.25);
+
+  const plain = createRun('crypte', 42);
+  const lit = createRun('crypte', 42, relics);
+  check('lampe: portée des fissures par défaut',
+    plain.secretRange === SECRET_RANGE && !plain.relics.secretRange);
+  check('lampe: portée allongée dans l’expédition',
+    lit.secretRange === SECRET_RANGE + 1.3 && lit.relics.secretRange === 1.3);
+
+  const index = lit.rooms.findIndex((entry) => entry.hasCrack);
+  const crack = lit.rooms[index]?.room.crack;
+  const far = crack ? { x: crack.x, y: crack.y + 2 } : null;
+  check('lampe: fissure repérée de plus loin',
+    Boolean(far)
+    && crackNear({ ...lit, roomIndex: index }, far)
+    && !crackNear({ ...plain, roomIndex: index }, far));
+
+  check('récompenses: statistiques identiques sans récompense',
+    playerStats(createVault(), null, relicEffects(new Set()))
+      .pvMax === base.pvMax);
 }
 
 // --- Arme en main et geste de frappe -------------------------------------

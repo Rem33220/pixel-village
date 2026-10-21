@@ -13,26 +13,50 @@ export const TILE_SIZE = 16;
 export const ENTER_RANGE = 1.8;
 export const EXIT_RANGE = 1.6;
 
+// Chaque récompense de maison donne un petit avantage au village **et** un
+// effet réel en donjon. `relic` est la part chiffrée, lue par `relicEffects`
+// puis passée à `playerStats` et à `createRun`.
 export const REWARDS = {
   lampe: {
     name: 'Lampe du veilleur',
-    detail: 'Ta lanterne éclaire les alentours.',
+    detail: 'Sa flamme ne s’éteint pas sous terre : les fissures se trahissent de plus loin.',
     effect: 'halo de lumière autour du personnage',
+    dungeonEffect: 'fissures repérées à 1,3 tuile de plus · +10 % de butin',
+    relic: { secretRange: 1.3, dropBonus: 0.1 },
     house: 'Chaumière des runes'
   },
   bottes: {
     name: 'Bottes de vent',
-    detail: 'Tes pas sont devenus plus légers.',
-    effect: 'vitesse +25 %',
+    detail: 'Elles ne s’usent pas sur la pierre des donjons.',
+    effect: 'vitesse +25 % au village',
+    dungeonEffect: 'vitesse +25 % en donjon, ruades comprises',
+    relic: { speed: 0.25 },
     house: 'Atelier des cristaux'
   },
   medaille: {
     name: 'Médaillon du sage',
-    detail: 'Le village reconnaît tes exploits.',
+    detail: 'Le savoir du sage veille sur toi, même dans le noir.',
     effect: 'aura dorée au-dessus de la tête',
+    dungeonEffect: '+15 % d’XP · +5 PV · +0,5 PV/s',
+    relic: { xpBonus: 0.15, pv: 5, regen: 0.5 },
     house: 'Maison du sage'
   }
 };
+
+// Additionne les effets chiffrés des récompenses obtenues. Un identifiant
+// inconnu ou une sauvegarde abîmée est simplement ignoré.
+export function relicEffects(rewards) {
+  const out = { secretRange: 0, dropBonus: 0, xpBonus: 0, pv: 0, regen: 0, speed: 0 };
+  if (!rewards || typeof rewards.has !== 'function') return out;
+  for (const id of rewards) {
+    const relic = REWARDS[id]?.relic;
+    if (!relic) continue;
+    for (const key of Object.keys(out)) {
+      if (typeof relic[key] === 'number') out[key] += relic[key];
+    }
+  }
+  return out;
+}
 
 // Chaque maison est scellée par un donjon : sa porte reste fermée tant que le
 // donjon associé n'a pas été conquis (toutes ses salles ordinaires vidées).

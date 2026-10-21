@@ -39,7 +39,8 @@ import {
   nearTome,
   ENTER_RANGE,
   QUIZ,
-  REWARDS
+  REWARDS,
+  relicEffects
 } from './houses.js';
 import {
   DUNGEONS,
@@ -78,9 +79,6 @@ import {
 const world = generateWorld();
 const houses = buildHouses(world);
 
-// Vitesse appliquée quand les Bottes de vent sont obtenues.
-const SPEED_WITH_BOOTS = 1.25;
-
 const state = {
   mode: 'menu', // menu | connecting | online | solo
   world,
@@ -97,6 +95,9 @@ const state = {
   inside: null,
   savedPos: null,
   rewards: new Set(),
+  // Effets chiffrés des récompenses (voir houses.js) : recalculés à chaque
+  // déblocage, ils alimentent les statistiques et la portée des fissures.
+  relics: { secretRange: 0, dropBonus: 0, xpBonus: 0, pv: 0, regen: 0, speed: 0 },
   // Donjons vaincus (localStorage « pixel-village:dungeons ») : chaque donjon
   // conquis ouvre la maison qu'il garde.
   conquered: new Set(),
@@ -262,7 +263,7 @@ function moveWithCollision(player, dx, dy) {
 function applyRewards(player) {
   if (!player) return;
   player.rewards = state.rewards;
-  player.speed = state.rewards.has('bottes') ? SPEED_WITH_BOOTS : 1;
+  player.speed = 1 + (state.relics.speed ?? 0);
 }
 
 function loadRewards() {
@@ -276,6 +277,7 @@ function loadRewards() {
   } catch {
     /* stockage indisponible (mode privé) */
   }
+  state.relics = relicEffects(state.rewards);
 }
 
 function saveRewards() {
@@ -310,7 +312,7 @@ function saveConquered() {
 function syncGear() {
   if (state.mode !== 'online' || !state.conn) return;
   // Les bottes et Pas léger se cumulent ; le serveur borne la vitesse à 1,6.
-  const boots = state.rewards.has('bottes') ? SPEED_WITH_BOOTS : 1;
+  const boots = 1 + (state.relics.speed ?? 0);
   state.conn.send({
     t: 'gear',
     speed: boots * (1 + skillEffects(state.skills).speed)
@@ -321,6 +323,7 @@ function grantReward(id) {
   const isNew = !state.rewards.has(id);
   if (isNew) {
     state.rewards.add(id);
+    state.relics = relicEffects(state.rewards);
     saveRewards();
     applyRewards(state.players.get(state.selfId));
     syncGear();
@@ -336,7 +339,10 @@ function updateRewardsHud() {
   for (const id of state.rewards) {
     const chip = document.createElement('span');
     chip.className = 'chip reward';
-    chip.title = REWARDS[id]?.detail ?? '';
+    const item = REWARDS[id];
+    chip.title = item
+      ? `${item.detail} En donjon : ${item.dungeonEffect}`
+      : '';
     chip.textContent = REWARDS[id]?.name ?? id;
     els.hudRewards.append(chip);
   }
@@ -419,7 +425,7 @@ function grantKillXp(killed) {
   const monsters = (Array.isArray(killed) ? killed : [killed]).filter(Boolean);
   if (!run || monsters.length === 0) return 0;
 
-  const stats = playerStats(state.vault, state.skills);
+  const stats = playerStats(state.vault, state.skills, state.relics);
   let gained = 0;
   for (const monster of monsters) {
     gained += xpForKill(monster, run.dungeon.level, stats.xpBonus);
@@ -515,7 +521,7 @@ function useSpecial() {
   const me = state.players.get(state.selfId);
   if (!run || !me) return false;
 
-  const result = specialAttack(run, me, playerStats(state.vault, state.skills));
+  const result = specialAttack(run, me, playerStats(state.vault, state.skills, state.relics));
   if (!result) return false;
 
   playSound('swing');
@@ -579,7 +585,7 @@ function toggleEquip(id) {
 function applyGearToRun() {
   const run = state.run;
   if (!run) return;
-  const stats = playerStats(state.vault, state.skills);
+  const stats = playerStats(state.vault, state.skills, state.relics);
   const delta = stats.pvMax - run.pvMax;
   run.pvMax = stats.pvMax;
   run.pv = Math.max(1, Math.min(run.pvMax, run.pv + delta));
@@ -587,7 +593,7 @@ function applyGearToRun() {
 
 function updateGearHud() {
   if (!els.hudGear) return;
-  const stats = playerStats(state.vault, state.skills);
+  const stats = playerStats(state.vault, state.skills, state.relics);
   els.hudGear.classList.remove('hidden');
   els.hudGear.textContent = `ATQ ${stats.attack} · DÉF ${stats.defense}`;
   els.hudGear.title = equipmentSummary(state.vault) || 'Aucun équipement — ouvre les coffres des donjons.';
@@ -875,6 +881,7 @@ function resetCharacter() {
   }
 
   state.rewards.clear();
+  state.relics = relicEffects(state.rewards);
   state.conquered.clear();
   state.vault = createVault();
   state.skills = createSkills();
@@ -1065,8 +1072,8 @@ function enterDungeon(id) {
 
   closePortal();
 
-  const run = createRun(id, Math.floor(Math.random() * 0x7fffffff));
-  const stats = playerStats(state.vault, state.skills);
+  const run = createRun(id, Math.floor(Math.random() * 0x7fffffff), state.relics);
+  const stats = playerStats(state.vault, state.skills, state.relics);
   prepareAbilities(state.skills, run);
   run.pvMax = stats.pvMax;
   run.pv = stats.pvMax;
@@ -1198,7 +1205,7 @@ function handleRunInteract() {
     }
   }
 
-  const result = attackRun(run, me, playerStats(state.vault, state.skills));
+  const result = attackRun(run, me, playerStats(state.vault, state.skills, state.relics));
   if (!result) return;
 
   // Le sifflement du coup part toujours ; l'impact a son propre son.
@@ -1268,7 +1275,7 @@ function tickDungeon(dt) {
   const me = state.players.get(state.selfId);
   if (!me) return;
 
-  const events = updateRun(run, me, dt, playerStats(state.vault, state.skills));
+  const events = updateRun(run, me, dt, playerStats(state.vault, state.skills, state.relics));
   if (events.damage > 0) playSound('hurt');
   if (events.revived) {
     playSound('level');
