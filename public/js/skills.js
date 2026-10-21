@@ -330,8 +330,9 @@ export function canUnlock(skills, id) {
   const node = SKILL_BY_ID[id];
   if (!node) return { ok: false, reason: 'Compétence inconnue.' };
   if (skills.unlocked.has(id)) return { ok: false, reason: 'Déjà apprise.' };
-  if (skills.points <= 0) return { ok: false, reason: 'Aucun point disponible.' };
 
+  // On signale d'abord ce qui manque vraiment (le prérequis), avant de parler
+  // des points : c'est plus utile quand plusieurs paliers sont encore fermés.
   const missing = (node.requires ?? []).filter((required) => !skills.unlocked.has(required));
   if (missing.length) {
     return {
@@ -339,6 +340,7 @@ export function canUnlock(skills, id) {
       reason: `Demande d’abord : ${missing.map((required) => SKILL_BY_ID[required]?.name ?? required).join(', ')}.`
     };
   }
+  if (skills.points <= 0) return { ok: false, reason: 'Aucun point disponible.' };
   return { ok: true, reason: '' };
 }
 
