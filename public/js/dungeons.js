@@ -146,7 +146,7 @@ export const LOOT = {
     kind: 'arme',
     art: 'lame',
     glow: true,
-    attack: 18,
+    attack: 24,
     defense: 0,
     rarity: 'legendaire',
     color: '#c78bff',
@@ -198,7 +198,7 @@ export const LOOT = {
     kind: 'arme',
     art: 'lame',
     glow: true,
-    attack: 22,
+    attack: 29,
     defense: 0,
     rarity: 'mythique',
     color: '#5fd0ff',
@@ -208,7 +208,7 @@ export const LOOT = {
     name: 'Cuirasse abyssale',
     kind: 'armure',
     attack: 0,
-    defense: 12,
+    defense: 15,
     rarity: 'mythique',
     color: '#3f7fa8',
     detail: 'Des écailles de poisson des fosses, dures comme de la pierre.'
@@ -218,7 +218,7 @@ export const LOOT = {
     kind: 'arme',
     art: 'hache',
     glow: true,
-    attack: 27,
+    attack: 33,
     defense: 0,
     rarity: 'mythique',
     color: '#ff6a3c',
@@ -238,7 +238,7 @@ export const LOOT = {
     kind: 'arme',
     art: 'lame',
     glow: true,
-    attack: 34,
+    attack: 36,
     defense: 0,
     rarity: 'mythique',
     color: '#ff5f7a',
@@ -268,7 +268,7 @@ export const LOOT = {
     name: 'Casque de cendres',
     kind: 'armure',
     attack: 0,
-    defense: 11,
+    defense: 13,
     rarity: 'mythique',
     color: '#e08a4a',
     detail: 'Il ne fond pas, même au plus près de la fournaise.'
@@ -278,7 +278,7 @@ export const LOOT = {
     kind: 'arme',
     art: 'epee',
     glow: true,
-    attack: 30,
+    attack: 35,
     defense: 0,
     rarity: 'mythique',
     color: '#ffb27a',
@@ -289,7 +289,7 @@ export const LOOT = {
     kind: 'arme',
     art: 'hache',
     glow: true,
-    attack: 25,
+    attack: 31,
     defense: 0,
     rarity: 'mythique',
     color: '#3fa8c9',
@@ -309,7 +309,7 @@ export const LOOT = {
     kind: 'arme',
     art: 'hache',
     glow: true,
-    attack: 36,
+    attack: 40,
     defense: 0,
     rarity: 'mythique',
     color: '#ff5f7a',
@@ -328,7 +328,7 @@ export const LOOT = {
     name: 'Épaulières abyssales',
     kind: 'armure',
     attack: 0,
-    defense: 13,
+    defense: 14,
     rarity: 'mythique',
     color: '#4f9ec0',
     detail: 'Elles portent la pression de l’eau noire sans jamais céder.'
@@ -337,7 +337,7 @@ export const LOOT = {
     name: 'Gantelets de cendres',
     kind: 'armure',
     attack: 0,
-    defense: 12,
+    defense: 14,
     rarity: 'mythique',
     color: '#ff9a5c',
     detail: 'Ils tiennent chaud, même dans la neige du dehors.'
@@ -350,18 +350,286 @@ export const LOOT = {
     rarity: 'mythique',
     color: '#d6a8ff',
     detail: 'Il ne cache pas ton visage : il retire celui que tu avais.'
+  },
+  // --- Butin de variété ----------------------------------------------------
+  // Les talismans occupent un troisième emplacement et misent sur l’utile
+  // (expérience, butin, régénération, PV) plutôt que sur les dégâts bruts.
+  // Les autres complètent les paliers bas, qui manquaient de choix.
+  coutelas: {
+    name: 'Coutelas ébréché',
+    kind: 'arme',
+    art: 'dague',
+    attack: 3,
+    defense: 0,
+    attackCd: 0.92,
+    rarity: 'commun',
+    color: '#cfc7b4',
+    detail: 'Sa lame est courte mais le poignet repart vite : il frappe plus souvent.'
+  },
+  casque_os: {
+    name: 'Casque d’os',
+    kind: 'armure',
+    attack: 0,
+    defense: 2,
+    pv: 2,
+    rarity: 'commun',
+    color: '#d8d2bd',
+    detail: 'Un crâne fendu, ajusté tant bien que mal : mieux que rien sous les crocs.'
+  },
+  plume_noire: {
+    name: 'Plume de corbeau',
+    kind: 'talisman',
+    attack: 0,
+    defense: 0,
+    pv: 4,
+    rarity: 'commun',
+    color: '#6f748c',
+    detail: 'Elle ne s’envole jamais. On dit qu’elle retient un peu de vie.'
+  },
+  dent_loup: {
+    name: 'Dent de loup',
+    kind: 'talisman',
+    attack: 1,
+    defense: 0,
+    dropBonus: 0.05,
+    rarity: 'commun',
+    color: '#e6dfc4',
+    detail: 'Portée en pendentif, elle rend les monstres un peu plus généreux.'
+  },
+  lame_veilleur: {
+    name: 'Lame du veilleur',
+    kind: 'arme',
+    art: 'epee',
+    attack: 7,
+    defense: 0,
+    range: 0.1,
+    rarity: 'rare',
+    color: '#b9d7e8',
+    detail: 'L’épée de ronde de la galerie : un peu plus longue que les autres.'
+  },
+  plastron_cloute: {
+    name: 'Plastron clouté',
+    kind: 'armure',
+    attack: 0,
+    defense: 6,
+    rarity: 'rare',
+    color: '#8a6a4a',
+    detail: 'Des clous de fer sur du cuir épais : rustique, mais efficace.'
+  },
+  boussole_rouillee: {
+    name: 'Boussole rouillée',
+    kind: 'talisman',
+    attack: 0,
+    defense: 0,
+    xpBonus: 0.1,
+    rarity: 'rare',
+    color: '#c9a24a',
+    detail: 'Son aiguille indique toujours la sortie… et le chemin des histoires.'
+  },
+  lame_givre: {
+    name: 'Lame de givre',
+    kind: 'arme',
+    art: 'lame',
+    glow: true,
+    attack: 12,
+    defense: 0,
+    attackCd: 0.95,
+    rarity: 'epique',
+    color: '#aee8ff',
+    detail: 'Le froid ralentit la main qui la tient, pas celle qui frappe.'
+  },
+  heaume_cristal: {
+    name: 'Heaume de cristal',
+    kind: 'armure',
+    attack: 0,
+    defense: 7,
+    regen: 0.4,
+    rarity: 'epique',
+    color: '#9fe4f0',
+    detail: 'Le cristal se fend au lieu de ton crâne, puis se referme lentement.'
+  },
+  dent_golem: {
+    name: 'Dent de golem',
+    kind: 'talisman',
+    attack: 0,
+    defense: 0,
+    pv: 6,
+    regen: 0.5,
+    rarity: 'epique',
+    color: '#9aa7b4',
+    detail: 'Encore tiède, elle bat comme un petit cœur de pierre.'
+  },
+  epee_orage: {
+    name: 'Épée d’orage',
+    kind: 'arme',
+    art: 'epee',
+    glow: true,
+    attack: 26,
+    defense: 0,
+    execute: 0.15,
+    rarity: 'legendaire',
+    color: '#f6d34d',
+    detail: 'Elle siffle avant de frapper, et les blessés ne s’en relèvent pas.'
+  },
+  heaume_gardien: {
+    name: 'Heaume du gardien',
+    kind: 'armure',
+    attack: 0,
+    defense: 12,
+    pv: 6,
+    rarity: 'legendaire',
+    color: '#7ee08a',
+    detail: 'La visière est fendue, mais rien n’a jamais traversé le heaume.'
+  },
+  fauchon_neant: {
+    name: 'Fauchon du néant',
+    kind: 'arme',
+    art: 'lame',
+    glow: true,
+    attack: 38,
+    defense: 0,
+    attackCd: 0.94,
+    rarity: 'mythique',
+    color: '#ff5f7a',
+    detail: 'Une lame large qui fauche plus vite que le regard ne la suit.'
+  },
+  sceau_neant: {
+    name: 'Sceau du néant',
+    kind: 'talisman',
+    attack: 0,
+    defense: 0,
+    pv: 8,
+    xpBonus: 0.35,
+    dropBonus: 0.12,
+    rarity: 'mythique',
+    color: '#d6a8ff',
+    detail: 'Le sceau du trône : il attire les histoires, les trésors et les ennuis.'
+  },
+  gantelets_orage: {
+    name: 'Gantelets d’orage',
+    kind: 'armure',
+    attack: 0,
+    defense: 12,
+    regen: 0.3,
+    rarity: 'legendaire',
+    color: '#f6d34d',
+    detail: 'L’électricité court encore entre les doigts quand on serre le poing.'
+  },
+  anneau_trone: {
+    name: 'Anneau du trône',
+    kind: 'talisman',
+    attack: 0,
+    defense: 0,
+    pv: 7,
+    xpBonus: 0.2,
+    dropBonus: 0.08,
+    rarity: 'legendaire',
+    color: '#f2d24b',
+    detail: 'Une bague trop large pour un doigt vivant, mais qui ne tombe jamais.'
   }
 };
 
-// Niveaux de rareté, du plus courant au plus rare : sert au tri de
-// l'inventaire et aux couleurs du portail. « Mythique » n'existe que dans les
-// expéditions avancées et leurs salles secrètes.
-export const RARITY_ORDER = ['commun', 'rare', 'epique', 'legendaire', 'mythique'];
+// Niveaux de rareté, du plus courant au plus rare. `rank` sert au tri et aux
+// tests, `label` à l’affichage. Un objet ne peut porter qu’une de ces raretés.
+export const RARITIES = {
+  commun: { label: 'Commun', rank: 0, color: '#b9c6bd' },
+  rare: { label: 'Rare', rank: 1, color: '#8ff0f7' },
+  epique: { label: 'Épique', rank: 2, color: '#c78bff' },
+  legendaire: { label: 'Légendaire', rank: 3, color: '#f6d34d' },
+  mythique: { label: 'Mythique', rank: 4, color: '#ff5f7a' }
+};
+
+export const RARITY_ORDER = Object.keys(RARITIES);
+
+// Poids de tirage par donjon et par type de salle. Une salle ordinaire suit sa
+// propre liste (`spec.loot`), une salle secrète puise dans tout le donjon :
+// c’est là que les raretés hautes sont privilégiées, sans jamais être
+// garanties. Les poids sont relatifs : seules les raretés présentes dans le
+// butin disponible comptent, puis sont renormalisées.
+export const DROP_TABLES = {
+  crypte: {
+    room: { commun: 100 },
+    secret: { commun: 45, epique: 55 }
+  },
+  galerie: {
+    room: { rare: 92, epique: 8 },
+    secret: { rare: 35, epique: 65 }
+  },
+  antre: {
+    room: { rare: 70, epique: 30 },
+    secret: { rare: 24, epique: 48, legendaire: 28 }
+  },
+  abysses: {
+    room: { rare: 52, epique: 48 },
+    secret: { rare: 12, epique: 42, legendaire: 39, mythique: 7 }
+  },
+  forge: {
+    room: { rare: 27, epique: 73 },
+    secret: { epique: 38, legendaire: 46, mythique: 16 }
+  },
+  trone: {
+    room: { rare: 8, epique: 92 },
+    secret: { epique: 25, legendaire: 47, mythique: 28 }
+  }
+};
+
+// Poids de la rareté pour une salle. `secret` bascule sur la table des salles
+// cachées ; un donjon inconnu retombe sur la Crypte.
+export function dropChances(dungeon, secret = false) {
+  const table = DROP_TABLES[dungeon?.id] ?? DROP_TABLES.crypte;
+  return table[secret ? 'secret' : 'room'];
+}
+
+// Tire un objet dans `pool` en respectant les poids de rareté. `taken` évite
+// de servir deux fois le même objet dans une salle tant que le pool le permet.
+// Fonction pure : le générateur `random` est injecté pour les tests.
+export function rollLootItem(pool, chances, random = Math.random, taken = []) {
+  const excluded = new Set(taken);
+  let available = pool.filter((id) => LOOT[id] && !excluded.has(id));
+  if (available.length === 0) available = pool.filter((id) => LOOT[id]);
+  if (available.length === 0) return null;
+
+  const byRarity = new Map();
+  for (const id of available) {
+    const rarity = LOOT[id].rarity;
+    if (!byRarity.has(rarity)) byRarity.set(rarity, []);
+    byRarity.get(rarity).push(id);
+  }
+
+  // On ne garde que les raretés disponibles qui ont un poids positif. Si la
+  // table n’en mentionne aucune (salle atypique), toutes les raretés présentes
+  // ont le même poids.
+  let keys = RARITY_ORDER.filter((rarity) => byRarity.has(rarity)
+    && (chances?.[rarity] ?? 0) > 0);
+  let weights = keys.map((rarity) => chances[rarity]);
+  if (keys.length === 0) {
+    keys = RARITY_ORDER.filter((rarity) => byRarity.has(rarity));
+    weights = keys.map(() => 1);
+  }
+
+  const total = weights.reduce((sum, weight) => sum + weight, 0);
+  let roll = random() * total;
+  let chosen = keys[keys.length - 1];
+  for (let i = 0; i < keys.length; i++) {
+    roll -= weights[i];
+    if (roll < 0) {
+      chosen = keys[i];
+      break;
+    }
+  }
+
+  const items = byRarity.get(chosen);
+  return items[Math.floor(random() * items.length)] ?? items[items.length - 1];
+}
 
 // Silhouettes d'armes dessinées en main (voir public/js/weapons.js) :
 // dague courte, épée, hache et lame longue. Une arme sans `art` connu tombe
 // sur l'épée.
 export const WEAPON_ARTS = ['dague', 'epee', 'hache', 'lame'];
+
+// Emplacements d'équipement, dans l'ordre où l'inventaire les affiche. Un
+// objet s'équipe dans le slot qui porte le nom de son `kind`.
+export const EQUIP_SLOTS = ['arme', 'armure', 'talisman'];
 
 // Icônes 16 × 16 du butin, dessinées en ASCII. `b` prend la couleur de l'objet.
 export const ITEM_ICONS = {
@@ -403,6 +671,27 @@ export const ITEM_ICONS = {
       '..kbbbbbbbbk....',
       '..kbbbbbbbbk....',
       '...kkkkkkkk.....',
+      '................',
+      '................'
+    ]
+  },
+  talisman: {
+    palette: { k: '#1b1424' },
+    rows: [
+      '................',
+      '....kk....kk....',
+      '...kbbk..kbbk...',
+      '....kbbkkbbk....',
+      '.....kkbbkk.....',
+      '......kbbk......',
+      '.....kkkkkk.....',
+      '....kbbbbbbk....',
+      '...kbbbbbbbbk...',
+      '...kbbbbbbbbk...',
+      '...kbbbbbbbbk...',
+      '....kbbbbbbk....',
+      '.....kbbbbk.....',
+      '......kkkk......',
       '................',
       '................'
     ]
@@ -527,14 +816,14 @@ export const DUNGEONS = [
         intro: 'Des baveux rampent entre les piliers. Deux coffres t’attendent.',
         monsters: ['baveux', 'baveux'],
         chests: 2,
-        loot: ['dague', 'tunique']
+        loot: ['dague', 'tunique', 'plume_noire', 'casque_os']
       },
       {
         name: 'Ossuaire effondré',
         intro: 'Des toiles pleines d’yeux et des baveux : trois coffres au fond.',
         monsters: ['baveux', 'araignee', 'baveux'],
         chests: 3,
-        loot: ['epee_courte', 'tunique', 'dague']
+        loot: ['epee_courte', 'tunique', 'coutelas', 'casque_os']
       }
     ],
     secrets: [
@@ -546,7 +835,8 @@ export const DUNGEONS = [
         loot: ['lame_brumes']
       }
     ],
-    loot: ['dague', 'tunique', 'epee_courte', 'lame_brumes']
+    loot: ['dague', 'tunique', 'epee_courte', 'coutelas', 'casque_os', 'plume_noire',
+      'lame_brumes']
   },
   {
     id: 'galerie',
@@ -563,21 +853,21 @@ export const DUNGEONS = [
         intro: 'Trois squelettes montent la garde. Trois coffres brillent dans le noir.',
         monsters: ['squelette', 'squelette', 'baveux'],
         chests: 3,
-        loot: ['hache', 'mailles', 'plastron']
+        loot: ['hache', 'mailles', 'plastron', 'dent_loup']
       },
       {
         name: 'Puits des murmures',
         intro: 'La galerie se resserre : un spectre flotte au-dessus des coffres.',
         monsters: ['squelette', 'spectre', 'baveux'],
         chests: 3,
-        loot: ['lame_brumes', 'hache', 'mailles']
+        loot: ['lame_brumes', 'hache', 'mailles', 'lame_veilleur']
       },
       {
         name: 'Passage des échos creux',
         intro: 'Des voix qui ne sont pas les tiennes te suivent entre les piliers.',
         monsters: ['spectre', 'squelette', 'baveux'],
         chests: 3,
-        loot: ['plastron', 'hache', 'mailles']
+        loot: ['plastron', 'hache', 'mailles', 'boussole_rouillee']
       }
     ],
     secrets: [
@@ -596,7 +886,8 @@ export const DUNGEONS = [
         loot: ['lance_ombres']
       }
     ],
-    loot: ['hache', 'mailles', 'plastron', 'lame_brumes', 'epee_gardien', 'lance_ombres']
+    loot: ['hache', 'mailles', 'plastron', 'dent_loup', 'lame_veilleur',
+      'boussole_rouillee', 'lame_brumes', 'epee_gardien', 'lance_ombres']
   },
   {
     id: 'antre',
@@ -613,28 +904,28 @@ export const DUNGEONS = [
         intro: 'Deux golems montent la garde. Leur butin vaut le détour… si tu survis.',
         monsters: ['golem', 'golem', 'squelette'],
         chests: 3,
-        loot: ['gantelets', 'plastron', 'mailles']
+        loot: ['gantelets', 'plastron', 'mailles', 'plastron_cloute']
       },
       {
         name: 'Boyau des ombres',
         intro: 'Un boyau s’enfonce plus loin : araignées, spectre et golem s’y mêlent.',
         monsters: ['araignee', 'spectre', 'golem'],
         chests: 3,
-        loot: ['armure_gardien', 'epee_gardien', 'gantelets']
+        loot: ['armure_gardien', 'epee_gardien', 'gantelets', 'heaume_cristal']
       },
       {
         name: 'Salle des cristaux fêlés',
         intro: 'La lumière s’y brise en éclats. Les cristaux cachent des coffres.',
         monsters: ['araignee', 'squelette', 'spectre'],
         chests: 3,
-        loot: ['mailles', 'plastron', 'gantelets']
+        loot: ['mailles', 'plastron', 'gantelets', 'dent_golem']
       },
       {
         name: 'Cœur de l’antre',
         intro: 'Le fond de l’antre. Deux golems et une araignée veillent sur les derniers coffres.',
         monsters: ['golem', 'araignee', 'golem'],
         chests: 2,
-        loot: ['epee_gardien', 'armure_gardien']
+        loot: ['epee_gardien', 'armure_gardien', 'plastron_cloute']
       }
     ],
     secrets: [
@@ -660,8 +951,9 @@ export const DUNGEONS = [
         loot: ['broche_gardien', 'cape_ombre']
       }
     ],
-    loot: ['gantelets', 'plastron', 'mailles', 'armure_gardien', 'epee_gardien',
-      'lame_ombre', 'cape_ombre', 'broche_gardien']
+    loot: ['gantelets', 'plastron', 'mailles', 'plastron_cloute', 'heaume_cristal',
+      'dent_golem', 'armure_gardien', 'epee_gardien', 'lame_ombre', 'cape_ombre',
+      'broche_gardien']
   },
   // --- Expéditions avancées ------------------------------------------------
   // `requires` liste les donjons à conquérir avant d'ouvrir celui-ci. Les trois
@@ -682,35 +974,35 @@ export const DUNGEONS = [
         intro: 'Des noyés sortent de l’eau en silence. Trois coffres sur la berge.',
         monsters: ['noye', 'noye', 'spectre'],
         chests: 3,
-        loot: ['trident_abysses', 'armure_gardien', 'lame_brumes']
+        loot: ['trident_abysses', 'armure_gardien', 'lame_brumes', 'lame_givre']
       },
       {
         name: 'Gouffre sans fond',
         intro: 'La galerie plonge : un noyé rôde autour d’une ombre du gardien.',
         monsters: ['noye', 'ombre', 'noye'],
         chests: 3,
-        loot: ['trident_abysses', 'plastron', 'epee_gardien']
+        loot: ['trident_abysses', 'plastron', 'epee_gardien', 'heaume_cristal']
       },
       {
         name: 'Nef engloutie',
         intro: 'Une coque brisée, des spectres et deux coffres au sec.',
         monsters: ['noye', 'noye', 'spectre'],
         chests: 2,
-        loot: ['armure_gardien', 'lame_brumes']
+        loot: ['armure_gardien', 'lame_brumes', 'dent_golem']
       },
       {
         name: 'Salle des marées',
         intro: 'L’eau monte et redescend au rythme d’une respiration.',
         monsters: ['noye', 'spectre', 'noye'],
         chests: 3,
-        loot: ['epee_gardien', 'trident_abysses', 'plastron']
+        loot: ['epee_gardien', 'trident_abysses', 'plastron', 'lame_veilleur']
       },
       {
         name: 'Fosse des lampes',
         intro: 'Des lampes flottent sur l’eau noire. Certaines bougent contre le courant.',
         monsters: ['noye', 'ombre', 'spectre'],
         chests: 3,
-        loot: ['armure_gardien', 'plastron', 'trident_abysses']
+        loot: ['armure_gardien', 'plastron', 'trident_abysses', 'plastron_cloute']
       }
     ],
     secrets: [
@@ -719,7 +1011,7 @@ export const DUNGEONS = [
         intro: 'Sous la coque, l’eau est tiède et une ombre garde le trésor.',
         monsters: ['ombre', 'noye'],
         chests: 2,
-        loot: ['lame_abysses', 'cuirasse_abysses']
+        loot: ['lame_abysses', 'cuirasse_abysses', 'epee_orage']
       },
       {
         name: 'Alcôve des perles',
@@ -740,11 +1032,13 @@ export const DUNGEONS = [
         intro: 'Le mur ouest s’ouvre sur une galerie d’épaulières, noyées jusqu’au cou.',
         monsters: ['ombre', 'noye'],
         chests: 2,
-        loot: ['epaulieres_abysses', 'cuirasse_abysses']
+        loot: ['epaulieres_abysses', 'cuirasse_abysses', 'heaume_gardien']
       }
     ],
     loot: ['trident_abysses', 'armure_gardien', 'lame_brumes', 'plastron', 'epee_gardien',
-      'lame_abysses', 'cuirasse_abysses', 'harpon_abysses', 'epaulieres_abysses']
+      'lame_givre', 'heaume_cristal', 'dent_golem', 'lame_veilleur', 'plastron_cloute',
+      'lame_abysses', 'cuirasse_abysses', 'harpon_abysses', 'epaulieres_abysses',
+      'epee_orage', 'heaume_gardien']
   },
   {
     id: 'forge',
@@ -806,28 +1100,28 @@ export const DUNGEONS = [
         intro: 'L’enclume d’origine : une ombre et une gargouille, deux coffres mythiques.',
         monsters: ['ombre', 'gargouille'],
         chests: 2,
-        loot: ['fleau_cendres', 'bouclier_cendres']
+        loot: ['fleau_cendres', 'bouclier_cendres', 'heaume_gardien']
       },
       {
         name: 'Réserve de charbon',
         intro: 'Une réserve close par un mur clair. Un casque repose sur les sacs.',
         monsters: ['gargouille', 'ombre'],
         chests: 1,
-        loot: ['casque_cendres']
+        loot: ['casque_cendres', 'sceau_neant']
       },
       {
         name: 'Salle des éperons',
         intro: 'Derrière le mur sud : des armures de travail, et une épée pour les vaincre.',
         monsters: ['ombre', 'gargouille'],
         chests: 1,
-        loot: ['epee_cendres']
+        loot: ['epee_cendres', 'lame_givre']
       },
       {
         name: 'Réduit du maître forgeur',
         intro: 'Ses gantelets sont encore sur l’établi. Quelqu’un les garde.',
         monsters: ['ombre', 'golem'],
         chests: 2,
-        loot: ['gantelets_cendres', 'bouclier_cendres']
+        loot: ['gantelets_cendres', 'bouclier_cendres', 'heaume_cristal']
       },
       {
         name: 'Fosse à scories',
@@ -838,7 +1132,9 @@ export const DUNGEONS = [
       }
     ],
     loot: ['marteau_cendres', 'armure_gardien', 'trident_abysses', 'plastron',
-      'fleau_cendres', 'bouclier_cendres', 'casque_cendres', 'epee_cendres', 'gantelets_cendres']
+      'heaume_cristal', 'lame_givre', 'fleau_cendres', 'bouclier_cendres',
+      'casque_cendres', 'epee_cendres', 'gantelets_cendres', 'heaume_gardien',
+      'sceau_neant']
   },
   {
     id: 'trone',
@@ -907,7 +1203,7 @@ export const DUNGEONS = [
         intro: 'Derrière le trône : une ombre veille sur le seigneur endormi.',
         monsters: ['ombre', 'seigneur'],
         chests: 2,
-        loot: ['lame_neant', 'couronne_neant']
+        loot: ['lame_neant', 'couronne_neant', 'fauchon_neant', 'anneau_trone']
       },
       {
         name: 'Garderobe du souverain',
@@ -921,7 +1217,7 @@ export const DUNGEONS = [
         intro: 'Trois régents ont péri ici. Le sceptre est resté, lui.',
         monsters: ['seigneur', 'ombre'],
         chests: 1,
-        loot: ['sceptre_neant']
+        loot: ['sceptre_neant', 'gantelets_orage']
       },
       {
         name: 'Dernier réduit',
@@ -946,7 +1242,8 @@ export const DUNGEONS = [
       }
     ],
     loot: ['epee_neant', 'marteau_cendres', 'armure_gardien', 'trident_abysses', 'plastron',
-      'lame_neant', 'couronne_neant', 'voile_neant', 'sceptre_neant', 'masque_neant']
+      'lame_neant', 'couronne_neant', 'voile_neant', 'sceptre_neant', 'masque_neant',
+      'fauchon_neant', 'anneau_trone', 'gantelets_orage']
   }
 ];
 
@@ -1188,13 +1485,18 @@ function createRoomEntry(dungeon, spec, seed, { hidden = false, crackSpot = null
   const room = buildRoom(dungeon, seed, layoutName, crackSpot);
 
   const chestSpots = shuffled(layout.chestSpots, random).slice(0, spec.chests);
-  const lootPool = shuffled(spec.loot, random);
-  const chests = chestSpots.map((spot, index) => ({
-    x: spot.x,
-    y: spot.y,
-    opened: false,
-    item: lootPool[index % lootPool.length]
-  }));
+  // Le contenu de chaque coffre est tiré séparément, avec les poids de rareté
+  // de la salle : un même donjon ne sert donc pas toujours les mêmes objets.
+  // Une salle secrète puise dans tout le butin du donjon, ce qui rend le butin
+  // d’élite possible sans être garanti.
+  const lootPool = hidden ? dungeon.loot : spec.loot;
+  const chances = dropChances(dungeon, hidden);
+  const taken = [];
+  const chests = chestSpots.map((spot) => {
+    const item = rollLootItem(lootPool, chances, random, taken);
+    if (item) taken.push(item);
+    return { x: spot.x, y: spot.y, opened: false, item };
+  });
 
   // Les monstres commencent loin de l'escalier : on ne se fait pas encercler
   // à la seconde où l'on pose le pied dans la salle.
@@ -1457,12 +1759,15 @@ function monsterInRange(run, pos, range = ATTACK_RANGE) {
 }
 
 // Butin laissé par un monstre : la chance dépend de l'équipement de fortune
-// (Œil du fouilleur) et la liste vient de la salle où l'on se trouve.
+// (Œil du fouilleur) et la liste vient de la salle où l'on se trouve. Le tirage
+// suit les mêmes poids de rareté que les coffres, donc un monstre d'une salle
+// secrète peut lâcher un objet d'élite, mais rarement.
 function rollDrop(run, stats) {
   const chance = Math.min(0.95, stats?.dropChance ?? DROP_CHANCE);
   if (run.random() >= chance) return null;
-  const pool = run.roomEntry?.spec?.loot ?? run.dungeon.loot;
-  return pool[Math.floor(run.random() * pool.length)] ?? null;
+  const hidden = Boolean(run.roomEntry?.hidden);
+  const pool = hidden ? run.dungeon.loot : (run.roomEntry?.spec?.loot ?? run.dungeon.loot);
+  return rollLootItem(pool, dropChances(run.dungeon, hidden), run.random);
 }
 
 // Dégâts d'un coup : Exécution ajoute un bonus contre un monstre déjà
@@ -1674,7 +1979,7 @@ export function updateRun(run, player, dt, stats) {
 // --- Équipement ------------------------------------------------------------
 
 export function createVault() {
-  return { coins: 0, items: {}, equipped: { arme: null, armure: null } };
+  return { coins: 0, items: {}, equipped: { arme: null, armure: null, talisman: null } };
 }
 
 // Libellé de la bourse : « 1 pièce », « 24 pièces ».
@@ -1729,13 +2034,30 @@ export function equippedWeapon(vault) {
   return id && LOOT[id] ? id : null;
 }
 
+// Additionne l'équipement porté. Les armes et armures apportent l'attaque et
+// la défense ; les talismans ajoutent des effets plus discrets (PV, régénération,
+// expérience, butin, portée) et peuvent accélérer la cadence de frappe.
 export function gearStats(vault) {
-  const stats = { attack: 0, defense: 0 };
-  for (const id of Object.values(vault.equipped)) {
-    const item = LOOT[id];
+  const stats = {
+    attack: 0,
+    defense: 0,
+    pv: 0,
+    regen: 0,
+    xpBonus: 0,
+    dropBonus: 0,
+    range: 0,
+    execute: 0,
+    attackCd: 1
+  };
+  for (const slot of EQUIP_SLOTS) {
+    const item = LOOT[vault?.equipped?.[slot]];
     if (!item) continue;
-    stats.attack += item.attack;
-    stats.defense += item.defense;
+    stats.attack += item.attack ?? 0;
+    stats.defense += item.defense ?? 0;
+    for (const key of ['pv', 'regen', 'xpBonus', 'dropBonus', 'range', 'execute']) {
+      if (typeof item[key] === 'number') stats[key] += item[key];
+    }
+    if (typeof item.attackCd === 'number') stats.attackCd *= item.attackCd;
   }
   return stats;
 }
@@ -1750,15 +2072,15 @@ export function playerStats(vault, skills = null) {
   return {
     attack: BASE_STATS.attack + gear.attack + bonus.attack,
     defense: gear.defense + bonus.defense,
-    pvMax: BASE_STATS.pv + gear.defense * 2 + bonus.pv,
+    pvMax: BASE_STATS.pv + gear.defense * 2 + gear.pv + bonus.pv,
     // Effets utilitaires : consommés par le combat et le déplacement.
     speed: bonus.speed,
-    xpBonus: bonus.xpBonus,
-    dropChance: Math.min(0.95, DROP_CHANCE + bonus.dropBonus),
-    attackCd: ATTACK_COOLDOWN * bonus.attackCd,
-    range: ATTACK_RANGE + bonus.range,
-    execute: bonus.execute,
-    regen: bonus.regen,
+    xpBonus: bonus.xpBonus + gear.xpBonus,
+    dropChance: Math.min(0.95, DROP_CHANCE + bonus.dropBonus + gear.dropBonus),
+    attackCd: ATTACK_COOLDOWN * bonus.attackCd * gear.attackCd,
+    range: ATTACK_RANGE + bonus.range + gear.range,
+    execute: bonus.execute + gear.execute,
+    regen: bonus.regen + gear.regen,
     revive: bonus.revive,
     special: bonus.special,
     dash: bonus.dash
@@ -1779,7 +2101,7 @@ export function sanitizeVault(raw) {
     vault.items[id] = Math.min(99, value);
   }
   const equipped = raw.equipped && typeof raw.equipped === 'object' ? raw.equipped : {};
-  for (const slot of ['arme', 'armure']) {
+  for (const slot of EQUIP_SLOTS) {
     const id = equipped[slot];
     if (typeof id !== 'string' || !LOOT[id] || LOOT[id].kind !== slot) continue;
     if (!ownsItem(vault, id)) continue;

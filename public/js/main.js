@@ -4,7 +4,7 @@ import { generateWorld, isSolid } from './map.js';
 import { Renderer } from './renderer.js';
 import { initInput, moveVector, isTyping, setInputEnabled } from './input.js';
 import { createConnection, websocketUrl } from './net.js';
-import { createInventory, equipmentSummary } from './inventory.js';
+import { createInventory, equipmentSummary, itemBonusLabel } from './inventory.js';
 import { createShopPanel, drawShop, nearShop, sellAll, sellItem } from './shop.js';
 import { createSettingsPanel, getBindings, labelFor } from './settings.js';
 import { playSound } from './audio.js';
@@ -45,6 +45,7 @@ import {
   DUNGEONS,
   LOOT,
   PORTAL_RANGE,
+  RARITIES,
   addItem,
   attackRun,
   chestNear,
@@ -529,7 +530,10 @@ function useSpecial() {
     );
     for (const drop of result.drops) {
       grantLoot(drop);
-      pushChat(`Il laisse tomber : ${LOOT[drop].name}.`, 'system');
+      pushChat(
+        `Il laisse tomber : ${LOOT[drop].name} (${RARITIES[LOOT[drop].rarity]?.label ?? 'Commun'}).`,
+        'system'
+      );
     }
     grantKillXp(result.kills);
     updateDungeonPanel(true);
@@ -563,7 +567,7 @@ function toggleEquip(id) {
   if (item) {
     pushChat(
       result === 'equipped'
-        ? `Tu portes : ${item.name} (${item.kind === 'arme' ? `+${item.attack} ATQ` : `+${item.defense} DÉF`}).`
+        ? `Tu portes : ${item.name} (${itemBonusLabel(item)}).`
         : `Tu retires ${item.name}.`,
       'system'
     );
@@ -968,8 +972,8 @@ function dungeonCard(dungeon) {
     if (!item) continue;
     const li = document.createElement('li');
     li.className = `rarity-${item.rarity}`;
-    const bonus = item.kind === 'arme' ? `+${item.attack} ATQ` : `+${item.defense} DÉF`;
-    li.textContent = `${item.name} — ${bonus}`;
+    const rarity = RARITIES[item.rarity]?.label ?? 'Commun';
+    li.textContent = `${item.name} — ${rarity} · ${itemBonusLabel(item)}`;
     loot.append(li);
   }
 
@@ -1184,8 +1188,8 @@ function handleRunInteract() {
       const item = LOOT[id];
       playSound('pickup');
       pushChat(
-        `Coffre ouvert : ${item.name} (${
-          item.kind === 'arme' ? `+${item.attack} ATQ` : `+${item.defense} DÉF`
+        `Coffre ouvert : ${item.name} (${RARITIES[item.rarity]?.label ?? 'Commun'} · ${
+          itemBonusLabel(item)
         }). Touche I pour l’équiper.`,
         'system'
       );
@@ -1205,7 +1209,12 @@ function handleRunInteract() {
     pushChat(`${result.killed.name} vaincu !`, 'system');
     if (result.drop) {
       grantLoot(result.drop);
-      pushChat(`Il laisse tomber : ${LOOT[result.drop].name}.`, 'system');
+      pushChat(
+        `Il laisse tomber : ${LOOT[result.drop].name} (${
+          RARITIES[LOOT[result.drop].rarity]?.label ?? 'Commun'
+        }).`,
+        'system'
+      );
     }
     grantKillXp(result.killed);
     updateDungeonPanel(true);

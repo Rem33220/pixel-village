@@ -7,6 +7,10 @@ import {
   ITEM_ICONS,
   MONSTERS,
   BASE_STATS,
+  ATTACK_COOLDOWN,
+  DROP_TABLES,
+  EQUIP_SLOTS,
+  RARITIES,
   ENTRY_GRACE,
   PORTAL_RANGE,
   RARITY_ORDER,
@@ -18,6 +22,7 @@ import {
   CRACK_SPOTS,
   dungeonTotals,
   dungeonUnlocked,
+  dropChances,
   enterSecretRoom,
   equippedWeapon,
   exitAction,
@@ -28,6 +33,7 @@ import {
   leaveSecretRoom,
   nextRoom,
   roomCount,
+  rollLootItem,
   roomNumber,
   swingAngle,
   ROOM_SPAWN,
@@ -151,9 +157,15 @@ function reachableFrom(room, start) {
   const allSpecs = DUNGEONS.flatMap((dungeon) => [...dungeon.rooms, ...dungeon.secrets]);
   const items = new Set(DUNGEONS.flatMap((dungeon) => dungeon.loot));
   check('butin: tous les objets ont un type valide',
-    [...items].every((id) => LOOT[id].kind === 'arme' || LOOT[id].kind === 'armure'));
-  check('butin: au moins une arme et une armure', [...items].some((id) => LOOT[id].kind === 'arme')
-    && [...items].some((id) => LOOT[id].kind === 'armure'));
+    [...items].every((id) => EQUIP_SLOTS.includes(LOOT[id].kind)));
+  check('butin: au moins une arme, une armure et un talisman',
+    [...items].some((id) => LOOT[id].kind === 'arme')
+    && [...items].some((id) => LOOT[id].kind === 'armure')
+    && [...items].some((id) => LOOT[id].kind === 'talisman'));
+  check('butin: plusieurs objets par type',
+    ['arme', 'armure', 'talisman'].every((kind) => (
+      Object.values(LOOT).filter((item) => item.kind === kind).length >= 5
+    )));
   check('butin: chaque objet vient d’un donjon', [...items].every((id) => (
     DUNGEONS.some((dungeon) => dungeon.loot.includes(id))
   )));
@@ -229,6 +241,102 @@ function reachableFrom(room, start) {
   }
 }
 
+// --- Rareté et tirages ----------------------------------------------------
+{
+  const seeded = (seed) => {
+    let state = seed >>> 0;
+    return () => {
+      state = (state * 1664525 + 1013904223) >>> 0;
+      return state / 4294967296;
+    };
+  };
+
+  check('raretés: cinq paliers ordonnés',
+    RARITY_ORDER.join(',') === 'commun,rare,epique,legendaire,mythique'
+    && RARITY_ORDER.every((rarity, index) => RARITIES[rarity].rank === index
+      && Boolean(RARITIES[rarity].label) && /^#[0-9a-f]{6}$/i.test(RARITIES[rarity].color)));
+
+  const highShare = (table) => {
+    const total = Object.values(table).reduce((sum, weight) => sum + weight, 0);
+    const high = Object.entries(table)
+      .filter(([rarity]) => RARITIES[rarity].rank >= 2)
+      .reduce((sum, [, weight]) => sum + weight, 0);
+    return high / total;
+  };
+
+  for (const dungeon of DUNGEONS) {
+    const room = DROP_TABLES[dungeon.id]?.room;
+    const secret = DROP_TABLES[dungeon.id]?.secret;
+    check(`${dungeon.id}: table de rareté pour les deux types de salle`,
+      Boolean(room) && Boolean(secret)
+      && [room, secret].every((table) => Object.entries(table).every(([rarity, weight]) => (
+        RARITIES[rarity] && weight > 0
+      ))));
+    check(`${dungeon.id}: dropChances renvoie la bonne table`,
+      dropChances(dungeon, false) === room && dropChances(dungeon, true) === secret);
+    check(`${dungeon.id}: une salle secrète privilégie les hautes raretés`,
+      highShare(secret) > highShare(room),
+      `${Math.round(highShare(room) * 100)} % → ${Math.round(highShare(secret) * 100)} %`);
+  }
+
+  // Le tirage respecte les poids : sur un pool d’un objet par rareté, le
+  // mythique doit sortir bien moins souvent que le légendaire, et ainsi de
+  // suite. C’est la garantie demandée : le butin le plus fort reste rare.
+  const pool = ['dague', 'hache', 'lame_brumes', 'lame_ombre', 'lame_neant'];
+  const chances = { commun: 100, rare: 30, epique: 8, legendaire: 2, mythique: 0.5 };
+  const random = seeded(1234);
+  const counts = { commun: 0, rare: 0, epique: 0, legendaire: 0, mythique: 0 };
+  for (let i = 0; i < 20000; i++) counts[LOOT[rollLootItem(pool, chances, random)].rarity] += 1;
+  check('tirages: le commun sort le plus souvent',
+    counts.commun > counts.rare && counts.rare > counts.epique
+    && counts.epique > counts.legendaire && counts.legendaire > counts.mythique,
+    Object.entries(counts).map(([rarity, count]) => `${rarity}:${count}`).join(' '));
+  check('tirages: le mythique reste sous 1 %',
+    counts.mythique / 20000 < 0.01, `${counts.mythique} / 20000`);
+
+  // Tirages réels des salles secrètes : même la plus profonde ne sert jamais
+  // uniquement son butin le plus rare.
+  for (const dungeon of DUNGEONS) {
+    const top = [...RARITY_ORDER].reverse()
+      .find((rarity) => dungeon.loot.some((id) => LOOT[id].rarity === rarity));
+    let total = 0;
+    let topCount = 0;
+    for (let seed = 1; seed <= 60; seed++) {
+      for (const entry of createRun(dungeon.id, seed).secrets) {
+        for (const chest of entry.chests) {
+          total += 1;
+          if (LOOT[chest.item].rarity === top) topCount += 1;
+        }
+      }
+    }
+    check(`${dungeon.id}: le butin le plus rare n’est pas systématique`,
+      total > 0 && topCount < total && topCount / total < 0.8,
+      `${topCount} / ${total} (${top})`);
+  }
+
+  // Cohérence de puissance : une rareté supérieure ne doit pas être moins
+  // forte qu’une rareté inférieure, sinon la rareté ne veut rien dire.
+  const best = (kind, field, rarity) => Math.max(...Object.values(LOOT)
+    .filter((item) => item.kind === kind && item.rarity === rarity)
+    .map((item) => item[field] ?? 0));
+  const ordered = RARITY_ORDER.map((rarity) => RARITIES[rarity].rank);
+  check('puissance: les armes montent avec la rareté',
+    ordered.every((rank, index) => index === 0 || best('arme', 'attack', RARITY_ORDER[index])
+      > best('arme', 'attack', RARITY_ORDER[index - 1])),
+    RARITY_ORDER.map((rarity) => `${rarity}:${best('arme', 'attack', rarity)}`).join(' '));
+  check('puissance: les armures montent avec la rareté',
+    ordered.every((rank, index) => index === 0 || best('armure', 'defense', RARITY_ORDER[index])
+      > best('armure', 'defense', RARITY_ORDER[index - 1])),
+    RARITY_ORDER.map((rarity) => `${rarity}:${best('armure', 'defense', rarity)}`).join(' '));
+
+  // Un pool restreint à une seule rareté ne peut pas en inventer une autre.
+  const onlyCommon = Array.from({ length: 20 }, () => rollLootItem(
+    ['dague', 'tunique'], DROP_TABLES.trone.secret, seeded(7)
+  ));
+  check('tirages: pas de rareté absente du pool',
+    onlyCommon.every((id) => LOOT[id].rarity === 'commun'));
+}
+
 // --- Salles praticables et accessibles ------------------------------------
 for (const dungeon of DUNGEONS) {
   const run = createRun(dungeon.id, 42);
@@ -268,7 +376,11 @@ for (const dungeon of DUNGEONS) {
 
     const ids = entry.chests.map((chest) => chest.item);
     check(`${label}: butin des coffres unique`, new Set(ids).size === ids.length);
-    check(`${label}: butin tiré de la salle`, ids.every((id) => entry.spec.loot.includes(id)));
+    // Une salle ordinaire reste fidèle à son thème ; une salle secrète puise
+    // dans tout le donjon pour que le butin d’élite ne soit pas garanti.
+    const pool = entry.hidden ? run.dungeon.loot : entry.spec.loot;
+    check(`${label}: butin tiré du ${entry.hidden ? 'donjon' : 'thème de la salle'}`,
+      ids.every((id) => pool.includes(id)));
   }
 
   check(`${dungeon.id}: salles secrètes plus petites`,
@@ -576,6 +688,44 @@ for (const dungeon of DUNGEONS) {
   check('équipement: doublons comptés', itemCount(vault, 'dague') === 2 && ownsItem(vault, 'dague'));
 }
 
+// --- Talismans et effets utilitaires --------------------------------------
+{
+  check('talismans: troisième emplacement prévu',
+    EQUIP_SLOTS.length === 3 && EQUIP_SLOTS.includes('talisman')
+    && 'talisman' in createVault().equipped && createVault().equipped.talisman === null);
+
+  const vault = createVault();
+  addItem(vault, 'plume_noire');
+  check('talismans: équipé dans son propre emplacement',
+    equipItem(vault, 'plume_noire') === 'equipped' && vault.equipped.talisman === 'plume_noire');
+  check('talismans: PV ajoutés sans armure',
+    gearStats(vault).pv === LOOT.plume_noire.pv
+    && playerStats(vault).pvMax === BASE_STATS.pv + LOOT.plume_noire.pv);
+
+  addItem(vault, 'sceau_neant');
+  equipItem(vault, 'sceau_neant');
+  const stats = playerStats(vault);
+  check('talismans: un seul talisman à la fois', vault.equipped.talisman === 'sceau_neant');
+  check('talismans: expérience et butin cumulés',
+    stats.xpBonus === LOOT.sceau_neant.xpBonus
+    && Math.abs(stats.dropChance - (0.3 + LOOT.sceau_neant.dropBonus)) < 1e-9);
+  check('talismans: PV du talisman comptés dans le maximum',
+    stats.pvMax === BASE_STATS.pv + LOOT.sceau_neant.pv);
+
+  const fast = createVault();
+  addItem(fast, 'coutelas');
+  equipItem(fast, 'coutelas');
+  check('armes: un coutelas frappe plus vite que le rythme de base',
+    playerStats(fast).attackCd < ATTACK_COOLDOWN);
+
+  const armoured = createVault();
+  addItem(armoured, 'heaume_gardien');
+  equipItem(armoured, 'heaume_gardien');
+  check('armures: les PV de l’objet s’ajoutent à ceux de la défense',
+    playerStats(armoured).pvMax
+      === BASE_STATS.pv + LOOT.heaume_gardien.defense * 2 + LOOT.heaume_gardien.pv);
+}
+
 // --- Arme en main et geste de frappe -------------------------------------
 {
   const weapons = Object.entries(LOOT).filter(([, item]) => item.kind === 'arme');
@@ -633,6 +783,12 @@ for (const dungeon of DUNGEONS) {
 
   const notOwned = sanitizeVault({ items: {}, equipped: { arme: 'hache' } });
   check('sauvegarde: impossible de porter un objet absent', notOwned.equipped.arme === null);
+
+  const talisman = sanitizeVault({ items: { plume_noire: 1 }, equipped: { talisman: 'plume_noire' } });
+  check('sauvegarde: talisman relu', talisman.equipped.talisman === 'plume_noire');
+  const wrongSlot = sanitizeVault({ items: { dague: 1 }, equipped: { talisman: 'dague' } });
+  check('sauvegarde: arme refusée dans l’emplacement talisman',
+    wrongSlot.equipped.talisman === null);
 
   const huge = sanitizeVault({ items: { dague: 1e9 } });
   check('sauvegarde: quantité bornée', itemCount(huge, 'dague') === 99);

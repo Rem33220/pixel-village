@@ -212,17 +212,22 @@ amassées en revendant du butin.
 
 ### Équipement
 
-Deux emplacements : une **arme** et une **armure**. Chacun affiche l'objet porté
-et son bonus (`+4 ATQ`, `+3 DÉF`) ; clique dessus pour lire sa fiche ou le
-retirer. Un emplacement vide indique simplement « Aucune arme » / « Aucune
-armure ».
+Trois emplacements : une **arme**, une **armure** et un **talisman**. Chacun
+affiche l'objet porté et son bonus (`+4 ATQ`, `+3 DÉF`, `+8 % XP`) ; clique
+dessus pour lire sa fiche ou le retirer. Un emplacement vide indique simplement
+« Aucune arme » / « Aucune armure » / « Aucun talisman ».
 
 - **ATQ** (attaque) : dégâts de chaque coup (`E`), base 4 sans arme.
 - **DÉF** (défense) : points de dégâts retirés à chaque coup reçu, et **+2 PV
   maximum par point de défense**.
+- Les **talismans** ne donnent presque jamais d'attaque : ils ajoutent des PV,
+  de la régénération (`PV/s`), de l'expérience (`% XP`), du butin (`% butin`),
+  de la portée ou de l'exécution. Ils permettent de spécialiser un personnage
+  sans abandonner son arme ni son armure.
 
-L'arme et l'armure comptent ensemble : le HUD en haut à gauche affiche en
-permanence `ATQ … · DÉF …` (survole-le pour voir les deux objets portés).
+L'arme, l'armure et le talisman comptent ensemble : le HUD en haut à gauche
+affiche en permanence `ATQ … · DÉF …` (survole-le pour voir les trois objets
+portés).
 
 **L'arme se voit en main** : dès qu'une arme est équipée, elle apparaît dans la
 main droite du personnage, au village comme dans les donjons, avec sa propre
@@ -240,45 +245,78 @@ statistiques montent immédiatement. Le bouton devient **Retirer**.
 
 | Arme | Bonus | Rareté | Où |
 | ---- | ----- | ------ | -- |
-| Dague rouillée | +2 ATQ | Commun | Crypte — 1re salle |
+| Dague rouillée | +2 ATQ | Commun | Crypte — salles 1 et 2 |
+| Coutelas ébréché | +3 ATQ, frappe 8 % plus vite | Commun | Crypte — 2e salle |
 | Épée courte | +4 ATQ | Commun | Crypte — 2e salle |
-| Hache de pierre | +6 ATQ | Rare | Galerie — salles 1 et 2 |
+| Hache de pierre | +6 ATQ | Rare | Galerie — salles 1 à 3 |
+| Lame du veilleur | +7 ATQ, +0,1 portée | Rare | Galerie — 2e salle, ou Abysses |
 | Lame des brumes | +9 ATQ | Épique | Galerie — 2e salle, ou salle secrète de la Crypte |
+| Lame de givre | +12 ATQ, frappe 5 % plus vite | Épique | Abysses — 1re salle, ou salle secrète de la Forge |
 | Épée du gardien | +13 ATQ | Épique | Antre — salles 2 à 4, ou salle secrète de la Galerie |
 | Lance des ombres | +16 ATQ | Épique | Salle secrète de la Galerie |
 | Trident des abysses | +17 ATQ | Épique | Abysses — salles 1 à 5, puis Forge et Trône |
-| Lame d’ombre | +18 ATQ | Légendaire | Salle secrète de l’Antre |
 | Marteau des cendres | +20 ATQ | Épique | Forge — salles 1 à 6, ou Trône |
-| Lame des abysses | +22 ATQ | Mythique | Salle secrète des Abysses |
 | Épée du néant | +23 ATQ | Épique | Trône — salles 1 à 7 |
-| Harpon des abysses | +25 ATQ | Mythique | Salle secrète des Abysses |
-| Fléau des cendres | +27 ATQ | Mythique | Salle secrète de la Forge |
-| Épée des cendres | +30 ATQ | Mythique | Salle secrète de la Forge |
-| Lame du néant | +34 ATQ | Mythique | Salle secrète du Trône |
-| Sceptre du néant | +36 ATQ | Mythique | Salle secrète du Trône |
+| Lame d’ombre | +24 ATQ | Légendaire | Salle secrète de l’Antre |
+| Épée d’orage | +26 ATQ, +15 % exécution | Légendaire | Salle secrète des Abysses |
+| Lame des abysses | +29 ATQ | Mythique | Salle secrète des Abysses |
+| Harpon des abysses | +31 ATQ | Mythique | Salle secrète des Abysses |
+| Fléau des cendres | +33 ATQ | Mythique | Salle secrète de la Forge |
+| Épée des cendres | +35 ATQ | Mythique | Salle secrète de la Forge |
+| Lame du néant | +36 ATQ | Mythique | Salle secrète du Trône |
+| Fauchon du néant | +38 ATQ, frappe 6 % plus vite | Mythique | Salle secrète du Trône |
+| Sceptre du néant | +40 ATQ | Mythique | Salle secrète du Trône |
 
 | Armure | Bonus | Rareté | Où |
 | ------ | ----- | ------ | -- |
 | Tunique de cuir | +1 DÉF | Commun | Crypte — salles 1 et 2 |
+| Casque d’os | +2 DÉF, +2 PV | Commun | Crypte — salles 1 et 2 |
 | Cotte de mailles | +3 DÉF | Rare | Galerie — salles 1 à 3 |
 | Gantelets de pierre | +4 DÉF | Rare | Antre — salles 1 à 4 |
 | Plastron runique | +5 DÉF | Rare | Galerie — 1re salle |
-| Armure du gardien | +8 DÉF | Épique | Antre — salles 2 à 4 |
+| Plastron clouté | +6 DÉF | Rare | Antre — salles 1 et 4, ou Abysses |
+| Heaume de cristal | +7 DÉF, +0,4 PV/s | Épique | Antre — 2e salle, Abysses, ou salle secrète de la Forge |
+| Armure du gardien | +8 DÉF | Épique | Antre — salles 2 à 4, puis Abysses et Trône |
 | Broche du gardien | +9 DÉF | Épique | Salle secrète de l’Antre |
 | Cape d’ombre | +10 DÉF | Légendaire | Salle secrète de l’Antre |
-| Casque de cendres | +11 DÉF | Mythique | Salle secrète de la Forge |
-| Cuirasse abyssale | +12 DÉF | Mythique | Salle secrète des Abysses |
-| Gantelets de cendres | +12 DÉF | Mythique | Salle secrète de la Forge |
-| Épaulières abyssales | +13 DÉF | Mythique | Salle secrète des Abysses |
+| Heaume du gardien | +12 DÉF, +6 PV | Légendaire | Salles secrètes des Abysses et de la Forge |
+| Gantelets d’orage | +12 DÉF, +0,3 PV/s | Légendaire | Salle secrète du Trône |
+| Casque de cendres | +13 DÉF | Mythique | Salle secrète de la Forge |
+| Épaulières abyssales | +14 DÉF | Mythique | Salle secrète des Abysses |
+| Gantelets de cendres | +14 DÉF | Mythique | Salle secrète de la Forge |
 | Bouclier de cendres | +14 DÉF | Mythique | Salle secrète de la Forge |
+| Cuirasse abyssale | +15 DÉF | Mythique | Salle secrète des Abysses |
 | Couronne du néant | +17 DÉF | Mythique | Salle secrète du Trône |
 | Voile du néant | +18 DÉF | Mythique | Salle secrète du Trône |
 | Masque du néant | +20 DÉF | Mythique | Salle secrète du Trône |
 
+| Talisman | Bonus | Rareté | Où |
+| -------- | ----- | ------ | -- |
+| Plume de corbeau | +4 PV | Commun | Crypte — 1re salle |
+| Dent de loup | +1 ATQ, +5 % butin | Commun | Galerie — 1re salle |
+| Boussole rouillée | +10 % XP | Rare | Galerie — 3e salle |
+| Dent de golem | +6 PV, +0,5 PV/s | Épique | Antre — 3e salle, ou Abysses |
+| Anneau du trône | +7 PV, +20 % XP, +8 % butin | Légendaire | Salle secrète du Trône |
+| Sceau du néant | +8 PV, +35 % XP, +12 % butin | Mythique | Salle secrète de la Forge |
+
 La **rareté** est écrite dans la fiche de chaque objet : *Commun*, *Rare*,
-*Épique*, *Légendaire* (en violet) ou *Mythique* (en rose). Les objets
-**légendaires** et **mythiques** ne sortent que des salles secrètes : ce sont
-les seuls butins qu'on ne croise jamais dans une salle ordinaire.
+*Épique*, *Légendaire* (en violet) ou *Mythique* (en rose). La puissance suit
+la rareté : une arme mythique frappe toujours plus fort qu’une épique, et une
+armure mythique protège toujours plus qu’une légendaire.
+
+**Le butin est tiré au sort, pas donné d’avance.** Chaque coffre pioche dans le
+thème de sa salle en respectant des poids : plus la rareté est haute, plus le
+tirage est rare. Deux coffres d’une même salle ne contiennent pas deux fois le
+même objet tant que le thème propose assez de choix. Les monstres suivent les
+mêmes poids quand ils lâchent quelque chose.
+
+Les **salles secrètes** puisent, elles, dans **tout le butin du donjon**, avec
+des poids qui favorisent les hautes raretés — mais sans jamais garantir le
+meilleur objet. Le mythique reste exceptionnel : environ **7 %** des coffres
+des salles secrètes des Abysses, **16 %** à la Forge et **28 %** au Trône. Il
+faut donc parfois plusieurs descentes avant de tomber sur la pièce convoitée.
+Les objets **légendaires** et **mythiques** ne sortent que des salles secrètes :
+ce sont les seuls butins qu'on ne croise jamais dans une salle ordinaire.
 
 Les objets ne se perdent jamais, même en tombant dans un donjon. Ils restent
 dans le navigateur (voir la section 8).
@@ -599,8 +637,14 @@ points de vie pour la prochaine visite. **Tu ne perds ni butin ni équipement.**
 
 - Approche-toi d'un coffre : l'invite **« Ouvrir le coffre »** apparaît.
   Appuie sur `E` : l'objet tombe directement dans ton inventaire.
-- Chaque coffre contient un objet **différent** du donjon.
-- Les monstres laissent parfois tomber un objet (environ une fois sur trois).
+- Chaque coffre tire un objet **dans le thème de sa salle**, avec des chances qui
+  dépendent de la rareté : les objets communs sont fréquents, les épiques rares.
+  Deux coffres d'une même salle ne donnent pas deux fois le même objet tant que
+  le thème le permet.
+- Les **légendaires** et les **mythiques** ne se trouvent que dans les salles
+  secrètes, et même là ils ne sont pas garantis (voir la section 5).
+- Les monstres laissent parfois tomber un objet (environ une fois sur trois),
+  avec les mêmes chances de rareté.
 - Le panneau de droite suit ta progression : `salle · coffres ouverts ·
   monstres restants · PV`. Quand tous les coffres d'une salle sont ouverts,
   elle est nettoyée ; quand toutes les salles le sont, le donjon est fini.
@@ -755,6 +799,7 @@ section correspondante (et la ligne « jeu actuel » en haut) :
 | maison scellée, donjon gardien, condition d'accès | 3 (tableau des maisons), 4 (Les portes scellées), 8 et 11 |
 | donjon verrouillé, déblocage progressif, expédition avancée | 11 (Les expéditions avancées) et 8 |
 | nouvelle rareté (mythique), prix de vente | 5 (Butin, Vendre) et 11 |
+| tirage pondéré, chances de rareté, talisman | 5 (Butin des donjons) et 11 (Les coffres et le butin) |
 | échoppe, bourse, prix de vente | 3, 5 (Vendre à l'échoppe), 8 et 9 |
 | réinitialisation du personnage | 1 (L'écran d'accueil) et 8 |
 | règle de combat (dégâts, PV, répit) | 11 |

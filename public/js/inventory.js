@@ -17,8 +17,12 @@ export const ITEM_ORDER = ['lampe', 'bottes', 'medaille'];
 
 const SLOTS = [
   { id: 'arme', label: 'Arme', empty: 'Aucune arme' },
-  { id: 'armure', label: 'Armure', empty: 'Aucune armure' }
+  { id: 'armure', label: 'Armure', empty: 'Aucune armure' },
+  { id: 'talisman', label: 'Talisman', empty: 'Aucun talisman' }
 ];
+
+const SLOT_ORDER = { arme: 0, armure: 1, talisman: 2 };
+const KIND_LABEL = { arme: 'Arme', armure: 'Armure', talisman: 'Talisman' };
 
 const RARITY = {
   commun: 'Commun',
@@ -128,10 +132,29 @@ export function createLootIcon(id) {
 
 const lootIcon = createLootIcon;
 
-function bonusLabel(item) {
-  if (item.kind === 'arme') return `+${item.attack} ATQ`;
-  return `+${item.defense} DÉF`;
+// Résumé lisible des bonus d'un objet. Les talismans n'ont souvent ni attaque
+// ni défense : c'est ici que leurs effets utilitaires apparaissent.
+export function itemBonusLabel(item) {
+  if (!item) return 'Aucun bonus';
+  const num = (value) => String(value).replace('.', ',');
+  const parts = [];
+  if (item.attack) parts.push(`+${item.attack} ATQ`);
+  if (item.defense) parts.push(`+${item.defense} DÉF`);
+  if (item.pv) parts.push(`+${item.pv} PV`);
+  if (item.regen) parts.push(`+${num(item.regen)} PV/s`);
+  if (item.xpBonus) parts.push(`+${Math.round(item.xpBonus * 100)} % XP`);
+  if (item.dropBonus) parts.push(`+${Math.round(item.dropBonus * 100)} % butin`);
+  if (item.range) parts.push(`+${num(item.range)} portée`);
+  if (item.execute) parts.push(`+${Math.round(item.execute * 100)} % exécution`);
+  if (item.attackCd && item.attackCd !== 1) {
+    parts.push(`frappe ${Math.round(Math.abs(1 - item.attackCd) * 100)} % plus ${
+      item.attackCd < 1 ? 'vite' : 'lente'
+    }`);
+  }
+  return parts.join(' · ') || 'Aucun bonus';
 }
+
+const bonusLabel = itemBonusLabel;
 
 export function createInventory({ getRewards, getVault, onChange, onEquip }) {
   const root = document.getElementById('inventory');
@@ -156,7 +179,8 @@ export function createInventory({ getRewards, getVault, onChange, onEquip }) {
       .sort((a, b) => {
         const itemA = LOOT[a];
         const itemB = LOOT[b];
-        if (itemA.kind !== itemB.kind) return itemA.kind === 'arme' ? -1 : 1;
+        const slotDiff = (SLOT_ORDER[itemA.kind] ?? 9) - (SLOT_ORDER[itemB.kind] ?? 9);
+        if (slotDiff !== 0) return slotDiff;
         return itemB.attack + itemB.defense - (itemA.attack + itemA.defense);
       });
   }
@@ -212,7 +236,7 @@ export function createInventory({ getRewards, getVault, onChange, onEquip }) {
 
     const stats = document.createElement('p');
     stats.className = 'inventory-effect';
-    stats.textContent = `${RARITY[item.rarity] ?? 'Commun'} · ${item.kind === 'arme' ? 'Arme' : 'Armure'} · ${bonusLabel(item)}`;
+    stats.textContent = `${RARITY[item.rarity] ?? 'Commun'} · ${KIND_LABEL[item.kind] ?? 'Objet'} · ${itemBonusLabel(item)}`;
 
     const text = document.createElement('p');
     text.textContent = item.detail;
@@ -248,8 +272,8 @@ export function createInventory({ getRewards, getVault, onChange, onEquip }) {
     const text = document.createElement('p');
     text.className = 'inventory-source';
     text.textContent = id
-      ? bonusLabel(LOOT[id])
-      : `Rien d’équipé. Choisis ${slot.id === 'arme' ? 'une arme' : 'une armure'} dans ton butin ci-dessus.`;
+      ? itemBonusLabel(LOOT[id])
+      : 'Rien d’équipé. Choisis un objet de ce type dans ton butin ci-dessus.';
 
     detail.append(title, text);
 

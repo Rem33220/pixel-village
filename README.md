@@ -6,7 +6,10 @@ réel, un chat, un mode solo de secours et **trois maisons à visiter, chacune a
 son épreuve et sa récompense** — mais chaque maison reste scellée tant que le
 donjon qui la garde n'a pas été vaincu. Les trois donjons du portail en cachent
 trois autres, des **expéditions avancées** qui se débloquent dans l'ordre et
-gardent un butin mythique. Chaque monstre vaincu rapporte de l'**expérience** :
+gardent un butin mythique, tiré selon une **rareté pondérée** : les pièces les
+plus fortes restent rares. Les **talismans** complètent l'arme et l'armure avec
+des effets utilitaires (PV, expérience, butin, régénération). Chaque monstre
+vaincu rapporte de l'**expérience** :
 les niveaux donnent des points à dépenser dans un **arbre de compétences** à
 quatre branches, qui améliore les statistiques et débloque la **ruade** et le
 **tourbillon**. Au nord-est, l'**échoppe du colporteur** rachète le butin en trop
@@ -295,7 +298,7 @@ Pendant que l'inventaire est ouvert, le personnage ne bouge plus (aucun ordre
 n'est envoyé au serveur) ; `I`, `Échap`, `Entrée` ou un clic à côté du panneau
 le referment. Les icônes sont dessinées en ASCII dans `public/js/inventory.js`,
 sur le même principe que les personnages : tu peux les redessiner sans
-logiciel. Le panneau affiche aussi l'**équipement** (arme, armure) et le
+logiciel. Le panneau affiche aussi l'**équipement** (arme, armure, talisman) et le
 **butin des donjons**, avec les boutons **Équiper** / **Retirer**. La ligne
 d'en-tête rappelle la bourse (« 2 butin · 68 pièces »).
 
@@ -379,6 +382,20 @@ vérifie que les six donjons ont six décors distincts, que chaque palette porte
 son identifiant (le rendu compare `decor.id`) et que les salles d'un donjon
 n'ont pas toutes la même variante.
 
+**Le butin est pondéré par rareté** : `RARITIES` fixe les cinq paliers
+(`commun` → `mythique`) et `DROP_TABLES` donne, pour chaque donjon, les poids
+d'une salle ordinaire et ceux d'une salle secrète. `createRoomEntry` tire chaque
+coffre séparément avec `rollLootItem` : la rareté est choisie selon les poids,
+puis l'objet uniformément parmi ceux de cette rareté ; `taken` évite les
+doublons tant que le thème de la salle le permet. Une salle secrète puise dans
+tout `dungeon.loot` — le butin d'élite y est favorisé, jamais garanti — alors
+qu'une salle ordinaire reste limitée à son thème. Les monstres passent par le
+même tirage dans `rollDrop`. Ajouter un objet se fait donc en trois endroits :
+une entrée dans `LOOT` (avec `kind`, `rarity` et ses bonus), une place dans le
+butin d'au moins un donjon, et éventuellement une salle. `gearStats` additionne
+les trois emplacements (`arme`, `armure`, `talisman`) ; `playerStats` y ajoute
+les effets de l'arbre.
+
 **L'expérience et l'arbre** vivent dans `public/js/skills.js`, qui ne touche
 pas au DOM : `MONSTERS[type].xp` donne la valeur d'un monstre, `xpForKill`
 applique la profondeur du donjon (`1 + 0,2 × (niveau − 1)`) et le bonus
@@ -427,7 +444,10 @@ Tout se règle en haut du fichier :
 | `DUNGEONS` | `dungeons.js` | salles (`rooms`), salles secrètes (`secrets`), fissures (`cracks`), monstres, coffres, butin |
 | `MONSTERS` | `dungeons.js` | PV, dégâts, XP, vitesse et taille de chaque monstre |
 | `requires`, `dungeonUnlocked` | `dungeons.js` | chaîne de déblocage des expéditions avancées |
-| `LOOT` | `dungeons.js` | armes et armures : bonus, rareté, couleur d'icône |
+| `LOOT` | `dungeons.js` | armes, armures et talismans : bonus, rareté, couleur d'icône |
+| `RARITIES`, `RARITY_ORDER` | `dungeons.js` | paliers de rareté, libellé, rang et couleur |
+| `DROP_TABLES`, `dropChances` | `dungeons.js` | poids de tirage par donjon, salle ordinaire et salle secrète |
+| `rollLootItem` | `dungeons.js` | tirage pondéré d'un objet, avec exclusion des doublons |
 | `BASE_STATS` | `dungeons.js` | attaque, défense et PV de base du personnage |
 | `ENTRY_GRACE`, `MONSTER_AGGRO` | `dungeons.js` | répit à chaque arrivée, distance de poursuite |
 | `SWING_TIME`, `swingAngle` | `dungeons.js` | durée et trajectoire du coup |
@@ -445,7 +465,8 @@ doit rester fermée au départ. Un monstre inédit demande une entrée dans
 `MONSTERS` **et** une branche dans `drawMonster` (le dessin est fait au canvas,
 sans image). Les tests vérifient que chaque salle (secrète comprise) est
 atteignable à pied depuis son arrivée, que les coffres et les monstres sont sur
-du sol libre, que le butin vient bien de la salle, que chaque fissure est
+du sol libre, que le butin vient bien du thème de la salle (ou de tout le
+donjon pour une salle secrète), que chaque fissure est
 atteignable et occupe une salle distincte, que les deux croissances (salles et
 secrètes) tiennent, et qu'une même graine redonne la même expédition.
 
@@ -549,7 +570,7 @@ Le port `10000` est normal : Render fournit son propre port via `process.env.POR
 `git push`), Render redéploie tout seul. Rien d'autre à faire.
 
 Pour que ce soit **une seule commande**, `node tools/publier.mjs "message"`
-vérifie la syntaxe de tous les modules, lance les trois tests, refuse d'envoyer
+vérifie la syntaxe de tous les modules, lance les quatre tests, refuse d'envoyer
 si l'un échoue, commit, se met à jour depuis GitHub puis pousse sur `main`.
 Le double-clic **`Publier sur GitHub.bat`** fait la même chose en demandant le
 message. Un échec laisse le jeu officiel intact.
