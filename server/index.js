@@ -7,7 +7,8 @@ import { generateWorld, isSolid } from '../public/js/map.js';
 import { CONFIG } from '../public/js/config.js';
 
 // WebSocket maison (server/websocket.js) : aucune dépendance, donc aucun
-// « npm install » à faire. « node server/index.js » suffit.import { createClient } from '@supabase/supabase-js';
+// « npm install » à faire. « node server/index.js » suffit.
+import { createClient } from '@supabase/supabase-js';
 import { WebSocketServer } from './websocket.js';
 
 const supabase = createClient(
