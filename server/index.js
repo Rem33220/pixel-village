@@ -7,17 +7,10 @@ import { generateWorld, isSolid } from '../public/js/map.js';
 import { CONFIG } from '../public/js/config.js';
 
 // WebSocket maison (server/websocket.js) : aucune dépendance, donc aucun
-// « npm install » à faire. « node server/index.js » suffit.import { createClient } from '@supabase/supabase-js';
+// « npm install » à faire. « node server/index.js » suffit.
 import { WebSocketServer } from './websocket.js';
 
-const supabase = createClient(
-  process.env.SUPABASE_URL || '',
-  process.env.SUPABASE_SERVICE_ROLE_KEY || ''
-);
-
-const wsBackend = process.env.SUPABASE_URL
-  ? 'WebSocket + Supabase (identité/perso)'
-  : 'WebSocket intégré, zéro dépendance';
+const wsBackend = 'WebSocket intégré, zéro dépendance';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = path.resolve(__dirname, '..', 'public');
@@ -267,7 +260,7 @@ wss.on('connection', (ws) => {
   });
 });
 
-async function join(ws, message) {
+function join(ws, message) {
   if (sockets.has(ws)) return;
   if (players.size >= MAX_PLAYERS) {
     sendJson(ws, { t: 'system', text: 'Serveur complet, réessaie dans un instant.' });
@@ -275,79 +268,15 @@ async function join(ws, message) {
     return;
   }
 
-  // --- Connexion avec compte Supabase (optionnel) --------------------------------
-  let supabaseId = null;
-  let resolvedName = cleanName(message.name);
-  let resolvedColor = CONFIG.colors.includes(message.color) ? message.color : CONFIG.colors[0];
-
-  if (message.token && supabase) {
-    const { data, error } = await supabase.auth.getUser(message.token);
-    if (!error && data?.user) {
-      supabaseId = data.user.id;
-      if (!resolvedName || resolvedName === 'Aventurier') {
-        resolvedName = cleanName(data.user.email?.split('@')[0] ?? 'Habitant');
-      }
-    } else {
-      console.warn(`Token Supabase invalide : ${error?.message ?? 'inconnu'}`);
-    }
-  }
-
-  // --- Perso Supabase : récupérer / créer ----------------------------------
-  let character = null;
-  if (supabaseId) {
-    const { data: existing, error: fetchError } = await supabase
-      .from('characters')
-      .select('*')
-      .eq('id', supabaseId)
-      .maybeSingle();
-    if (fetchError) {
-      console.warn(`Erreur lecture perso Supabase : ${fetchError.message}`);
-    } else {
-      character = existing;
-    }
-
-    if (!character) {
-      const payload = {
-        id: supabaseId,
-        display_name: resolvedName,
-        class: 'paysan',
-        level: 1,
-        coins: 0,
-        state: {},
-        x: world.spawn.x,
-        y: world.spawn.y,
-      };
-      const { data: inserted, error: insertError } = await supabase
-        .from('characters')
-        .upsert(payload, { onConflict: 'id' })
-        .select()
-        .single();
-      if (insertError) {
-        console.warn(`Erreur création perso Supabase : ${insertError.message}`);
-      } else {
-        character = inserted;
-      }
-    }
-
-    if (character) {
-      resolvedName = cleanName(character.display_name ?? resolvedName);
-      resolvedColor =
-        message.color && CONFIG.colors.includes(message.color)
-          ? message.color
-          : (character.color ?? CONFIG.colors[0]);
-    }
-  }
-
-  // --- Création du joueur (monde) ------------------------------------------
   const id = String(nextId++);
+  const color = CONFIG.colors.includes(message.color) ? message.color : CONFIG.colors[0];
   const player = {
     id,
-    supabaseId,
     ws,
-    name: resolvedName,
-    color: resolvedColor,
-    x: character?.x ?? world.spawn.x,
-    y: character?.y ?? world.spawn.y,
+    name: cleanName(message.name),
+    color,
+    x: world.spawn.x,
+    y: world.spawn.y,
     dx: 0,
     dy: 0,
     dir: 'down',
@@ -364,13 +293,11 @@ async function join(ws, message) {
   sendJson(ws, {
     t: 'welcome',
     id,
-    supabaseId,
     spawn: world.spawn,
-    players: playerList(),
-    ...(character ?? {}),
+    players: playerList()
   });
   broadcast({ t: 'system', text: `${player.name} rejoint le village.` });
-  console.log(`${player.name} (${id}${supabaseId ? ' [' + supabaseId.slice(0, 8) + '…]' : ''}) a rejoint — ${players.size} joueur(s).`);
+  console.log(`${player.name} (${id}) a rejoint — ${players.size} joueur(s).`);
 }
 
 setInterval(() => {
