@@ -6,7 +6,7 @@ d'installation ni de code : pour ça, voir [README.md](README.md).
 
 > **Note de maintenance** — ce fichier décrit *toutes* les fonctionnalités
 > jouables et doit être mis à jour à chaque nouveauté (voir la dernière section).
-> État décrit : celui du commit `2da2dd3` — portail, donjons et combat, butin
+> État décrit : celui du commit `À_COMPLÉTER` — portail, donjons et combat, butin
 > à rareté pondérée avec armes, armures et talismans, arme tenue en main et
 > animation de frappe, donjons à plusieurs salles dont le nombre croît avec le
 > niveau, un décor propre à chaque donjon, plusieurs salles secrètes par donjon
@@ -84,10 +84,12 @@ chemins.
 | `P` | ouvrir / fermer les paramètres |
 | `Entrée` | ouvrir le chat (puis `Entrée` pour envoyer) |
 | `Échap` | fermer le chat, un panneau, quitter une maison ou un donjon |
+| **Menu principal** | quitter la partie et revenir à l'écran d'accueil sans effacer la progression |
 | `1` `2` `3` | répondre aux énigmes de la Maison du sage |
 
-Trois boutons sont aussi disponibles en haut à gauche : **Compétences (K)**,
-**Sac (I)** et **Paramètres**. Toutes les touches de déplacement et d'action se
+Quatre boutons sont aussi disponibles en haut à gauche : **Compétences (K)**,
+**Sac (I)**, **Paramètres** et **Menu principal**. Ce dernier quitte la partie
+et revient à l'écran d'accueil sans effacer la progression. Toutes les touches de déplacement et d'action se
 changent dans les paramètres ; les flèches restent toujours actives. `K`,
 `Espace` et `F` sont fixes, parce qu'elles dépendent de l'arbre (voir la
 section 12).
@@ -841,6 +843,7 @@ section correspondante (et la ligne « jeu actuel » en haut) :
 | règle de combat (dégâts, PV, répit) | 11 |
 | arme affichée en main, animation de frappe | 5 (Équipement) et 11 (Le combat) |
 | changement de sauvegarde | 8 |
+| bouton de retour au menu principal | 2 |
 | limite ou règle multijoueur | 7 |
 | expérience, niveau, point de compétence | 12 (Gagner de l'expérience), 8 et le HUD de la section 2 |
 | compétence, arbre, capacité (ruade, tourbillon) | 12 (Les points et l'arbre, La ruade, Le tourbillon) et 2 |

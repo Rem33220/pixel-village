@@ -134,6 +134,7 @@ const els = {
   challengeAnswers: document.getElementById('challenge-answers'),
   inventoryBtn: document.getElementById('inventory-btn'),
   settingsBtn: document.getElementById('settings-btn'),
+  returnMenuBtn: document.getElementById('return-menu-btn'),
   settingsMenuBtn: document.getElementById('settings-menu-btn'),
   hint: document.getElementById('hint'),
   challengeHelp: document.getElementById('challenge-help'),
@@ -1474,6 +1475,44 @@ function updatePrompt(force = false) {
 
 // --- Connexion -------------------------------------------------------------
 
+function returnToMainMenu() {
+  if (state.mode === 'menu') return;
+  if (state.mode === 'connecting') {
+    state.conn?.close();
+    state.conn = null;
+  }
+
+  if (state.inside) exitHouse();
+  if (state.run) exitDungeon('sortie');
+  if (state.conn) {
+    state.conn.close();
+    state.conn = null;
+  }
+  state.players.clear();
+  state.selfId = null;
+  state.mode = 'menu';
+  state.lastSent = { x: 0, y: 0 };
+  state.lastSentAt = 0;
+  closePortal();
+  inventory.close();
+  settingsPanel.close();
+  shopPanel.close();
+  skillsPanel.close();
+  els.chatInput.blur();
+  els.challenge.classList.add('hidden');
+  els.status.classList.add('hidden');
+  els.reconnect.classList.add('hidden');
+  els.prompt.classList.add('hidden');
+  els.abilities.classList.add('hidden');
+  document.body.classList.remove('playing');
+  els.login.classList.remove('hidden');
+  els.hudPlayers.textContent = '…';
+  updateHud();
+  setInputEnabled(false);
+  els.name.focus();
+  playSound('click');
+}
+
 function enterWorld(online) {
   const name = (els.name.value || '').trim().slice(0, CONFIG.maxNameLength) || 'Aventurier';
   state.name = name;
@@ -1815,6 +1854,7 @@ els.skillsBtn.addEventListener('click', () => {
 });
 
 els.settingsBtn.addEventListener('click', () => settingsPanel.toggle());
+els.returnMenuBtn.addEventListener('click', returnToMainMenu);
 els.settingsMenuBtn.addEventListener('click', () => settingsPanel.open());
 
 // Réinitialisation en deux temps : le premier clic demande confirmation, le
