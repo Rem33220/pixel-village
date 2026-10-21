@@ -6,17 +6,16 @@ d'installation ni de code : pour ça, voir [README.md](README.md).
 
 > **Note de maintenance** — ce fichier décrit *toutes* les fonctionnalités
 > jouables et doit être mis à jour à chaque nouveauté (voir la dernière section).
-> État décrit : celui du commit `487ed18` — portail, donjons et combat, butin
-> et équipement, arme tenue en main et animation de frappe, donjons à plusieurs
-> salles dont le nombre croît avec le niveau, un décor propre à chaque donjon,
-> plusieurs salles secrètes par
-> donjon sur des murs différents, expérience, arbre de compétences et capacités
+> État décrit : celui du commit `5b9f84e` — portail, donjons et combat, butin
+> à rareté pondérée avec armes, armures et talismans, arme tenue en main et
+> animation de frappe, donjons à plusieurs salles dont le nombre croît avec le
+> niveau, un décor propre à chaque donjon, plusieurs salles secrètes par donjon
+> sur des murs différents, expérience, arbre de compétences et capacités
 > (ruade, tourbillon, régénération, second souffle), butin légendaire et
-> mythique, maisons
-> scellées par leur donjon, expéditions avancées qui se débloquent dans
-> l'ordre, échoppe du colporteur avec sa bourse, et réinitialisation du
-> personnage. Les
-> commits qui ne touchent que la documentation ne changent rien à ce guide.
+> mythique, maisons scellées par leur donjon, expéditions avancées qui se
+> débloquent dans l'ordre, échoppe du colporteur avec sa bourse, et
+> réinitialisation du personnage. Les commits qui ne touchent que la
+> documentation ne changent rien à ce guide.
 
 ---
 
