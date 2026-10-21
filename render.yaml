@@ -1,15 +1,11 @@
 # Déploiement Render de Pixel Village.
-# Sur Render : New + → Blueprint → choisis ce dépôt → Deploy Blueprint.
-# Aucune dépendance : pas de « npm install », le build ne fait rien.
 services:
   - type: web
     name: pixel-village
     runtime: node
     plan: free
     region: frankfurt
-    buildCommand: echo aucune dependance
+    buildCommand: npm install --prefix server || npm ci --prefix server || true
     startCommand: node server/index.js
     healthCheckPath: /healthz
-    # Déploiement automatique à chaque commit poussé sur la branche suivie.
-    # Valeurs possibles : commit (défaut), checksPass, off.
     autoDeployTrigger: commit
