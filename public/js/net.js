@@ -32,9 +32,16 @@ export function createConnection(handlers) {
   let open = false;
   let closedByUs = false;
 
-  function connect({ name, color }) {
+  function connect({ name, color, token } = {}) {
     closedByUs = false;
     open = false;
+
+    // Token Supabase de la session (transmis par pixel-village-next via ?token=)
+    if (!token) {
+      try {
+        token = new URLSearchParams(window.location.search).get('token') || undefined;
+      } catch { /* navigateur headless/sans URL */ }
+    }
 
     let url;
     try {
@@ -65,7 +72,9 @@ export function createConnection(handlers) {
     ws.addEventListener('open', () => {
       open = true;
       clearTimeout(timer);
-      ws.send(JSON.stringify({ t: 'join', name, color }));
+      const joinPayload = { t: 'join', name, color };
+      if (token) joinPayload.token = token;
+      ws.send(JSON.stringify(joinPayload));
       handlers.onOpen?.();
     });
 

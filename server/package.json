@@ -1,0 +1,16 @@
+{
+  "name": "pixel-village-server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Serveur de jeu Pixel Village (HTTP + WebSocket) avec Supabase",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "engines": {
+    "node": ">=18.11"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.118.0"
+  }
+}

@@ -1540,7 +1540,20 @@ function connect() {
     onMessage: handleMessage,
     onClose: handleConnectionLost
   });
-  state.conn.connect({ name: state.name, color: state.color });
+  let token = undefined;
+  try {
+    token = new URLSearchParams(window.location.search).get('token') || undefined;
+  } catch { /* navigateur sans URL exploitable */ }
+  state.conn.connect({ name: state.name, color: state.color, token });
+
+  // Nettoyage de l'URL : le token n'est utile qu'au join.
+  if (token) {
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('token');
+      window.history.replaceState({}, '', url);
+    } catch { /* ignore */ }
+  }
 }
 
 function handleConnectionLost(error) {
@@ -1617,11 +1630,40 @@ function handleMessage(message) {
     case 'welcome': {
       state.mode = 'online';
       state.selfId = String(message.id);
+
+      // Écrase le nom/couleur de connexion avec ceux du perso Supabase (si présents).
+      if (message.name) state.name = message.name;
+      if (message.color) state.color = message.color;
+      updateSwatches();
+      saveSettings();
+
       syncPlayers(message.players);
       if (!state.players.has(state.selfId)) {
-        const p = makePlayer(state.selfId, state.name, state.color, message.spawn.x, message.spawn.y);
+        const p = makePlayer(state.selfId, state.name, state.color, message.spawn?.x ?? world.spawn.x, message.spawn?.y ?? world.spawn.y);
         state.players.set(state.selfId, p);
       }
+
+      // Hydratation du perso depuis Supabase (données de base).
+      if (message.level != null) {
+        // Niveau affiché dans la page de jeu pixel-village-next.
+        window.__PV_LEVEL = message.level;
+      }
+      if (message.coins != null) {
+        window.__PV_COINS = message.coins;
+      }
+      if (message.x != null && message.y != null) {
+        const me = state.players.get(state.selfId);
+        if (me) {
+          me.x = message.x;
+          me.y = message.y;
+          me.rx = message.x;
+          me.ry = message.y;
+        }
+      }
+      if (message.state && typeof message.state === 'object') {
+        window.__PV_STATE = message.state;
+      }
+
       applyRewards(state.players.get(state.selfId));
       syncGear();
       if (state.inside) state.conn.send({ t: 'interior', inside: true });
