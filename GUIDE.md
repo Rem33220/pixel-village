@@ -109,7 +109,8 @@ Un rappel des touches est affiché en bas à droite pendant la partie.
   **portail** lumineux entouré de deux piliers : c'est l'entrée des donjons —
   six au total, dont trois expéditions qui se débloquent au fil des victoires
   (voir la section 11).
-- Trois maisons, chacune avec sa porte marron et son paillasson lumineux.
+- Trois maisons aux **façades bien distinctes**, chacune avec sa cheminée, ses
+  poutres, son enseigne au-dessus de la porte et ses lanternes de chaque côté.
   Chacune est **gardée par un donjon** : sa porte reste scellée jusqu'à la
   victoire sur ce donjon (voir la section 4).
 
@@ -118,6 +119,15 @@ Un rappel des touches est affiché en bas à droite pendant la partie.
 | Chaumière des runes | nord-ouest | grand-rue vers l'ouest, puis montée vers le nord | Crypte des brumes |
 | Atelier des cristaux | sud-ouest | grand-rue vers l'ouest, puis descente vers le sud | Galerie des échos |
 | Maison du sage | sud-est | rue nord-sud vers le sud, puis grand-rue vers l'est | Antre du gardien |
+
+- **Chaumière des runes** : toit de mousse verte, murs de torchis crème, poutres
+  brunes, enseigne de pierre gravée d'une rune, jardinières de verdure et
+  cheminée de pierre qui fume.
+- **Atelier des cristaux** : toit et murs d'ardoise bleutée, fenêtres à cristaux
+  suspendus, bannière de cristal au-dessus de la porte et cheminée de métal
+  coiffée d'un éclat lumineux.
+- **Maison du sage** : toit de tuiles chaudes, murs ocre, poutres sombres,
+  enseigne-livre dorée, jardinières fleuries et cheminée de brique.
 
 Quand tu t'approches d'une porte ouverte, une invite **« Entrer — … »** s'affiche
 en bas de l'écran : appuie sur `E`. Devant une porte scellée, l'invite devient
@@ -137,6 +147,19 @@ Chaque maison contient une salle privée (on y entre seul), une épreuve et une
 récompense durable. Le panneau à droite rappelle l'objectif et l'avancement.
 Appuie sur `E` devant le seuil lumineux (ou `Échap`) pour ressortir : tu
 réapparais exactement là où tu étais.
+
+Chaque intérieur reprend l'ambiance de sa façade, sans changer l'épreuve :
+
+- **Chaumière des runes** : plancher de bois sombre, murs de torchis crème,
+  tapis vert, étagères de grimoires, chandelles et plantes aux coins.
+- **Atelier des cristaux** : dalles et murs d'ardoise bleutée, tapis bleu,
+  établis le long du mur, géodes de collection et fenêtres sur les murs
+  latéraux qui laissent entrer la lumière froide.
+- **Maison du sage** : boiseries chaudes, murs ocre, tapis prune, six
+  bibliothèques, pupitre d'étude, chandelles et plantes.
+
+Le mobilier est solide : il meuble les murs sans jamais bloquer les dalles, les
+cristaux, le livre ni la sortie.
 
 ### Les portes scellées
 
@@ -800,6 +823,7 @@ section correspondante (et la ligne « jeu actuel » en haut) :
 | Nouveauté | Section à compléter |
 | --------- | ------------------- |
 | nouvelle maison, épreuve ou récompense | 4 (et le tableau de l'inventaire, section 5) |
+| façade, intérieur ou mobilier d'une maison | 3 (les trois façades), 4 (l'ambiance de chaque intérieur) et le README |
 | nouvel objet, arme, armure, équipement | 5, plus une ligne dans le tableau des effets |
 | nouvelle touche ou action | 2 et 6 |
 | nouveau réglage (son, affichage…) | 6 |

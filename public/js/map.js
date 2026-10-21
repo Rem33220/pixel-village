@@ -29,7 +29,48 @@ export const T = {
   // Tuiles des donjons.
   STONE_FLOOR: 20,
   MOSS: 21,
-  STONE_WALL: 22
+  STONE_WALL: 22,
+  // Petit mobilier propre à chaque maison.
+  CRYSTAL_DECOR: 23,
+  CANDLE: 24,
+  PLANT: 25
+};
+
+// Palettes des trois maisons. Elles servent deux fois : le rendu extérieur
+// (toit, murs, porte, fenêtres) et l'intérieur (plancher, murs, tapis,
+// mobilier). `runes` est la chaumière moussue, `cristaux` l'atelier bleu et
+// `devinettes` la maison du sage aux boiseries chaudes.
+export const HOUSE_STYLES = {
+  runes: {
+    roof: { base: '#4f7f5a', shade: '#3c6547', hi: '#6f9f74', ridge: '#2f4f38' },
+    wall: { base: '#e6dcc4', mortar: '#ccbfa3', hi: '#f6efdd' },
+    door: { base: '#5f4a2f', panel: '#8a6b45', trim: '#e0b24c' },
+    window: { frame: '#3f6749', glass: '#a9dcc6', glint: '#effff7' },
+    floor: { base: '#8f6a42', plank: '#7a5734', joint: '#5d4023', hi: '#a98253' },
+    brick: { base: '#d9cdb4', mortar: '#b9aa8c', hi: '#efe6d2' },
+    rug: { base: '#4f7f5a', trim: '#2f4f38', pattern: '#c9e8b8' },
+    wood: { dark: '#6b4a2f', mid: '#8a6238', light: '#a98253' }
+  },
+  cristaux: {
+    roof: { base: '#4a6f8c', shade: '#3a5872', hi: '#6f9cba', ridge: '#2c4356' },
+    wall: { base: '#cfdbe2', mortar: '#aebdc7', hi: '#edf6fa' },
+    door: { base: '#3f5266', panel: '#5c7790', trim: '#9fe4f0' },
+    window: { frame: '#2c4356', glass: '#8ff0f7', glint: '#eaffff' },
+    floor: { base: '#6f7f8c', plank: '#5c6b77', joint: '#45515b', hi: '#8e9da8' },
+    brick: { base: '#8fa3b0', mortar: '#738591', hi: '#b8cbd4' },
+    rug: { base: '#3f6f8c', trim: '#2c4356', pattern: '#8ff0f7' },
+    wood: { dark: '#4a5a66', mid: '#5f7382', light: '#8ba0ad' }
+  },
+  devinettes: {
+    roof: { base: '#8a6a3f', shade: '#6f5331', hi: '#b08a55', ridge: '#4f3a22' },
+    wall: { base: '#e0c9a2', mortar: '#b99c72', hi: '#f3e6cb' },
+    door: { base: '#5c3a22', panel: '#7a5230', trim: '#f6d34d' },
+    window: { frame: '#5c3a22', glass: '#f7d98a', glint: '#fff5cf' },
+    floor: { base: '#8a5a3f', plank: '#74472f', joint: '#57341f', hi: '#a97454' },
+    brick: { base: '#b98a5f', mortar: '#9a6f47', hi: '#d9ad7d' },
+    rug: { base: '#7a3f52', trim: '#4f2433', pattern: '#f6d34d' },
+    wood: { dark: '#4a2c18', mid: '#6b4a2f', light: '#8a6238' }
+  }
 };
 
 // Portail des donjons : au bout nord de la rue nord-sud, sur la petite place
@@ -56,7 +97,9 @@ export const SOLID_TILES = new Set([
   T.TABLE,
   T.SHELF,
   T.CRATE,
-  T.STONE_WALL
+  T.STONE_WALL,
+  T.CRYSTAL_DECOR,
+  T.PLANT
 ]);
 
 function mulberry32(seed) {
@@ -114,9 +157,12 @@ export function generateWorld(seed = WORLD_SEED) {
   }
 
   // Maisons du village. `doors` liste les portes rencontrées : le client s'en
-  // sert pour proposer d'entrer, sans redécouvrir la carte.
+  // sert pour proposer d'entrer, sans redécouvrir la carte. `houses` garde en
+  // plus l'emplacement et le style de chaque bâtiment, pour que le rendu peigne
+  // le bon toit et que l'intérieur reprenne la même palette.
   const doors = [];
-  const house = (hx, hy, hw, hh) => {
+  const buildings = [];
+  const house = (hx, hy, hw, hh, style) => {
     for (let y = 0; y < hh; y++) {
       for (let x = 0; x < hw; x++) {
         set(hx + x, hy + y, y < 2 ? T.ROOF : T.WALL);
@@ -130,11 +176,12 @@ export function generateWorld(seed = WORLD_SEED) {
       set(hx + 1, hy + hh - 2, T.WINDOW);
       set(hx + hw - 2, hy + hh - 2, T.WINDOW);
     }
+    buildings.push({ x: hx, y: hy, w: hw, h: hh, style, door: { x: doorX, y: doorY } });
   };
 
-  house(9, 12, 6, 4);
-  house(19, 27, 6, 4);
-  house(39, 26, 7, 5);
+  house(9, 12, 6, 4, 'runes');
+  house(19, 27, 6, 4, 'cristaux');
+  house(39, 26, 7, 5, 'devinettes');
 
   // Échoppe du colporteur, à la place de l'ancien lac : un bâtiment plus large
   // que les maisons, avec un comptoir dessiné devant la porte (voir shop.js).
@@ -240,7 +287,10 @@ export function generateWorld(seed = WORLD_SEED) {
     },
     // Portes des maisons, renseignées par generateWorld pour que les deux
     // côtés (client et serveur) connaissent les mêmes coordonnées.
-    doors
+    doors,
+    // Emprise et style de chaque maison : le rendu s'en sert pour distinguer
+    // les trois façades et pour retrouver l'ambiance de leur intérieur.
+    houses: buildings
   };
 }
 

@@ -2,7 +2,7 @@
 // La carte complète est pré-dessinée une fois dans un canvas hors écran, puis
 // simplement recopiée avec la caméra : c'est rapide et ça reste net.
 
-import { TILE_SIZE, T } from './map.js';
+import { TILE_SIZE, T, HOUSE_STYLES } from './map.js';
 import { DECORS, DEFAULT_DECOR } from './decor.js';
 import { getPlayerSprite } from './sprites.js';
 import { drawHeldWeapon } from './weapons.js';
@@ -69,90 +69,107 @@ function drawRock(ctx, px, py) {
   ctx.fillRect(px + 7, py + 12, 5, 1);
 }
 
-function drawWall(ctx, px, py) {
-  ctx.fillStyle = '#d8c3a1';
+function drawWall(ctx, px, py, wall = null) {
+  const w = wall ?? {};
+  ctx.fillStyle = w.base ?? '#d8c3a1';
   ctx.fillRect(px, py, 16, 16);
-  ctx.fillStyle = '#bfa987';
+  ctx.fillStyle = w.mortar ?? '#bfa987';
   ctx.fillRect(px, py + 5, 16, 1);
   ctx.fillRect(px, py + 11, 16, 1);
   ctx.fillRect(px + 5, py, 1, 5);
   ctx.fillRect(px + 11, py + 6, 1, 5);
   ctx.fillRect(px + 3, py + 12, 1, 4);
+  if (w.hi) {
+    ctx.fillStyle = w.hi;
+    ctx.fillRect(px + 1, py + 1, 3, 1);
+    ctx.fillRect(px + 12, py + 7, 3, 1);
+  }
   ctx.fillStyle = 'rgba(0, 0, 0, 0.08)';
   ctx.fillRect(px, py + 15, 16, 1);
 }
 
-function drawWindow(ctx, px, py) {
-  ctx.fillStyle = '#8a6b45';
+function drawWindow(ctx, px, py, frame = null) {
+  const w = frame ?? {};
+  ctx.fillStyle = w.frame ?? '#8a6b45';
   ctx.fillRect(px + 3, py + 2, 10, 8);
-  ctx.fillStyle = '#7fc2e8';
+  ctx.fillStyle = w.glass ?? '#7fc2e8';
   ctx.fillRect(px + 4, py + 3, 8, 6);
-  ctx.fillStyle = '#b9e4f7';
+  ctx.fillStyle = w.glint ?? '#b9e4f7';
   ctx.fillRect(px + 5, py + 4, 3, 2);
-  ctx.fillStyle = '#8a6b45';
+  ctx.fillStyle = w.frame ?? '#8a6b45';
   ctx.fillRect(px + 7, py + 3, 1, 6);
 }
 
-function drawDoor(ctx, px, py) {
-  ctx.fillStyle = '#6f4526';
+function drawDoor(ctx, px, py, door = null) {
+  const d = door ?? {};
+  ctx.fillStyle = d.base ?? '#6f4526';
   ctx.fillRect(px + 4, py + 1, 8, 15);
-  ctx.fillStyle = '#8a5a33';
+  ctx.fillStyle = d.panel ?? '#8a5a33';
   ctx.fillRect(px + 5, py + 2, 6, 13);
   ctx.fillStyle = '#4a2c18';
   ctx.fillRect(px + 5, py + 5, 6, 1);
-  ctx.fillStyle = '#e0b24c';
+  ctx.fillStyle = d.trim ?? '#e0b24c';
   ctx.fillRect(px + 9, py + 8, 1, 1);
+  ctx.fillRect(px + 5, py + 2, 6, 1);
 }
 
-function drawRoof(ctx, px, py, tx, ty) {
-  ctx.fillStyle = '#b5564b';
+function drawRoof(ctx, px, py, tx, ty, roof = null) {
+  const r = roof ?? {};
+  ctx.fillStyle = r.base ?? '#b5564b';
   ctx.fillRect(px, py, 16, 16);
-  ctx.fillStyle = '#9c4339';
+  ctx.fillStyle = r.shade ?? '#9c4339';
   ctx.fillRect(px, py + 4, 16, 1);
   ctx.fillRect(px, py + 9, 16, 1);
   ctx.fillRect(px, py + 14, 16, 1);
-  ctx.fillStyle = '#c96b5d';
+  ctx.fillStyle = r.hi ?? '#c96b5d';
   const offset = (tx + ty) % 2 === 0 ? 2 : 6;
   ctx.fillRect(px + offset, py, 1, 4);
   ctx.fillRect(px + ((offset + 6) % 14), py + 5, 1, 4);
   ctx.fillRect(px + ((offset + 3) % 14), py + 10, 1, 4);
+  if (r.ridge) {
+    ctx.fillStyle = r.ridge;
+    ctx.fillRect(px, py, 16, 1);
+  }
 }
 
 // --- Tuiles d'intérieur ----------------------------------------------------
 
-function drawWood(ctx, px, py, tx, ty, dark) {
-  ctx.fillStyle = dark ? '#8a6039' : '#96693f';
+function drawWood(ctx, px, py, tx, ty, dark, floor = null) {
+  const f = floor ?? {};
+  ctx.fillStyle = dark ? (f.plank ?? '#8a6039') : (f.base ?? '#96693f');
   ctx.fillRect(px, py, 16, 16);
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.13)';
+  ctx.fillStyle = f.joint ?? 'rgba(0, 0, 0, 0.13)';
   ctx.fillRect(px, py + 7, 16, 1);
   const joint = (tx * 7 + ty * 3) % 12;
   ctx.fillRect(px + 2 + joint, py + 1, 1, 6);
   ctx.fillRect(px + 2 + ((joint + 5) % 12), py + 9, 1, 6);
-  ctx.fillStyle = 'rgba(255, 240, 210, 0.07)';
+  ctx.fillStyle = f.hi ?? 'rgba(255, 240, 210, 0.07)';
   ctx.fillRect(px, py, 16, 1);
 }
 
-function drawBrick(ctx, px, py, tx, ty) {
-  ctx.fillStyle = '#4a4a52';
+function drawBrick(ctx, px, py, tx, ty, brick = null) {
+  const b = brick ?? {};
+  ctx.fillStyle = b.base ?? '#4a4a52';
   ctx.fillRect(px, py, 16, 16);
-  ctx.fillStyle = '#3b3b43';
+  ctx.fillStyle = b.mortar ?? '#3b3b43';
   ctx.fillRect(px, py + 7, 16, 1);
   ctx.fillRect(px, py + 15, 16, 1);
   const offset = ty % 2 === 0 ? 0 : 4;
   ctx.fillRect(px + ((offset + 3) % 16), py, 1, 7);
   ctx.fillRect(px + ((offset + 11) % 16), py + 8, 1, 7);
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+  ctx.fillStyle = b.hi ?? 'rgba(255, 255, 255, 0.05)';
   ctx.fillRect(px + 1, py + 1, 6, 1);
   ctx.fillRect(px + 9, py + 9, 5, 1);
 }
 
-function drawRug(ctx, px, py, tx, ty) {
-  ctx.fillStyle = '#9c3f3a';
+function drawRug(ctx, px, py, tx, ty, rug = null) {
+  const r = rug ?? {};
+  ctx.fillStyle = r.base ?? '#9c3f3a';
   ctx.fillRect(px, py, 16, 16);
-  ctx.fillStyle = '#8b3731';
+  ctx.fillStyle = r.trim ?? '#8b3731';
   ctx.fillRect(px, py, 16, 1);
   ctx.fillRect(px, py + 15, 16, 1);
-  ctx.fillStyle = '#c9803f';
+  ctx.fillStyle = r.pattern ?? '#c9803f';
   if ((tx + ty) % 2 === 0) {
     ctx.fillRect(px + 6, py + 6, 4, 4);
     ctx.fillStyle = '#e8d6a4';
@@ -163,22 +180,24 @@ function drawRug(ctx, px, py, tx, ty) {
   }
 }
 
-function drawTable(ctx, px, py) {
-  drawWood(ctx, px, py, 0, 0, true);
-  ctx.fillStyle = '#6b4a2f';
+function drawTable(ctx, px, py, wood = null, floor = null) {
+  const w = wood ?? {};
+  drawWood(ctx, px, py, 0, 0, true, floor);
+  ctx.fillStyle = w.dark ?? '#6b4a2f';
   ctx.fillRect(px + 1, py + 3, 14, 9);
-  ctx.fillStyle = '#8a6238';
+  ctx.fillStyle = w.mid ?? '#8a6238';
   ctx.fillRect(px + 2, py + 4, 12, 6);
   ctx.fillStyle = '#4a3220';
   ctx.fillRect(px + 3, py + 12, 2, 3);
   ctx.fillRect(px + 11, py + 12, 2, 3);
 }
 
-function drawShelf(ctx, px, py) {
-  drawWood(ctx, px, py, 0, 0, true);
+function drawShelf(ctx, px, py, wood = null, floor = null) {
+  const w = wood ?? {};
+  drawWood(ctx, px, py, 0, 0, true, floor);
   ctx.fillStyle = '#4a3220';
   ctx.fillRect(px + 1, py + 1, 14, 14);
-  ctx.fillStyle = '#6b4a2f';
+  ctx.fillStyle = w.dark ?? '#6b4a2f';
   ctx.fillRect(px + 2, py + 2, 12, 5);
   ctx.fillRect(px + 2, py + 9, 12, 5);
   const books = ['#b5564b', '#3b8fd6', '#4fbf6a', '#e0a83c'];
@@ -190,23 +209,93 @@ function drawShelf(ctx, px, py) {
   }
 }
 
-function drawCrate(ctx, px, py) {
-  drawWood(ctx, px, py, 0, 0, true);
-  ctx.fillStyle = '#8a6238';
+function drawCrate(ctx, px, py, wood = null, floor = null) {
+  const w = wood ?? {};
+  drawWood(ctx, px, py, 0, 0, true, floor);
+  ctx.fillStyle = w.mid ?? '#8a6238';
   ctx.fillRect(px + 2, py + 3, 12, 11);
-  ctx.fillStyle = '#5d4023';
+  ctx.fillStyle = w.dark ?? '#5d4023';
   ctx.fillRect(px + 2, py + 3, 12, 1);
   ctx.fillRect(px + 2, py + 13, 12, 1);
   ctx.fillRect(px + 2, py + 3, 1, 11);
   ctx.fillRect(px + 13, py + 3, 1, 11);
   ctx.beginPath();
   ctx.lineWidth = 1;
-  ctx.strokeStyle = '#5d4023';
+  ctx.strokeStyle = w.dark ?? '#5d4023';
   ctx.moveTo(px + 3.5, py + 4.5);
   ctx.lineTo(px + 12.5, py + 12.5);
   ctx.moveTo(px + 12.5, py + 4.5);
   ctx.lineTo(px + 3.5, py + 12.5);
   ctx.stroke();
+}
+
+function drawCandle(ctx, px, py, floor = null) {
+  drawWood(ctx, px, py, 0, 0, false, floor);
+  ctx.fillStyle = '#3a2a1c';
+  ctx.fillRect(px + 6, py + 7, 4, 6);
+  ctx.fillStyle = '#f4ead0';
+  ctx.fillRect(px + 7, py + 5, 2, 5);
+  ctx.fillStyle = '#f6d34d';
+  ctx.fillRect(px + 7, py + 3, 2, 2);
+  ctx.fillStyle = 'rgba(246, 211, 77, 0.16)';
+  ctx.beginPath();
+  ctx.arc(px + 8, py + 4, 7, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+// Géode de collection : petite, sombre et sans halo, pour ne pas être
+// confondue avec les cristaux à réveiller de l'épreuve (plus grands et
+// lumineux, dessinés par houses.js).
+function drawCrystalDecor(ctx, px, py, floor = null) {
+  drawWood(ctx, px, py, 0, 0, false, floor);
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.24)';
+  ctx.beginPath();
+  ctx.ellipse(px + 8, py + 14, 6, 2, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Socle de pierre.
+  ctx.fillStyle = '#4b5a66';
+  ctx.fillRect(px + 4, py + 12, 8, 3);
+  ctx.fillStyle = '#6f8290';
+  ctx.fillRect(px + 4, py + 12, 8, 1);
+  // Éclats courts, regroupés en géode.
+  ctx.fillStyle = '#2f6f86';
+  ctx.beginPath();
+  ctx.moveTo(px + 4, py + 12);
+  ctx.lineTo(px + 5, py + 8);
+  ctx.lineTo(px + 7, py + 12);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = '#5ab8c9';
+  ctx.beginPath();
+  ctx.moveTo(px + 7, py + 12);
+  ctx.lineTo(px + 9, py + 6);
+  ctx.lineTo(px + 11, py + 12);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = '#8ff0f7';
+  ctx.fillRect(px + 9, py + 8, 1, 2);
+  ctx.fillStyle = '#3f8a9c';
+  ctx.beginPath();
+  ctx.moveTo(px + 10, py + 12);
+  ctx.lineTo(px + 12, py + 9);
+  ctx.lineTo(px + 13, py + 12);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function drawPlant(ctx, px, py, floor = null) {
+  drawWood(ctx, px, py, 0, 0, false, floor);
+  ctx.fillStyle = '#8a4a32';
+  ctx.fillRect(px + 5, py + 9, 6, 5);
+  ctx.fillStyle = '#b5643f';
+  ctx.fillRect(px + 5, py + 9, 6, 1);
+  ctx.fillStyle = '#3a8a4f';
+  ctx.fillRect(px + 7, py + 4, 2, 6);
+  ctx.fillRect(px + 3, py + 6, 4, 2);
+  ctx.fillRect(px + 9, py + 3, 4, 2);
+  ctx.fillStyle = '#5cb86a';
+  ctx.fillRect(px + 4, py + 5, 2, 2);
+  ctx.fillRect(px + 10, py + 2, 2, 2);
 }
 
 // --- Tuiles de donjon ------------------------------------------------------
@@ -478,7 +567,7 @@ function drawDungeonWall(ctx, px, py, tx, ty, decor) {
   }
 }
 
-function drawTile(ctx, px, py, tile, tx, ty, decor = null) {
+function drawTile(ctx, px, py, tile, tx, ty, decor = null, style = null) {
   switch (tile) {
     case T.WATER: {
       ctx.fillStyle = '#3c7ed0';
@@ -528,43 +617,52 @@ function drawTile(ctx, px, py, tile, tx, ty, decor = null) {
       drawRock(ctx, px, py);
       break;
     case T.ROOF:
-      drawRoof(ctx, px, py, tx, ty);
+      drawRoof(ctx, px, py, tx, ty, style?.roof);
       break;
     case T.WALL:
-      drawWall(ctx, px, py);
+      drawWall(ctx, px, py, style?.wall);
       break;
     case T.WINDOW:
-      drawWall(ctx, px, py);
-      drawWindow(ctx, px, py);
+      drawWall(ctx, px, py, style?.wall);
+      drawWindow(ctx, px, py, style?.window);
       break;
     case T.DOOR:
-      drawWall(ctx, px, py);
-      drawDoor(ctx, px, py);
+      drawWall(ctx, px, py, style?.wall);
+      drawDoor(ctx, px, py, style?.door);
       break;
     case T.WOOD:
-      drawWood(ctx, px, py, tx, ty, false);
+      drawWood(ctx, px, py, tx, ty, false, style?.floor);
       break;
     case T.PLANK:
-      drawWood(ctx, px, py, tx, ty, true);
+      drawWood(ctx, px, py, tx, ty, true, style?.floor);
       break;
     case T.BRICK:
-      drawBrick(ctx, px, py, tx, ty);
+      drawBrick(ctx, px, py, tx, ty, style?.brick);
       break;
     case T.RUG:
-      drawRug(ctx, px, py, tx, ty);
+      drawRug(ctx, px, py, tx, ty, style?.rug);
       break;
     case T.DOOR_STONE:
-      drawBrick(ctx, px, py, tx, ty);
-      drawDoor(ctx, px, py);
+      drawBrick(ctx, px, py, tx, ty, style?.brick);
+      drawDoor(ctx, px, py, style?.door);
       break;
     case T.TABLE:
-      drawTable(ctx, px, py);
+      drawTable(ctx, px, py, style?.wood, style?.floor);
       break;
     case T.SHELF:
-      drawShelf(ctx, px, py);
+      drawShelf(ctx, px, py, style?.wood, style?.floor);
       break;
     case T.CRATE:
-      drawCrate(ctx, px, py);
+      drawCrate(ctx, px, py, style?.wood, style?.floor);
+      break;
+    case T.CANDLE:
+      drawCandle(ctx, px, py, style?.floor);
+      break;
+    case T.CRYSTAL_DECOR:
+      drawCrystalDecor(ctx, px, py, style?.floor);
+      break;
+    case T.PLANT:
+      drawPlant(ctx, px, py, style?.floor);
       break;
     case T.STONE_FLOOR:
       drawDungeonFloor(ctx, px, py, tx, ty, decor ?? DECORS[DEFAULT_DECOR], false);
@@ -581,6 +679,156 @@ function drawTile(ctx, px, py, tile, tx, ty, decor = null) {
   }
 }
 
+// Grille des palettes de maison pour le village : chaque tuile de bâtiment
+// reçoit la palette de la maison à laquelle elle appartient (toit, mur, porte,
+// fenêtre). Le décor de fond garde `null` et les couleurs du village.
+function buildingStyleGrid(world) {
+  const grid = new Array(world.w * world.h).fill(null);
+  for (const building of world.houses ?? []) {
+    const style = HOUSE_STYLES[building.style] ?? null;
+    if (!style) continue;
+    for (let y = building.y; y < building.y + building.h; y++) {
+      for (let x = building.x; x < building.x + building.w; x++) {
+        grid[y * world.w + x] = style;
+      }
+    }
+  }
+  return grid;
+}
+
+// Détails de façade propres à chaque maison : cheminée, poutres, enseigne,
+// jardinière et lanterne de porte. Ils sont peints sur la carte une fois
+// pour toutes, après les tuiles.
+function drawBuildingDetails(ctx, world) {
+  for (const b of world.houses ?? []) {
+    const style = HOUSE_STYLES[b.style] ?? HOUSE_STYLES.runes;
+    const px = b.x * TILE_SIZE;
+    const py = b.y * TILE_SIZE;
+    const wpx = b.w * TILE_SIZE;
+    const hpx = b.h * TILE_SIZE;
+    const wallTop = py + 2 * TILE_SIZE;
+    const doorX = (b.door?.x ?? b.x) * TILE_SIZE;
+    const wallH = hpx - 2 * TILE_SIZE;
+
+    // Ombre portée au pied du mur et liseré sombre sous l'avant-toit.
+    ctx.fillStyle = 'rgba(10, 20, 12, 0.18)';
+    ctx.fillRect(px + 3, py + hpx - 2, wpx - 6, 2);
+    ctx.fillStyle = style.roof.ridge;
+    ctx.fillRect(px + 1, wallTop - 1, wpx - 2, 2);
+    ctx.fillStyle = style.roof.shade;
+    ctx.fillRect(px + 1, wallTop + 1, wpx - 2, 1);
+
+    // Poutres apparentes : montants d'angle, sablière et traverse médiane.
+    ctx.fillStyle = style.wood.dark;
+    ctx.fillRect(px + 2, wallTop + 2, 3, wallH - 2);
+    ctx.fillRect(px + wpx - 5, wallTop + 2, 3, wallH - 2);
+    ctx.fillRect(px + 2, wallTop + wallH - 4, wpx - 4, 2);
+    if (b.w >= 6) {
+      ctx.fillRect(px + Math.floor(wpx / 2) - 1, wallTop + 2, 2, Math.floor(wallH / 2) - 2);
+    }
+
+    // Cheminée : maçonnée pour la chaumière, métallique pour l'atelier,
+    // en brique chaude pour la maison du sage.
+    if (b.style === 'cristaux') {
+      ctx.fillStyle = style.wood.mid;
+      ctx.fillRect(px + wpx - 26, py - 8, 7, 10);
+      ctx.fillStyle = style.window.glass;
+      ctx.fillRect(px + wpx - 25, py - 10, 5, 3);
+      ctx.fillStyle = 'rgba(143, 240, 247, 0.22)';
+      ctx.beginPath();
+      ctx.arc(px + wpx - 22, py - 9, 7, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      ctx.fillStyle = style.brick.base;
+      ctx.fillRect(px + wpx - 27, py - 9, 10, 11);
+      ctx.fillStyle = style.brick.mortar;
+      ctx.fillRect(px + wpx - 27, py - 5, 10, 1);
+      ctx.fillRect(px + wpx - 27, py - 1, 10, 1);
+      ctx.fillStyle = style.brick.hi;
+      ctx.fillRect(px + wpx - 26, py - 8, 8, 1);
+      // Fumée légère, dessinée en petits puffs pour rester dans le pixel art.
+      ctx.fillStyle = 'rgba(232, 236, 232, 0.4)';
+      ctx.fillRect(px + wpx - 25, py - 14, 3, 2);
+      ctx.fillRect(px + wpx - 29, py - 18, 3, 2);
+      ctx.fillRect(px + wpx - 24, py - 21, 2, 2);
+    }
+
+    // Jardinière ou suspension sous chaque fenêtre du rez-de-chaussée.
+    const winY = py + (b.h - 2) * TILE_SIZE;
+    for (const wx of [px + TILE_SIZE, px + wpx - 2 * TILE_SIZE]) {
+      if (b.style === 'cristaux') {
+        ctx.fillStyle = style.window.frame;
+        ctx.fillRect(wx + 6, winY + 10, 1, 3);
+        ctx.fillStyle = style.window.glass;
+        ctx.beginPath();
+        ctx.moveTo(wx + 7, winY + 9);
+        ctx.lineTo(wx + 10, winY + 13);
+        ctx.lineTo(wx + 7, winY + 16);
+        ctx.lineTo(wx + 4, winY + 13);
+        ctx.closePath();
+        ctx.fill();
+      } else {
+        ctx.fillStyle = style.wood.mid;
+        ctx.fillRect(wx + 2, winY + 11, 12, 4);
+        ctx.fillStyle = style.wood.dark;
+        ctx.fillRect(wx + 2, winY + 14, 12, 1);
+        ctx.fillStyle = b.style === 'devinettes' ? '#e87a9a' : '#5cb86a';
+        ctx.fillRect(wx + 4, winY + 8, 2, 3);
+        ctx.fillRect(wx + 8, winY + 7, 2, 4);
+        ctx.fillRect(wx + 11, winY + 9, 2, 2);
+        ctx.fillStyle = b.style === 'devinettes' ? '#f6d34d' : '#8fe08a';
+        ctx.fillRect(wx + 4, winY + 8, 1, 1);
+        ctx.fillRect(wx + 8, winY + 7, 1, 1);
+      }
+    }
+
+    // Seuil, enseigne au-dessus de la porte et lanterne de chaque côté.
+    ctx.fillStyle = style.brick.hi;
+    ctx.fillRect(doorX - 2, py + hpx - 4, 20, 3);
+    ctx.fillStyle = style.wood.dark;
+    ctx.fillRect(doorX + 6, wallTop + 2, 2, 8);
+    if (b.style === 'runes') {
+      ctx.fillStyle = style.rug.base;
+      ctx.fillRect(doorX + 2, wallTop + 10, 12, 8);
+      ctx.fillStyle = '#d9e8c0';
+      ctx.fillRect(doorX + 6, wallTop + 12, 2, 4);
+      ctx.fillRect(doorX + 4, wallTop + 14, 8, 1);
+    } else if (b.style === 'cristaux') {
+      ctx.fillStyle = style.window.frame;
+      ctx.fillRect(doorX + 2, wallTop + 10, 12, 2);
+      ctx.fillStyle = style.window.glass;
+      ctx.beginPath();
+      ctx.moveTo(doorX + 3, wallTop + 12);
+      ctx.lineTo(doorX + 8, wallTop + 20);
+      ctx.lineTo(doorX + 13, wallTop + 12);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#eaffff';
+      ctx.fillRect(doorX + 7, wallTop + 13, 2, 3);
+    } else {
+      ctx.fillStyle = style.wood.mid;
+      ctx.fillRect(doorX + 1, wallTop + 10, 12, 8);
+      ctx.fillStyle = style.wood.dark;
+      ctx.fillRect(doorX + 1, wallTop + 17, 12, 1);
+      ctx.fillStyle = '#f6d34d';
+      ctx.fillRect(doorX + 4, wallTop + 12, 6, 4);
+      ctx.fillStyle = '#7a5230';
+      ctx.fillRect(doorX + 6, wallTop + 12, 1, 4);
+    }
+
+    for (const lx of [doorX - 6, doorX + 18]) {
+      ctx.fillStyle = '#3a2a1c';
+      ctx.fillRect(lx, py + hpx - 11, 3, 6);
+      ctx.fillStyle = '#f6d34d';
+      ctx.fillRect(lx + 1, py + hpx - 10, 1, 2);
+      ctx.fillStyle = 'rgba(246, 211, 77, 0.16)';
+      ctx.beginPath();
+      ctx.arc(lx + 1, py + hpx - 9, 5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+}
+
 function buildMapCanvas(world) {
   const mapCanvas = document.createElement('canvas');
   mapCanvas.width = world.w * TILE_SIZE;
@@ -594,12 +842,18 @@ function buildMapCanvas(world) {
   // donjon, deux salles n'ont donc pas les dalles fendues ni les éclats de
   // mousse au même endroit. Le village et les maisons gardent un décalage nul.
   const shift = decor ? (world.variant ?? 0) : 0;
+  // Intérieurs : palette de la maison visitée. Village : palette propre à
+  // chaque bâtiment, retrouvée tuile par tuile.
+  const interior = world.style ? HOUSE_STYLES[world.style] ?? null : null;
+  const grid = world.houses ? buildingStyleGrid(world) : null;
   for (let y = 0; y < world.h; y++) {
     for (let x = 0; x < world.w; x++) {
+      const style = grid ? grid[y * world.w + x] : interior;
       drawTile(ctx, x * TILE_SIZE, y * TILE_SIZE, world.tiles[y * world.w + x],
-        x + shift * 53, y + shift * 31, decor);
+        x + shift * 53, y + shift * 31, decor, style);
     }
   }
+  if (world.houses) drawBuildingDetails(ctx, world);
   return mapCanvas;
 }
 

@@ -5,7 +5,7 @@
 // juste l'information « je suis à l'intérieur » pour masquer l'avatar). Du coup
 // la même logique sert en ligne et en solo, sans état partagé à maintenir.
 
-import { T } from './map.js';
+import { T, HOUSE_STYLES } from './map.js';
 
 export const TILE_SIZE = 16;
 
@@ -66,6 +66,7 @@ const HOUSE_SPECS = [
     name: 'Chaumière des runes',
     article: 'la',
     challenge: 'runes',
+    style: 'runes',
     reward: 'lampe',
     requiredDungeon: 'crypte',
     goal: 'Allume les quatre runes dans l’ordre qu’elles t’ont montré.',
@@ -76,6 +77,7 @@ const HOUSE_SPECS = [
     name: 'Atelier des cristaux',
     article: 'l’',
     challenge: 'cristaux',
+    style: 'cristaux',
     reward: 'bottes',
     requiredDungeon: 'galerie',
     goal: 'Réveille les six cristaux avant la fin du sablier (32 s).',
@@ -86,6 +88,7 @@ const HOUSE_SPECS = [
     name: 'Maison du sage',
     article: 'la',
     challenge: 'devinettes',
+    style: 'devinettes',
     reward: 'medaille',
     requiredDungeon: 'antre',
     goal: 'Réponds aux trois énigmes du livre, sans une seule erreur.',
@@ -158,10 +161,15 @@ export function buildHouses(world) {
   const doors = world.doors ?? [];
   return HOUSE_SPECS.map((spec, index) => {
     const door = doors[index] ?? { x: 30, y: 24 };
+    const building = world.houses?.[index] ?? null;
     return {
       ...spec,
       index,
       door,
+      // Le style vient de la carte (emprise et palette) ; la spec ne sert que
+      // de secours si une carte plus ancienne n'a pas encore `houses`.
+      style: building?.style ?? spec.style ?? 'runes',
+      building,
       stand: { x: door.x + 0.5, y: door.y + 1.6 }
     };
   }).filter((house) => house.door);
@@ -180,6 +188,7 @@ function shuffle(list) {
 export function buildInterior(house) {
   const w = 15;
   const h = 11;
+  const styleId = HOUSE_STYLES[house?.style] ? house.style : 'runes';
   const tiles = new Uint8Array(w * h);
 
   for (let y = 0; y < h; y++) {
@@ -191,7 +200,7 @@ export function buildInterior(house) {
     }
   }
 
-  // Tapis central.
+  // Tapis central : même emprise pour toutes les maisons, palette différente.
   for (let y = 4; y <= 7; y++) {
     for (let x = 5; x <= 9; x++) tiles[y * w + x] = T.RUG;
   }
@@ -201,15 +210,50 @@ export function buildInterior(house) {
     tiles[y * w + x] = tile;
   };
 
-  // Mobilier le long des murs (décor solide).
-  put(2, 1, T.SHELF);
-  put(3, 1, T.SHELF);
-  put(11, 1, T.SHELF);
-  put(12, 1, T.SHELF);
-  put(2, 2, T.CRATE);
-  put(12, 2, T.CRATE);
-  put(2, 8, T.CRATE);
-  put(12, 8, T.CRATE);
+  // Deux fenêtres intérieures sur les murs latéraux de l'atelier.
+  if (styleId === 'cristaux') {
+    tiles[4 * w] = T.WINDOW;
+    tiles[4 * w + (w - 1)] = T.WINDOW;
+    tiles[7 * w] = T.WINDOW;
+    tiles[7 * w + (w - 1)] = T.WINDOW;
+  }
+
+  if (styleId === 'cristaux') {
+    // Atelier : établis le long du mur du haut, éclats de cristal et caisses.
+    for (const x of [3, 4, 10, 11]) put(x, 1, T.TABLE);
+    put(5, 1, T.CRYSTAL_DECOR);
+    put(9, 1, T.CRYSTAL_DECOR);
+    put(7, 1, T.CANDLE);
+    put(2, 2, T.CRATE);
+    put(12, 2, T.CRATE);
+    put(2, 8, T.CRATE);
+    put(12, 8, T.CRATE);
+    put(1, 1, T.CRYSTAL_DECOR);
+    put(13, 1, T.CRYSTAL_DECOR);
+  } else if (styleId === 'devinettes') {
+    // Maison du sage : bibliothèques, table d'étude, chandelles et plantes.
+    for (const x of [2, 3, 4, 10, 11, 12]) put(x, 1, T.SHELF);
+    put(7, 1, T.TABLE);
+    put(6, 1, T.CANDLE);
+    put(8, 1, T.CANDLE);
+    put(2, 2, T.PLANT);
+    put(12, 2, T.PLANT);
+    put(2, 8, T.CRATE);
+    put(12, 8, T.CRATE);
+    put(5, 2, T.CANDLE);
+    put(9, 2, T.CANDLE);
+  } else {
+    // Chaumière des runes : étagères, caisses, chandelles et plantes.
+    for (const x of [2, 3, 11, 12]) put(x, 1, T.SHELF);
+    put(2, 2, T.CRATE);
+    put(12, 2, T.CRATE);
+    put(2, 8, T.CRATE);
+    put(12, 8, T.CRATE);
+    put(5, 2, T.CANDLE);
+    put(9, 2, T.CANDLE);
+    put(13, 8, T.PLANT);
+    put(1, 8, T.PLANT);
+  }
 
   // Porte de sortie, au milieu du mur du bas.
   tiles[(h - 1) * w + 7] = T.DOOR_STONE;
@@ -219,6 +263,8 @@ export function buildInterior(house) {
     h,
     tiles,
     house,
+    // Palette lue par le rendu (plancher, murs, tapis, mobilier).
+    style: styleId,
     // Assez haut pour ne pas être déjà dans la zone de sortie en arrivant.
     spawn: { x: 7.5, y: 8.6 },
     exit: { x: 7.5, y: h - 1 + 0.35 }

@@ -1,4 +1,4 @@
-import { generateWorld, isSolid } from '../public/js/map.js';
+import { generateWorld, isSolid, T, HOUSE_STYLES } from '../public/js/map.js';
 import {
   buildHouses,
   buildInterior,
@@ -141,6 +141,43 @@ const check = (label, ok, extra = '') => {
   const wrongAnswer = (QUIZ[1].answer + 1) % QUIZ[1].options.length;
   const res = answerQuiz(failed, wrongAnswer);
   check('devinettes: erreur => retour à la première énigme', res === 'wrong' && failed.index === 0);
+}
+
+// --- Façades et intérieurs propres à chaque maison ------------------------
+{
+  const styles = houses.map((house) => house.style);
+  check('façades: trois styles distincts', new Set(styles).size === 3, styles.join(', '));
+  check('façades: chaque style a sa palette', styles.every((style) => Boolean(HOUSE_STYLES[style])));
+  check('façades: emprise et porte viennent de la carte', houses.every((house) => house.building
+    && house.building.style === house.style
+    && house.building.door.x === house.door.x
+    && house.building.door.y === house.door.y));
+  const roofs = houses.map((house) => HOUSE_STYLES[house.style].roof.base);
+  check('façades: trois toits de couleurs différentes', new Set(roofs).size === 3, roofs.join(', '));
+
+  const rooms = houses.map((house) => buildInterior(house));
+  check('intérieurs: la palette suit la maison', rooms.every((room, i) => room.style === houses[i].style));
+  check('intérieurs: trois agencements différents',
+    new Set(rooms.map((room) => Array.from(room.tiles).join(','))).size === 3);
+  check('intérieurs: plancher et tapis distincts',
+    new Set(rooms.map((room) => HOUSE_STYLES[room.style].floor.base)).size === 3
+    && new Set(rooms.map((room) => HOUSE_STYLES[room.style].rug.base)).size === 3);
+
+  const runes = rooms.find((room) => room.style === 'runes');
+  const atelier = rooms.find((room) => room.style === 'cristaux');
+  const sage = rooms.find((room) => room.style === 'devinettes');
+  check('intérieur runes: plantes et chandelles',
+    runes.tiles.includes(T.PLANT) && runes.tiles.includes(T.CANDLE));
+  check('intérieur cristaux: fenêtres sur les murs latéraux',
+    atelier.tiles.filter((tile) => tile === T.WINDOW).length === 4,
+    `${atelier.tiles.filter((tile) => tile === T.WINDOW).length} fenêtres`);
+  check('intérieur cristaux: géodes décoratives',
+    atelier.tiles.filter((tile) => tile === T.CRYSTAL_DECOR).length >= 4);
+  check('intérieur sage: bibliothèques et pupitre',
+    sage.tiles.filter((tile) => tile === T.SHELF).length >= 6 && sage.tiles.includes(T.TABLE));
+  check('intérieurs: les géodes restent à l’atelier',
+    runes.tiles.every((tile) => tile !== T.CRYSTAL_DECOR)
+    && sage.tiles.every((tile) => tile !== T.CRYSTAL_DECOR));
 }
 
 // --- Intérieurs praticables ----------------------------------------------

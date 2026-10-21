@@ -158,8 +158,8 @@ donc aussi bien sur un clavier AZERTY que QWERTY.
     ├── style.css
     └── js/
         ├── config.js     # réglages partagés client/serveur
-        ├── map.js        # génération de la carte + collisions
-        ├── houses.js     # maisons, épreuves et récompenses
+        ├── map.js        # génération de la carte, palettes des maisons + collisions
+        ├── houses.js     # maisons, intérieurs, épreuves et récompenses
         ├── dungeons.js   # portail, salles, fissures, monstres, butin, équipement, bourse
         ├── decor.js      # décors des salles de donjon (palettes et motifs)
         ├── skills.js     # expérience, niveaux, arbre de compétences, capacités
@@ -170,7 +170,7 @@ donc aussi bien sur un clavier AZERTY que QWERTY.
         ├── audio.js      # sons synthétisés (aucun fichier audio)
         ├── sprites.js    # pixel art des personnages (dessiné en ASCII)
         ├── weapons.js    # arme tenue en main + animation de frappe
-        ├── renderer.js   # caméra, tuiles, personnages, bulles de chat
+        ├── renderer.js   # caméra, tuiles, façades des maisons, personnages, bulles
         ├── input.js      # clavier
         ├── net.js        # connexion WebSocket
         └── main.js       # boucle de jeu, chat, interface
@@ -197,6 +197,8 @@ obtiennent donc **exactement la même grille**, sans envoyer de fichiers.
 | Redessiner les armes en main   | `public/js/weapons.js`         | `paintWeapon`, `REST_ANGLE`          |
 | Régler le geste de frappe      | `public/js/dungeons.js`        | `SWING_TIME`, `swingAngle`           |
 | Changer le look des tuiles     | `public/js/renderer.js`        | `drawTile` et ses fonctions          |
+| Changer la façade d'une maison | `public/js/map.js`             | `HOUSE_STYLES`, puis `drawBuildingDetails` dans `renderer.js` |
+| Changer l'intérieur d'une maison | `public/js/houses.js`        | `buildInterior` + `HOUSE_STYLES` (`map.js`) |
 | Changer le décor d'un donjon   | `public/js/decor.js`           | `DECORS` (sol, murs, motif)          |
 | Régler l'XP et l'arbre         | `public/js/skills.js`          | `MAX_LEVEL`, `xpNeeded`, `SKILLS`, `BRANCHES` |
 | Régler ruade et tourbillon     | `public/js/skills.js`          | `DASH_TIME`, `DASH_SPEED`, `SPECIAL_RANGE`, `SPECIAL_MULT` |
@@ -244,6 +246,24 @@ simple lueur verte au linteau quand elle est ouverte. Le décor du village dans
 `main.js` appelle le portail puis un sceau par maison ; l'invite et le refus
 (`enterHouse`) lisent le même `Set`, et le panneau du portail affiche l'état de
 chaque sceau (`Conquis — … est ouverte` / `Garde la porte de …`).
+
+### Façades et intérieurs
+
+Les trois maisons ne sont plus trois copies de la même boîte. `generateWorld`
+(`map.js`) décrit chaque bâtiment dans `world.houses` (emprise, style, porte), et
+`HOUSE_STYLES` porte une palette complète par style : toit, mur, porte, fenêtre,
+plancher, brique, tapis et bois. Le rendu extérieur s'en sert tuile par tuile —
+chaque toit reçoit sa couleur — puis `drawBuildingDetails` ajoute ce qui dépasse
+de la grille : cheminée (pierre, métal ou brique), poutres, enseigne au-dessus
+de la porte, jardinières ou cristaux sous les fenêtres, lanternes et seuil.
+
+À l'intérieur, `buildInterior(house)` reprend le même style et compose une pièce
+propre à chaque maison : établis et géodes de l'atelier, bibliothèques et pupitre
+du sage, étagères, chandelles et plantes de la chaumière. Trois tuiles de
+décor ont été ajoutées pour cela (`CANDLE`, `CRYSTAL_DECOR`, `PLANT`) ; elles
+sont solides sauf la chandelle, posée au sol. La chambre garde exactement la
+même taille et les mêmes coordonnées d'épreuve, donc les dalles, les cristaux,
+le livre et la sortie ne bougent pas.
 
 Toute la mécanique vit dans `public/js/houses.js` :
 
