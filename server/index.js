@@ -16,25 +16,47 @@ const wsBackend = SUPABASE_URL && SUPABASE_SERVICE_KEY
   ? 'WebSocket + Supabase (identité/perso)'
   : 'WebSocket intégré, zéro dépendance';
 
-async function supabaseAuthGetUser(token) {
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY || !token) return { user: null, error: 'missing' };
+function decodeSupabaseJwt(token) {
   try {
-    const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
-      method: 'GET',
-      headers: {
-        apikey: SUPABASE_SERVICE_KEY,
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    if (!res.ok) {
-      const text = await res.text().catch(() => '');
-      return { user: null, error: text || `auth ${res.status}` };
-    }
-    const user = await res.json();
-    return { user, error: null };
-  } catch (e) {
-    return { user: null, error: e?.message || String(e) };
+    const parts = String(token || '').split('.');
+    if (parts.length < 2) return null;
+    const payload = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const padded = payload + '==='.slice((payload.length % 4));
+    const json = Buffer.from(padded, 'base64').toString('utf8');
+    const data = JSON.parse(json);
+    if (data && data.sub) return data;
+    return null;
+  } catch {
+    return null;
   }
+}
+
+async function supabaseAuthGetUser(token) {
+  if (!token) return { user: null, error: 'missing' };
+  const payload = decodeSupabaseJwt(token);
+  if (payload && payload.sub) {
+    return { user: { id: payload.sub, email: payload.email }, error: null };
+  }
+  if (SUPABASE_URL && SUPABASE_SERVICE_KEY) {
+    try {
+      const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+        method: 'GET',
+        headers: {
+          apikey: SUPABASE_SERVICE_KEY,
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!res.ok) {
+        const text = await res.text().catch(() => '');
+        return { user: null, error: text || `auth ${res.status}` };
+      }
+      const user = await res.json();
+      return { user, error: null };
+    } catch (e) {
+      return { user: null, error: e?.message || String(e) };
+    }
+  }
+  return { user: null, error: 'missing' };
 }
 
 async function supabaseSelectCharacter(id) {
