@@ -117,7 +117,7 @@ export const LOOT = {
   epee_gardien: {
     name: 'Épée du gardien',
     kind: 'arme',
-    art: 'epee',
+    art: 'epee_gemme',
     glow: true,
     attack: 13,
     defense: 0,
@@ -147,7 +147,7 @@ export const LOOT = {
   lame_ombre: {
     name: 'Lame d’ombre',
     kind: 'arme',
-    art: 'lame',
+    art: 'cimeterre',
     glow: true,
     attack: 24,
     defense: 0,
@@ -169,7 +169,7 @@ export const LOOT = {
   trident_abysses: {
     name: 'Trident des abysses',
     kind: 'arme',
-    art: 'epee',
+    art: 'trident',
     attack: 17,
     defense: 0,
     rarity: 'epique',
@@ -179,7 +179,7 @@ export const LOOT = {
   marteau_cendres: {
     name: 'Marteau des cendres',
     kind: 'arme',
-    art: 'hache',
+    art: 'marteau',
     attack: 20,
     defense: 0,
     rarity: 'epique',
@@ -189,7 +189,7 @@ export const LOOT = {
   epee_neant: {
     name: 'Épée du néant',
     kind: 'arme',
-    art: 'epee',
+    art: 'epee_gemme',
     attack: 23,
     defense: 0,
     rarity: 'epique',
@@ -199,7 +199,7 @@ export const LOOT = {
   lame_abysses: {
     name: 'Lame des abysses',
     kind: 'arme',
-    art: 'lame',
+    art: 'lame_onde',
     glow: true,
     attack: 29,
     defense: 0,
@@ -219,7 +219,7 @@ export const LOOT = {
   fleau_cendres: {
     name: 'Fléau des cendres',
     kind: 'arme',
-    art: 'hache',
+    art: 'fleau',
     glow: true,
     attack: 33,
     defense: 0,
@@ -260,7 +260,7 @@ export const LOOT = {
   lance_ombres: {
     name: 'Lance des ombres',
     kind: 'arme',
-    art: 'epee',
+    art: 'lance',
     attack: 16,
     defense: 0,
     rarity: 'epique',
@@ -279,7 +279,7 @@ export const LOOT = {
   epee_cendres: {
     name: 'Épée des cendres',
     kind: 'arme',
-    art: 'epee',
+    art: 'epee_runes',
     glow: true,
     attack: 35,
     defense: 0,
@@ -290,7 +290,7 @@ export const LOOT = {
   harpon_abysses: {
     name: 'Harpon des abysses',
     kind: 'arme',
-    art: 'hache',
+    art: 'harpon',
     glow: true,
     attack: 31,
     defense: 0,
@@ -310,7 +310,7 @@ export const LOOT = {
   sceptre_neant: {
     name: 'Sceptre du néant',
     kind: 'arme',
-    art: 'hache',
+    art: 'sceptre',
     glow: true,
     attack: 40,
     defense: 0,
@@ -361,7 +361,7 @@ export const LOOT = {
   coutelas: {
     name: 'Coutelas ébréché',
     kind: 'arme',
-    art: 'dague',
+    art: 'coutelas',
     attack: 3,
     defense: 0,
     attackCd: 0.92,
@@ -465,7 +465,7 @@ export const LOOT = {
   epee_orage: {
     name: 'Épée d’orage',
     kind: 'arme',
-    art: 'epee',
+    art: 'epee_runes',
     glow: true,
     attack: 26,
     defense: 0,
@@ -487,7 +487,7 @@ export const LOOT = {
   fauchon_neant: {
     name: 'Fauchon du néant',
     kind: 'arme',
-    art: 'lame',
+    art: 'fauchon',
     glow: true,
     attack: 38,
     defense: 0,
@@ -628,7 +628,24 @@ export function rollLootItem(pool, chances, random = Math.random, taken = []) {
 // Silhouettes d'armes dessinées en main (voir public/js/weapons.js) :
 // dague courte, épée, hache et lame longue. Une arme sans `art` connu tombe
 // sur l'épée.
-export const WEAPON_ARTS = ['dague', 'epee', 'hache', 'lame'];
+export const WEAPON_ARTS = [
+  'dague',
+  'coutelas',
+  'epee',
+  'epee_gemme',
+  'epee_runes',
+  'lame',
+  'cimeterre',
+  'lame_onde',
+  'fauchon',
+  'hache',
+  'marteau',
+  'fleau',
+  'trident',
+  'lance',
+  'harpon',
+  'sceptre'
+];
 
 // Emplacements d'équipement, dans l'ordre où l'inventaire les affiche. Un
 // objet s'équipe dans le slot qui porte le nom de son `kind`.

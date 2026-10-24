@@ -1,7 +1,7 @@
 // Armes tenues en main : chaque arme est peinte dans un petit canvas (pixel
 // art, aucun fichier image), puis dessinée à la main du personnage avec une
-// rotation. Le geste de frappe vient de `swingAngle` (dungeons.js) : il est
-// commun à toutes les armes, seule la silhouette change.
+// rotation. Sa silhouette vient de son `art` (une épée reste une épée, un
+// trident reste un trident) et son geste de son identifiant (voir MOTIONS).
 //
 // Repère du sprite : la poignée est au point (6, 16), la lame monte vers le
 // haut. On translate donc le canvas sur la main, on tourne, puis on recopie le
@@ -117,6 +117,131 @@ function paintWeapon(art, color) {
     pommel();
     rect(ctx, 4, 12, 1, 1, '#f7f2e6');
     rect(ctx, 8, 12, 1, 1, '#f7f2e6');
+  } else if (art === 'coutelas') {
+    // Lame large et courte, avec sa brèche près du fil.
+    rect(ctx, 5, 2, 4, 10, color);
+    rect(ctx, 5, 2, 1, 10, light);
+    rect(ctx, 8, 3, 1, 9, dark);
+    rect(ctx, 6, 1, 2, 1, light);
+    rect(ctx, 9, 6, 1, 1, '#2b1f16');
+    guard();
+    grip();
+    pommel();
+  } else if (art === 'epee_gemme') {
+    // Épée large, gemme sertie dans la garde.
+    rect(ctx, 4, 1, 4, 11, color);
+    rect(ctx, 4, 1, 1, 11, light);
+    rect(ctx, 7, 2, 1, 10, dark);
+    rect(ctx, 5, 0, 2, 1, light);
+    rect(ctx, 3, 12, 7, 2, gold);
+    rect(ctx, 3, 13, 7, 1, goldDark);
+    rect(ctx, 5, 10, 2, 2, '#fff3bd');
+    grip();
+    pommel();
+  } else if (art === 'epee_runes') {
+    // Lame gravée : quatre runes luisent le long du fil.
+    blade(1, 11);
+    for (let i = 0; i < 4; i++) rect(ctx, 6, 2 + i * 2, 1, 1, '#fff3bd');
+    guard();
+    grip();
+    pommel();
+  } else if (art === 'cimeterre') {
+    // Sabre courbe : la lame s'incurve vers l'intérieur.
+    for (let i = 0; i < 11; i++) {
+      const x = 9 - Math.round(Math.pow(i / 10, 1.6) * 4);
+      rect(ctx, x, 1 + i, 2, 1, color);
+      rect(ctx, x, 1 + i, 1, 1, light);
+    }
+    rect(ctx, 3, 12, 6, 2, gold);
+    rect(ctx, 3, 13, 6, 1, goldDark);
+    grip();
+    pommel();
+  } else if (art === 'lame_onde') {
+    // Lame ondulée, comme une flamme d'eau.
+    for (let i = 0; i < 11; i++) {
+      const x = 6 - Math.round(Math.sin(i / 2.4));
+      rect(ctx, x, 1 + i, 2, 1, color);
+      rect(ctx, x, 1 + i, 1, 1, light);
+    }
+    guard();
+    grip();
+    pommel();
+  } else if (art === 'fauchon') {
+    // Fauchon : lame qui s'élargit en s'incurvant vers la pointe.
+    for (let i = 0; i < 11; i++) {
+      const x = 9 - Math.round(i * 0.35);
+      rect(ctx, x, 1 + i, 2 + Math.round(i * 0.25), 1, color);
+      rect(ctx, x, 1 + i, 1, 1, light);
+    }
+    rect(ctx, 3, 12, 7, 2, gold);
+    rect(ctx, 3, 13, 7, 1, goldDark);
+    grip();
+    pommel();
+  } else if (art === 'trident') {
+    // Trident : trois dents au bout d'une hampe.
+    rect(ctx, 5, 5, 2, 12, wood);
+    rect(ctx, 5, 5, 1, 12, shade(wood, 32));
+    for (const x of [2, 5, 8]) {
+      rect(ctx, x, 0, 1, 6, color);
+      rect(ctx, x, 0, 1, 2, light);
+    }
+    rect(ctx, 1, 5, 9, 2, gold);
+    rect(ctx, 1, 5, 9, 1, goldDark);
+    rect(ctx, 4, 7, 4, 1, goldDark);
+  } else if (art === 'lance') {
+    // Lance : fer en feuille et longue hampe.
+    rect(ctx, 5, 3, 2, 13, wood);
+    rect(ctx, 5, 3, 1, 13, shade(wood, 32));
+    rect(ctx, 4, 0, 4, 4, color);
+    rect(ctx, 4, 0, 1, 4, light);
+    rect(ctx, 7, 1, 1, 2, dark);
+    rect(ctx, 3, 4, 5, 1, goldDark);
+  } else if (art === 'harpon') {
+    // Harpon : pointe barbelée et corde enroulée sur la hampe.
+    rect(ctx, 5, 3, 2, 13, wood);
+    rect(ctx, 5, 3, 1, 13, shade(wood, 32));
+    rect(ctx, 5, 0, 3, 3, color);
+    rect(ctx, 5, 0, 2, 1, light);
+    rect(ctx, 2, 2, 3, 1, color);
+    rect(ctx, 2, 3, 1, 2, color);
+    rect(ctx, 8, 3, 3, 1, color);
+    rect(ctx, 10, 4, 1, 2, color);
+    rect(ctx, 5, 6, 4, 1, '#c9d3da');
+    rect(ctx, 5, 8, 3, 1, '#c9d3da');
+  } else if (art === 'marteau') {
+    // Marteau : tête massive sur un manche.
+    rect(ctx, 5, 5, 2, 12, wood);
+    rect(ctx, 5, 5, 1, 12, shade(wood, 32));
+    rect(ctx, 1, 2, 11, 5, color);
+    rect(ctx, 1, 2, 11, 1, light);
+    rect(ctx, 1, 6, 11, 1, dark);
+    rect(ctx, 1, 3, 1, 3, light);
+    rect(ctx, 11, 3, 1, 3, dark);
+    rect(ctx, 4, 7, 4, 1, goldDark);
+  } else if (art === 'fleau') {
+    // Fléau : masse à pointes au bout d'une chaîne.
+    rect(ctx, 5, 10, 2, 7, wood);
+    rect(ctx, 5, 10, 1, 7, shade(wood, 32));
+    rect(ctx, 4, 9, 4, 1, goldDark);
+    for (let i = 0; i < 3; i++) rect(ctx, 4 + i, 8 - i, 1, 1, '#c9d3da');
+    rect(ctx, 6, 1, 5, 5, color);
+    rect(ctx, 6, 1, 5, 1, light);
+    rect(ctx, 10, 2, 1, 3, dark);
+    rect(ctx, 5, 3, 1, 1, dark);
+    rect(ctx, 11, 3, 1, 1, dark);
+    rect(ctx, 8, 0, 1, 1, dark);
+    rect(ctx, 8, 6, 1, 1, dark);
+  } else if (art === 'sceptre') {
+    // Sceptre : orbe au sommet d'une hampe cerclée d'or.
+    rect(ctx, 5, 5, 2, 12, '#5a6470');
+    rect(ctx, 5, 5, 1, 12, '#8b939c');
+    rect(ctx, 3, 0, 6, 6, color);
+    rect(ctx, 3, 0, 2, 2, light);
+    rect(ctx, 8, 4, 1, 2, dark);
+    rect(ctx, 2, 1, 1, 3, gold);
+    rect(ctx, 9, 1, 1, 3, gold);
+    rect(ctx, 4, 6, 4, 1, gold);
+    rect(ctx, 6, 8, 1, 3, goldDark);
   } else {
     blade(5, 11);
     guard();
@@ -186,9 +311,21 @@ const MOTIONS = {
 // Repli pour une arme ajoutée plus tard : son dessin décide de son geste.
 const MOTION_BY_ART = {
   dague: { kind: 'stab', reach: 9, spark: '#fff4d8' },
+  coutelas: { kind: 'stab', reach: 10, spark: '#ffe9a8', double: true },
   epee: { kind: 'slash', reach: 13, spark: '#fff4d8' },
+  epee_gemme: { kind: 'slash', reach: 14, spark: '#f6d34d' },
+  epee_runes: { kind: 'slash', reach: 14, spark: '#f6d34d' },
   lame: { kind: 'slash', reach: 14, spark: '#eaf6ff' },
-  hache: { kind: 'chop', reach: 12, spark: '#e8d6a4' }
+  cimeterre: { kind: 'slash', reach: 14, spark: '#c78bff' },
+  lame_onde: { kind: 'slash', reach: 14, spark: '#5fd0ff' },
+  fauchon: { kind: 'flurry', reach: 16, spark: '#ff5f7a' },
+  hache: { kind: 'chop', reach: 12, spark: '#e8d6a4' },
+  marteau: { kind: 'chop', reach: 13, spark: '#ff9a5c' },
+  fleau: { kind: 'chop', reach: 14, spark: '#ff6a3c', chain: true },
+  trident: { kind: 'sweep', reach: 17, spark: '#7fd6ff', triple: true },
+  lance: { kind: 'sweep', reach: 18, spark: '#b48cff' },
+  harpon: { kind: 'sweep', reach: 16, spark: '#3fa8c9' },
+  sceptre: { kind: 'cast', reach: 10, spark: '#ff5f7a' }
 };
 
 const DEFAULT_MOTION = { kind: 'slash', reach: 12, spark: '#fff4d8' };

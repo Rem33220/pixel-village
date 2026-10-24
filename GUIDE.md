@@ -256,10 +256,12 @@ portés).
 
 **L'arme se voit en main** : dès qu'une arme est équipée, elle apparaît dans la
 main droite du personnage, au village comme dans les donjons, avec sa propre
-silhouette — dague courte, épée, hache ou lame longue. Les armes épiques
-(lame des brumes, épée du gardien) brillent d'un halo de leur couleur. Retirer
-l'arme la fait disparaître ; à mains nues, seul le poing apparaît pendant un
-coup.
+silhouette — dague, coutelas, épée fine, large à gemme ou gravée de runes,
+sabre, lame ondulée, fauchon, hache, marteau, fléau, trident, lance, harpon ou
+sceptre — et son propre geste (estoc, grand arc, double passe, coup vertical,
+estoc long, orbe tournant). Les armes épiques (lame des brumes, épée du
+gardien) brillent d'un halo de leur couleur. Retirer l'arme la fait
+disparaître ; à mains nues, seul le poing apparaît pendant un coup.
 
 ### Butin des donjons
 

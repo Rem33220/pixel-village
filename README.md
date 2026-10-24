@@ -506,9 +506,11 @@ L'arme équipée est **visible dans la main** du personnage. Son identifiant vie
 de l'inventaire (`equippedWeapon`), la silhouette est peinte par
 `public/js/weapons.js` (aucun fichier image) et le rendu la fait tourner autour
 de la main. Le coup est purement visuel : `attackRun` applique les dégâts à
-l'appui sur `E` puis arme `run.swing` ; `swingAngle` (fonction pure, testée sans
-navigateur) donne l'angle du geste image par image, avec une traînée claire et
-le personnage tourné vers la cible. Seul le joueur voit son arme : le serveur
+l'appui sur `E` puis arme `run.swing` ; la pose vient de `weaponPose` (geste
+propre à chaque arme : estoc, grand arc, coup vertical, estoc long, orbe) et
+`swingAngle` (fonction pure, testée sans navigateur) donne l'angle de la taille
+image par image, avec une traînée propre à l'arme et le personnage tourné vers
+la cible. Seul le joueur voit son arme : le serveur
 ne connaît pas l'équipement des autres joueurs.
 
 Le serveur reçoit seulement deux informations : *je suis à l'intérieur* (pour
