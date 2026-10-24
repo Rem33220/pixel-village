@@ -57,7 +57,7 @@ function rect(ctx, x, y, w, h, color) {
 
 // --- Silhouettes ------------------------------------------------------------
 
-function paintWeapon(art, color) {
+function paintWeapon(art, color, id = '') {
   const sprite = canvas(13, 20);
   const ctx = sprite.getContext('2d');
   ctx.imageSmoothingEnabled = false;
@@ -135,13 +135,13 @@ function paintWeapon(art, color) {
     rect(ctx, 5, 0, 2, 1, light);
     rect(ctx, 3, 12, 7, 2, gold);
     rect(ctx, 3, 13, 7, 1, goldDark);
-    rect(ctx, 5, 10, 2, 2, '#fff3bd');
+    rect(ctx, 5, 10, 2, 2, light);
     grip();
     pommel();
   } else if (art === 'epee_runes') {
     // Lame gravée : quatre runes luisent le long du fil.
     blade(1, 11);
-    for (let i = 0; i < 4; i++) rect(ctx, 6, 2 + i * 2, 1, 1, '#fff3bd');
+    for (let i = 0; i < 4; i++) rect(ctx, 6, 2 + i * 2, 1, 1, light);
     guard();
     grip();
     pommel();
@@ -249,6 +249,30 @@ function paintWeapon(art, color) {
     pommel();
   }
 
+  // Détails propres à certaines armes de la même famille : deux lames de même
+  // silhouette restent reconnaissables (givre, brume, rune, morsure du vide).
+  if (id === 'lame_givre') {
+    rect(ctx, 4, 2, 1, 1, '#d8f4ff');
+    rect(ctx, 3, 6, 1, 2, '#aee8ff');
+    rect(ctx, 8, 5, 1, 1, '#d8f4ff');
+  } else if (id === 'lame_brumes') {
+    rect(ctx, 8, 6, 1, 3, rgba(color, 0.65));
+    rect(ctx, 3, 9, 1, 2, rgba(color, 0.45));
+  } else if (id === 'lame_veilleur') {
+    rect(ctx, 4, 4, 1, 1, '#fff3bd');
+    rect(ctx, 4, 12, 1, 1, '#fff3bd');
+    rect(ctx, 8, 12, 1, 1, '#fff3bd');
+  } else if (id === 'lame_neant') {
+    rect(ctx, 6, 6, 1, 2, '#2b1f16');
+    rect(ctx, 6, 4, 1, 1, '#2b1f16');
+  } else if (id === 'epee_gardien') {
+    rect(ctx, 2, 13, 1, 1, '#ffe9a8');
+    rect(ctx, 9, 13, 1, 1, '#ffe9a8');
+  } else if (id === 'epee_cendres') {
+    rect(ctx, 4, 3, 1, 1, '#ff9a5c');
+    rect(ctx, 7, 8, 1, 1, '#ff9a5c');
+  }
+
   return sprite;
 }
 
@@ -256,10 +280,10 @@ export function getWeaponSprite(itemId) {
   const item = LOOT[itemId];
   if (!item) return null;
   const art = item.art ?? 'epee';
-  const key = `${art}|${item.color}`;
+  const key = `${art}|${item.color}|${itemId}`;
   let sprite = weaponCache.get(key);
   if (!sprite) {
-    sprite = paintWeapon(art, item.color);
+    sprite = paintWeapon(art, item.color, itemId);
     weaponCache.set(key, sprite);
   }
   return sprite;
