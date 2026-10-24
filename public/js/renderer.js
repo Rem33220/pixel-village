@@ -6,6 +6,7 @@ import { TILE_SIZE, T, HOUSE_STYLES } from './map.js';
 import { DECORS, DEFAULT_DECOR } from './decor.js';
 import { getPlayerSprite } from './sprites.js';
 import { drawHeldWeapon } from './weapons.js';
+import { SPIN_TIME } from './dungeons.js';
 
 function tileRand(tx, ty, salt) {
   let h = (Math.imul(tx, 374761393) + Math.imul(ty, 668265263) + Math.imul(salt, 1442695041)) | 0;
@@ -829,6 +830,100 @@ function drawBuildingDetails(ctx, world) {
   }
 }
 
+// --- Tourbillon -------------------------------------------------------------
+
+function clampUnit(value) {
+  return Math.max(0, Math.min(1, value));
+}
+
+function withAlpha(hex, alpha) {
+  const value = parseInt(hex.slice(1), 16);
+  return `rgba(${(value >> 16) & 255}, ${(value >> 8) & 255}, ${value & 255}, ${alpha})`;
+}
+
+// Animation du tourbillon (touche F) : trois lames de vent tournent autour du
+// personnage, un anneau de poussière s'ouvre au sol et des éclats s'échappent
+// à chaque passage. `remaining` est le temps restant du geste.
+function drawWhirlwind(ctx, px, py, remaining) {
+  const progress = 1 - clampUnit(remaining / SPIN_TIME);
+  const fade = Math.min(1, Math.sin(Math.PI * clampUnit(progress)) * 1.7);
+  if (fade <= 0.02) return;
+
+  const cx = px;
+  const cy = py - 9;
+  const spin = progress * Math.PI * 5.2;
+
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+
+  // Anneau de poussière qui s'ouvre au sol.
+  const ringR = 7 + progress * 15;
+  ctx.strokeStyle = withAlpha('#ffe9a8', 0.34 * fade);
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.ellipse(px, py + 1, ringR, ringR * 0.42, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.strokeStyle = withAlpha('#fff6d8', 0.22 * fade);
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.ellipse(px, py + 1, Math.max(2, ringR - 3), Math.max(1, (ringR - 3) * 0.42), 0, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // Trois lames de vent qui tournent et se couchent vers le sol.
+  const sway = Math.sin(progress * Math.PI * 2);
+  for (let i = 0; i < 3; i++) {
+    const a = spin + (i * Math.PI * 2) / 3;
+    const rx = 11 + 2 * Math.sin(a);
+    const ry = 5 + 1.5 * Math.cos(a);
+    const lx = cx + Math.cos(a) * rx;
+    const ly = cy + Math.sin(a) * ry;
+    const tail = 1.1 + 0.5 * sway;
+    ctx.strokeStyle = withAlpha('#fff9e2', 0.5 * fade);
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(lx, ly);
+    ctx.quadraticCurveTo(
+      cx + Math.cos(a - 0.5) * (rx + 3),
+      cy + Math.sin(a - 0.5) * (ry + 1),
+      cx + Math.cos(a - tail) * (rx + 5),
+      cy + Math.sin(a - tail) * (ry + 2)
+    );
+    ctx.stroke();
+    ctx.fillStyle = withAlpha('#fff6d8', 0.7 * fade);
+    ctx.fillRect(Math.round(lx) - 1, Math.round(ly) - 1, 2, 2);
+  }
+
+  // Éclats de vent projetés vers l'extérieur.
+  for (let i = 0; i < 5; i++) {
+    const a = spin * 1.4 + i * 1.7;
+    const d = 8 + progress * 16 + i * 1.4;
+    ctx.fillStyle = withAlpha('#ffe9a8', 0.35 * fade);
+    ctx.fillRect(
+      Math.round(px + Math.cos(a) * d),
+      Math.round(py - 4 + Math.sin(a) * d * 0.45),
+      1,
+      1
+    );
+  }
+
+  ctx.restore();
+}
+
+// Arbres et rochers dessinés à part, triés en profondeur avec les personnages :
+// on passe ainsi derrière eux au lieu de les traverser. `buildMapCanvas` ne
+// garde que l'herbe sous leurs pieds.
+function collectDepthProps(world) {
+  const props = [];
+  if (!world?.tiles) return props;
+  for (let y = 0; y < world.h; y++) {
+    for (let x = 0; x < world.w; x++) {
+      const tile = world.tiles[y * world.w + x];
+      if (tile === T.TREE || tile === T.ROCK) props.push({ x, y, tile });
+    }
+  }
+  return props;
+}
+
 function buildMapCanvas(world) {
   const mapCanvas = document.createElement('canvas');
   mapCanvas.width = world.w * TILE_SIZE;
@@ -849,7 +944,14 @@ function buildMapCanvas(world) {
   for (let y = 0; y < world.h; y++) {
     for (let x = 0; x < world.w; x++) {
       const style = grid ? grid[y * world.w + x] : interior;
-      drawTile(ctx, x * TILE_SIZE, y * TILE_SIZE, world.tiles[y * world.w + x],
+      const tile = world.tiles[y * world.w + x];
+      // Arbres et rochers : seule l'herbe reste dans la carte pré-dessinée, le
+      // reste est trié en profondeur avec les personnages (voir render()).
+      if (tile === T.TREE || tile === T.ROCK) {
+        drawGrass(ctx, x * TILE_SIZE, y * TILE_SIZE, x, y, tile === T.TREE);
+        continue;
+      }
+      drawTile(ctx, x * TILE_SIZE, y * TILE_SIZE, tile,
         x + shift * 53, y + shift * 31, decor, style);
     }
   }
@@ -942,6 +1044,7 @@ export class Renderer {
     this.ctx = canvas.getContext('2d', { alpha: false });
     this.world = world;
     this.mapCanvas = buildMapCanvas(world);
+    this.props = collectDepthProps(world);
     this.scale = 4;
     this.camX = 0;
     this.camY = 0;
@@ -970,6 +1073,7 @@ export class Renderer {
   setWorld(world) {
     this.world = world;
     this.mapCanvas = buildMapCanvas(world);
+    this.props = collectDepthProps(world);
     this.clampCamera();
   }
 
@@ -1031,9 +1135,29 @@ export class Renderer {
 
     const drawables = list.map((player) => ({ y: player.ry, player, actor: null }));
     for (const actor of actors ?? []) drawables.push({ y: actor.ry, player: null, actor });
+
+    // Arbres et rochers visibles : leur ligne de base est le bas de leur tuile,
+    // ce qui les fait passer derrière un personnage situé au nord.
+    const viewTileW = this.viewW / scale;
+    const viewTileH = this.viewH / scale;
+    const x0 = Math.max(0, Math.floor(camX / TILE_SIZE) - 1);
+    const y0 = Math.max(0, Math.floor(camY / TILE_SIZE) - 1);
+    const x1 = Math.min(this.world.w - 1, Math.ceil((camX + viewTileW) / TILE_SIZE) + 1);
+    const y1 = Math.min(this.world.h - 1, Math.ceil((camY + viewTileH) / TILE_SIZE) + 1);
+    for (const prop of this.props ?? []) {
+      if (prop.x < x0 || prop.x > x1 || prop.y < y0 || prop.y > y1) continue;
+      drawables.push({ y: prop.y + 1, prop });
+    }
+
     drawables.sort((a, b) => a.y - b.y);
 
     for (const entry of drawables) {
+      if (entry.prop) {
+        const prop = entry.prop;
+        if (prop.tile === T.TREE) drawTree(ctx, prop.x * TILE_SIZE, prop.y * TILE_SIZE, prop.x, prop.y);
+        else drawRock(ctx, prop.x * TILE_SIZE, prop.y * TILE_SIZE);
+        continue;
+      }
       if (entry.actor) {
         entry.actor.draw(ctx, now);
         continue;
@@ -1060,6 +1184,8 @@ export class Renderer {
         ? (frame % 2 === 1 ? -1 : 0)
         : (Math.floor(now / 900) % 2 === 0 ? 0 : -1);
       const sprite = getPlayerSprite(p.color, p.dir, frame);
+      // Tourbillon : les lames de vent passent derrière le personnage.
+      if (isSelf && (p.spin ?? 0) > 0) drawWhirlwind(ctx, px, py, p.spin);
       ctx.drawImage(sprite, px - 6, py - 15 + bob, 12, 16);
 
       // Arme équipée en main (`equippedWeapon`, lue dans l'inventaire) et geste
@@ -1072,7 +1198,8 @@ export class Renderer {
           py,
           bob,
           dir: swinging && p.swingDir ? p.swingDir : p.dir,
-          swing: p.swing ?? 0
+          swing: p.swing ?? 0,
+          spin: p.spin ?? 0
         });
       }
 

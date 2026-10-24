@@ -246,14 +246,19 @@ function canStand(x, y) {
     && !isSolid(state.world, Math.floor(x + radius), Math.floor(y + radius));
 }
 
+// Un personnage déjà engagé dans une tuile pleine (recalage réseau, décor
+// poussé sous ses pieds) ne doit jamais rester figé : on le laisse sortir de
+// la tuile avant de réappliquer la règle de collision. Sans cela, approcher
+// d'un mur au pixel près suffisait à bloquer toutes les directions.
 function moveWithCollision(player, dx, dy) {
+  const wedged = !canStand(player.rx, player.ry);
   if (dx) {
     const nx = player.rx + dx;
-    if (canStand(nx, player.ry)) player.rx = nx;
+    if (wedged || canStand(nx, player.ry)) player.rx = nx;
   }
   if (dy) {
     const ny = player.ry + dy;
-    if (canStand(player.rx, ny)) player.ry = ny;
+    if (wedged || canStand(player.rx, ny)) player.ry = ny;
   }
   player.rx = Math.min(Math.max(player.rx, 1), state.world.w - 1);
   player.ry = Math.min(Math.max(player.ry, 1), state.world.h - 1);
@@ -1178,7 +1183,9 @@ function handleRunInteract() {
     return;
   }
 
-  if (crackNear(run, me)) {
+  // Un monstre à portée de coup passe avant la fissure : on ne bascule plus
+  // dans la salle secrète en essayant de frapper un ennemi collé au mur.
+  if (!monsterNear(run, me) && crackNear(run, me)) {
     const secret = enterSecretRoom(run);
     if (!secret) return;
     placeRunPlayer(run.room.spawn);
@@ -1437,10 +1444,11 @@ function updatePrompt(force = false) {
           : action === 'secret'
             ? 'Remonter dans la salle'
             : `Descendre — ${run.rooms[run.roomIndex + 1].spec.name}`;
+      } else if (monsterNear(run, me)) {
+        text = 'Attaquer';
       } else if (crackNear(run, me)) {
         text = 'Fissure — entrer dans la salle secrète';
       } else if (chestNear(run, me)) text = 'Ouvrir le coffre';
-      else if (monsterNear(run, me)) text = 'Attaquer';
     } else if (state.inside) {
       if (nearRoomExit(state.inside.room, me)) {
         text = 'Sortir de la maison';
@@ -1812,6 +1820,7 @@ function loop(now) {
       // Arme en main et geste de frappe : le rendu lit ces trois champs.
       me.equippedWeapon = equippedWeapon(state.vault);
       me.swing = state.run ? state.run.swing : 0;
+      me.spin = state.run ? state.run.spinTime ?? 0 : 0;
       me.swingDir = state.run?.swingDir ?? me.dir;
       updateAbilityBar();
       state.renderer.updateCamera(me.rx, me.ry, dt);

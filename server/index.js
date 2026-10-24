@@ -85,14 +85,18 @@ function canStand(x, y) {
     && !isSolid(world, Math.floor(x + RADIUS), Math.floor(y + RADIUS));
 }
 
+// Même garde que côté client : un joueur dont la position chevauche déjà une
+// tuile pleine peut toujours s'en dégager, sinon il resterait figé contre un
+// mur (devant l'échoppe, par exemple).
 function movePlayer(player, dx, dy) {
+  const wedged = !canStand(player.x, player.y);
   if (dx) {
     const nx = player.x + dx;
-    if (canStand(nx, player.y)) player.x = nx;
+    if (wedged || canStand(nx, player.y)) player.x = nx;
   }
   if (dy) {
     const ny = player.y + dy;
-    if (canStand(player.x, ny)) player.y = ny;
+    if (wedged || canStand(player.x, ny)) player.y = ny;
   }
   player.x = Math.min(Math.max(player.x, 1), world.w - 1);
   player.y = Math.min(Math.max(player.y, 1), world.h - 1);

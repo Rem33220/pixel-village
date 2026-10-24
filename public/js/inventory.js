@@ -5,13 +5,17 @@
 import { REWARDS } from './houses.js';
 import {
   LOOT,
-  ITEM_ICONS,
   coinsLabel,
   dungeonOfItem,
   isEquipped,
   itemCount,
   ownsItem
 } from './dungeons.js';
+import { createLootIcon } from './loot-art.js';
+
+// Chaque objet du butin a son propre dessin (voir loot-art.js) ; l'échoppe
+// réutilise la même icône, donc un objet se reconnaît partout de la même façon.
+export { createLootIcon };
 
 export const ITEM_ORDER = ['lampe', 'bottes', 'medaille'];
 
@@ -121,13 +125,6 @@ function paintIcon(icon, palette) {
 
 function rewardIcon(id) {
   return paintIcon(ICONS[id], ICONS[id].palette);
-}
-
-// Icône d'un objet du butin, réutilisée par l'échoppe (voir shop.js).
-export function createLootIcon(id) {
-  const item = LOOT[id];
-  const icon = ITEM_ICONS[item.kind];
-  return paintIcon(icon, { ...icon.palette, b: item.color });
 }
 
 const lootIcon = createLootIcon;

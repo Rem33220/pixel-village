@@ -271,6 +271,19 @@ export function generateWorld(seed = WORLD_SEED) {
     set(x, y, rand() < 0.65 ? T.FLOWER : T.ROCK);
   }
 
+  // Allée de l'échoppe : un chemin dégagé relie la grand-rue au comptoir. Sans
+  // elle, les arbres et les rochers plantés plus haut formaient un dédale où
+  // l'on se coinçait dès qu'on approchait de la boutique. Elle est tracée
+  // après les plantations pour ne pas déplacer la forêt existante.
+  for (let y = shopDoor.y + 1; y <= 22; y++) {
+    for (let x = shopDoor.x - 1; x <= shopDoor.x + 1; x++) set(x, y, T.PATH);
+  }
+  // Petit parvis élargi devant le comptoir : deux tuiles de recul pour
+  // s'arrêter devant le colporteur sans se sentir coincé contre le mur.
+  for (let y = shopDoor.y + 1; y <= shopDoor.y + 3; y++) {
+    for (let x = shopDoor.x - 2; x <= shopDoor.x + 2; x++) set(x, y, T.PATH);
+  }
+
   return {
     w,
     h,

@@ -28,6 +28,9 @@ export const ATTACK_RANGE = 1.35;
 export const ATTACK_COOLDOWN = 0.42;
 // Durée du geste de frappe : lever de l'arme, coup, retour au repos.
 export const SWING_TIME = 0.28;
+// Durée du tourbillon : le temps que mettent les lames à faire le tour du
+// personnage. Le rendu s'en sert pour l'animation, updateRun la décompte.
+export const SPIN_TIME = 0.55;
 export const CONTACT_RANGE = 0.95;
 export const MONSTER_COOLDOWN = 1.1;
 export const MONSTER_AGGRO = 5;
@@ -1361,7 +1364,10 @@ export const ROOM_EXIT = { x: LAYOUTS.room.exitX + 0.5, y: ROOM_H - 1 + 0.35 };
 // emplacements. `tile` est la tuile de mur fissurée (dessinée et pulsante),
 // `approach` le point d'où l'on peut l'atteindre depuis l'intérieur.
 // Les noms servent de clé dans `dungeon.cracks`.
-export const SECRET_RANGE = 1.4;
+// Portée volontairement courte : il faut se coller à la fissure pour y
+// entrer. Plus large, un coup porté à un monstre proche déclenchait le
+// passage en salle secrète.
+export const SECRET_RANGE = 0.85;
 export const CRACK_SPOTS = {
   est_milieu: { tile: { x: ROOM_W - 1, y: 8 }, approach: { x: ROOM_W - 1.6, y: 8.5 } },
   est_haut: { tile: { x: ROOM_W - 1, y: 4 }, approach: { x: ROOM_W - 1.6, y: 4.5 } },
@@ -1608,6 +1614,8 @@ export function createRun(dungeonId, seed = 1, relics = null) {
     attackCd: 0,
     swing: 0,
     swingDir: 'down',
+    // Animation du tourbillon (touche F), décomptée par updateRun.
+    spinTime: 0,
     grace: ENTRY_GRACE,
     // Capacités du personnage : `prepareAbilities` (skills.js) remplit les
     // charges de ruade selon l'arbre ; les compteurs existent dès la création
@@ -1850,6 +1858,7 @@ export function specialAttack(run, player, stats) {
 
   run.specialCd = SPECIAL_COOLDOWN;
   run.swing = SWING_TIME * 1.7;
+  run.spinTime = SPIN_TIME;
 
   const point = pointOf(player);
   const bonusRange = Math.max(0, (stats.range ?? ATTACK_RANGE) - ATTACK_RANGE);
@@ -1898,6 +1907,7 @@ export function updateRun(run, player, dt, stats) {
   const events = { damage: 0, dead: false, cleared: false, finished: false, healed: 0, revived: false };
   if (run.attackCd > 0) run.attackCd = Math.max(0, run.attackCd - dt);
   if (run.swing > 0) run.swing = Math.max(0, run.swing - dt);
+  if (run.spinTime > 0) run.spinTime = Math.max(0, run.spinTime - dt);
   if (run.grace > 0) run.grace = Math.max(0, run.grace - dt);
   if (run.invuln > 0) run.invuln = Math.max(0, run.invuln - dt);
   updateFloaters(run, dt);
