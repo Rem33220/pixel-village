@@ -58,7 +58,6 @@ import {
   drawPortal,
   drawRun,
   dungeonTotals,
-  dungeonTimeoutMs,
   dungeonUnlocked,
   enterSecretRoom,
   equipItem,
@@ -1107,9 +1106,8 @@ function refreshRunPanel(run = state.run) {
   els.challengeTitle.textContent = run.inSecret
     ? `Salle secrète — ${run.dungeon.name}`
     : `${run.dungeon.name} — niveau ${run.dungeon.level}`;
-  const limit = dungeonTimeLimit(run.dungeon);
-  const remain = Math.ceil(limit);
-  els.challengeGoal.textContent = `${spec.name} (${roomLabel(run)}) — ${spec.intro}\n⏱ ${remain}s pour compléter le donjon`;
+  const limit = 180; // temps par défaut en secondes (3 min) - affiché mais non utilisé dans le temps imparti
+  els.challengeGoal.textContent = `${spec.name} (${roomLabel(run)}) — ${spec.intro}`;
   dungeonStatus = '';
   updateDungeonPanel(true);
 }
