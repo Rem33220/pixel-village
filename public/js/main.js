@@ -58,6 +58,7 @@ import {
   drawPortal,
   drawRun,
   dungeonTotals,
+  dungeonTimeoutMs,
   dungeonUnlocked,
   enterSecretRoom,
   equipItem,
@@ -73,7 +74,8 @@ import {
   roomLabel,
   sanitizeVault,
   specialAttack,
-  updateRun
+  updateRun,
+  ownsItem
 } from './dungeons.js';
 
 const world = generateWorld();
@@ -563,9 +565,51 @@ function grantLoot(id) {
   saveVault();
   updateGearHud();
   inventory.render();
-  // Mettre à jour la liste des loot du portail si elle est ouverte.
-  if (isPortalOpen()) refreshPortalList();
-  return true;
+  if (isPortalOpen()) {
+    refreshPortalList();
+  } else {
+    refreshDungeonLootSoon();
+  }
+}
+
+let _dungeonLootScheduled = false;
+function refreshDungeonLootSoon() {
+  if (_dungeonLootScheduled || !isPortalOpen()) return;
+  _dungeonLootScheduled = true;
+  requestAnimationFrame(() => {
+    _dungeonLootScheduled = false;
+    refreshDungeonLoot();
+  });
+}
+
+const LOOT_LINE_RE = /^(.+?) — /;
+function refreshDungeonLoot() {
+  if (!isPortalOpen()) return;
+  for (const card of els.portalList.children) {
+    const header = card.querySelector('.portal-card-head');
+    if (!header) continue;
+    const nameEl = header.querySelector('h3');
+    if (!nameEl) continue;
+    const dungeon = DUNGEONS.find((entry) => entry.name === nameEl.textContent);
+    if (!dungeon) continue;
+    const lootList = card.querySelector('.portal-loot');
+    if (!lootList) continue;
+    const vault = state.vault;
+    for (const li of lootList.children) {
+      const text = (li.textContent || '').trim();
+      const name = (LOOT_LINE_RE.exec(text)?.[1] || text).trim();
+      if (!name) continue;
+      const id = dungeon.loot.find((lootId) => LOOT[lootId]?.name === name);
+      if (!id) continue;
+      const owned = ownsItem(vault, id);
+      li.style.textDecoration = owned ? 'line-through' : '';
+      li.style.opacity = owned ? '0.6' : '';
+    }
+  }
+}
+
+function isDungeonConquered(id) {
+  return state.conquered.has(id);
 }
 
 function toggleEquip(id) {
@@ -990,7 +1034,7 @@ function dungeonCard(dungeon) {
     li.className = `rarity-${item.rarity}`;
     const rarity = RARITIES[item.rarity]?.label ?? 'Commun';
     li.textContent = `${item.name} — ${rarity} · ${itemBonusLabel(item)}`;
-    if (vault && (ownsItem(vault, id) || itemCount(vault, id) > 0)) {
+    if (ownsItem(vault, id)) {
       li.style.textDecoration = 'line-through';
       li.style.opacity = '0.6';
     }
@@ -1017,10 +1061,11 @@ function refreshPortalList() {
   for (const dungeon of DUNGEONS) els.portalList.append(dungeonCard(dungeon));
 }
 
+
 function openPortal() {
   if (isPortalOpen() || state.run || state.inside) return;
-  refreshPortalList();
   els.portal.classList.remove('hidden');
+  refreshPortalList();
   refreshInputState();
   els.portalClose.focus();
   playSound('click');
@@ -1065,7 +1110,8 @@ function refreshRunPanel(run = state.run) {
     ? `Salle secrète — ${run.dungeon.name}`
     : `${run.dungeon.name} — niveau ${run.dungeon.level}`;
   const limit = dungeonTimeLimit(run.dungeon);
-  els.challengeGoal.textContent = `${spec.name} (${roomLabel(run)}) — ${spec.intro}\n⏱ ${Math.ceil(limit)}s pour compléter le donjon`;
+  const remain = run.phase !== 'won' && run.timeoutAt ? Math.max(0, Math.ceil((run.timeoutAt - performance.now()) / 1000)) : Math.ceil(limit);
+  els.challengeGoal.textContent = `${spec.name} (${roomLabel(run)}) — ${spec.intro}\n⏱ ${remain}s pour compléter le donjon`;
   dungeonStatus = '';
   updateDungeonPanel(true);
 }
@@ -1095,10 +1141,12 @@ function enterDungeon(id) {
   if (!dungeonUnlocked(dungeon, state.conquered)) return;
 
   closePortal();
+  refreshPortalList();
 
   const run = createRun(id, Math.floor(Math.random() * 0x7fffffff), state.relics);
-  const stats = playerStats(state.vault, state.skills, state.relics);
+  run.timeoutAt = performance.now() + dungeonTimeoutMs(dungeon);
   prepareAbilities(state.skills, run);
+  const stats = playerStats(state.vault, state.skills, state.relics);
   run.pvMax = stats.pvMax;
   run.pv = stats.pvMax;
   run.sinceHit = 0;
@@ -1167,8 +1215,13 @@ function exitDungeon(reason = 'sortie') {
   updatePrompt(true);
 
   if (reason === 'defeat') {
+
     playSound('fail');
     pushChat('Tu es tombé… le portail te ramène au village. Ton butin et ton équipement sont conservés.', 'system');
+  } else if (reason === 'timeout') {
+
+    playSound('fail');
+    pushChat(`Le chronomètre est écoulé : tu es expulsé du ${run.dungeon.name}.`, 'system');
   } else {
     playSound('click');
   }
@@ -1178,6 +1231,11 @@ function handleRunInteract() {
   const run = state.run;
   const me = state.players.get(state.selfId);
   if (!run || !me) return;
+
+  if (run.timeoutAt && performance.now() > run.timeoutAt) {
+    exitDungeon('timeout');
+    return;
+  }
 
   if (nearRoomExit(run.room, me)) {
     const action = exitAction(run);
@@ -1306,6 +1364,11 @@ function tickDungeon(dt) {
   const me = state.players.get(state.selfId);
   if (!me) return;
 
+  if (run.timeoutAt && performance.now() > run.timeoutAt) {
+    exitDungeon('timeout');
+    return;
+  }
+
   const events = updateRun(run, me, dt, playerStats(state.vault, state.skills, state.relics));
   if (events.damage > 0) playSound('hurt');
   if (events.revived) {
@@ -1339,8 +1402,7 @@ function tickDungeon(dt) {
       const { monster, drop } = entry;
       const name = monster.name || 'monstre';
       playSound('kill');
-      const xp = xpForKill(monster, run.dungeon.level);
-      grantXp(xp);
+      playSound('kill');
       pushChat(`La ruade a tué un ${name} en passant !`, 'combat');
       if (drop) grantLoot(drop);
       grantKillXp(monster, run.dungeon.level);
@@ -2080,6 +2142,8 @@ window.addEventListener('keydown', (event) => {
     }
   }
 });
+
+// --- Babel runtime helpers --------------------------------------------------
 
 // Envoie la direction au serveur quand elle change, et la rafraîchit
 // régulièrement pour ne pas être coupé par le délai d'inactivité du serveur.

@@ -16,6 +16,30 @@ export const MAX_LEVEL = 20;
 export const DASH_TIME = 0.24;
 export const DASH_SPEED = 3.4;
 export const DASH_COOLDOWN = 3.4;
+
+export const DASH_STRIDE_DAMAGE = 3;
+/**
+ * Prépare les capacités du personnage au début d’une expédition.
+ *
+ * Mêmes invariants que `startDash` : sans compétence, les charges sont à 0,
+ * le délai à 0 et la durée à 0, donc le rendu et les tests n’ont jamais de
+ * champ manquant.
+ */
+export function prepareAbilities(skills, run) {
+  if (!run) return;
+  const effects = skillEffects(skills);
+  if (effects.dash) {
+    run.dashMax = 1 + effects.dashCharges;
+    run.dashCharges = run.dashMax;
+  } else {
+    run.dashMax = 0;
+    run.dashCharges = 0;
+  }
+  run.dashCd = 0;
+  run.dashTime = 0;
+  run.dashDir = null;
+  run.specialCd = 0;
+}
 // Le tourbillon frappe tout ce qui entoure le personnage, un peu plus loin
 // qu'un coup normal.
 export const SPECIAL_COOLDOWN = 6;
@@ -360,19 +384,6 @@ export function isUnlocked(skills, id) {
 
 // Prépare les compteurs d'une expédition : charges de ruade et délai du
 // tourbillon. Appelé à l'entrée dans un donjon, et par les tests.
-export function prepareAbilities(skills, run) {
-  if (!run) return;
-  const effects = skillEffects(skills);
-  run.dashMax = effects.dash ? 1 + effects.dashCharges : 0;
-  run.dashCharges = run.dashMax;
-  run.dashCd = 0;
-  run.dashTime = 0;
-  run.dashDir = null;
-  run.specialCd = 0;
-  run.invuln = 0;
-  run.reviveUsed = false;
-  if (effects.revive) run.reviveUsed = false;
-}
 
 // Fait avancer les délais et recharge les ruades. À appeler à chaque image,
 // même hors donjon, pour que les compteurs ne restent pas figés.

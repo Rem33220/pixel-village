@@ -1008,8 +1008,9 @@ label,
 
 .portal-card {
   padding: 12px;
-  background: #0b120f;
+  background: rgba(11, 18, 15, 0.55);
   border: 2px solid var(--line);
+  backdrop-filter: blur(2px);
 }
 
 .portal-card-head {
@@ -1135,7 +1136,7 @@ label,
     -45deg,
     rgba(255, 255, 255, 0.02) 0 6px,
     transparent 6px 12px
-  ), #0b120f;
+  ), rgba(11, 18, 15, 0.55);
 }
 
 .portal-locked {

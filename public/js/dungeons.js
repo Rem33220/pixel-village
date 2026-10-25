@@ -1,10 +1,14 @@
-// Donjons : le portail du bout du chemin nord ouvre trois instances privées de
+// Donjons : le portail du bout du chemin nord ouvre des instances privées de
 // difficulté croissante. Comme les maisons, tout se joue côté client (le monde
 // des autres joueurs s'arrête à la porte) : le serveur ne reçoit que
 // « je suis à l'intérieur ».
 //
 // Ce module ne touche pas au DOM : il est testable avec `node` seul
 // (voir tests/dungeons.test.mjs).
+//
+// Les tests de ce fichier valident le comportement des donjons sans besoin du
+// navigateur. Pour les relancer : `node tests/dungeons.test.mjs` (ou le
+// lanceur `Lancer le jeu.bat`).
 
 import { T, TILE_SIZE, isSolid } from './map.js';
 import { DECORS, DEFAULT_DECOR } from './decor.js';
@@ -20,13 +24,15 @@ import {
 
 // --- Réglages --------------------------------------------------------------
 
-export const BASE_STATS = { attack: 4, defense: 0, pv: 36 };
+export const BASE_STATS = { attack: 4, defense: 0, pv: 34 };
 
 // Durée limite d'une expédition, en secondes, selon le niveau du donjon.
-// Niveau 1 = 3 min, puis -20 s par niveau supplémentaire, minimum 70 s.
+// Niveau 1 = 3 min, puis -10 s par niveau supplémentaire (donc 170 s à la
+// galerie, jusque 130 s au trône, 120 s au crépuscule). Le chronomètre reste
+// longue assez pour qu'une expédition calme soit réalisable.
 export function dungeonTimeLimit(dungeon) {
   if (!dungeon) return 180;
-  return Math.max(70, 180 - (dungeon.level - 1) * 20);
+  return Math.max(120, 180 - (dungeon.level - 1) * 10);
 }
 
 export const PORTAL_RANGE = 1.7;
@@ -39,6 +45,10 @@ export const SWING_TIME = 0.28;
 // personnage. Le rendu s'en sert pour l'animation, updateRun la décompte.
 export const SPIN_TIME = 0.55;
 export const CONTACT_RANGE = 0.95;
+// Dégâts de la ruade en passage : un coup modéré, mais qui peut tuer un
+// monstre faible et ouvrir le coffre de la salle si les deux sont présents.
+export const DASH_STRIDE_DAMAGE = 3;
+
 export const MONSTER_COOLDOWN = 1.1;
 export const MONSTER_AGGRO = 5;
 // Petit répit à l'arrivée : le temps de comprendre où l'on est.
@@ -543,10 +553,10 @@ export const LOOT = {
 // tests, `label` à l’affichage. Un objet ne peut porter qu’une de ces raretés.
 export const RARITIES = {
   commun: { label: 'Commun', rank: 0, color: '#b9c6bd' },
-  rare: { label: 'Rare', rank: 1, color: '#8ff0f7' },
-  epique: { label: 'Épique', rank: 2, color: '#c78bff' },
-  legendaire: { label: 'Légendaire', rank: 3, color: '#f6d34d' },
-  mythique: { label: 'Mythique', rank: 4, color: '#ff5f7a' }
+  rare: { label: 'Rare', rank: 1, color: '#082eee' },
+  epique: { label: 'Épique', rank: 2, color: '#7516ce' },
+  legendaire: { label: 'Légendaire', rank: 3, color: '#f3c923' },
+  mythique: { label: 'Mythique', rank: 4, color: '#de1436' }
 };
 
 export const RARITY_ORDER = Object.keys(RARITIES);
@@ -1574,8 +1584,11 @@ function activateEntry(run, entry) {
 // secrètes, et les fissures cachées dans des salles ordinaires distinctes.
 // Chaque salle secrète possède sa propre fissure, à l'emplacement déclaré par
 // le donjon (`cracks`) : elles ne sont donc jamais toutes au même mur.
-export function createRun(dungeonId, seed = 1, relics = null) {
-  const dungeon = getDungeon(dungeonId) ?? DUNGEONS[0];
+export function createRun(dungeonId, seed = 1, relics = null) {  const dungeon = getDungeon(dungeonId) ?? (()=>{
+    if (!DUNGEONS.length) throw new Error('Aucun donjon disponible');
+    return DUNGEONS[0];
+  })();
+
   const relic = relics ?? {};
   const random = mulberry32(seed ^ 0x51ed27);
   const rooms = dungeon.rooms.map((spec, index) => (
@@ -2015,7 +2028,8 @@ export function updateRun(run, player, dt, stats) {
 
     // Ruade : quand le joueur traverse un monstre, le frappe en passant.
     if (run.dashTime > 0 && d <= CONTACT_RANGE && monster.cd <= 0) {
-      const dashDmg = Math.max(1, Math.round(stats?.attack ?? BASE_STATS.attack));
+      const baseAttack = stats != null && stats.attack != null ? Math.round(stats.attack) : BASE_STATS.attack;
+      const dashDmg = Math.max(1, Math.round(baseAttack * RUNNING_DAMAGE_MULT));
       monster.pv = Math.max(0, monster.pv - dashDmg);
       monster.flash = 0.16;
       monster.cd = MONSTER_COOLDOWN;
@@ -2098,6 +2112,11 @@ export function unequipSlot(vault, slot) {
 
 export function isEquipped(vault, id) {
   return Object.values(vault.equipped).includes(id);
+}
+
+// Conversion secondes → millisecondes pour le chronomètre du donjon.
+export function dungeonTimeoutMs(dungeon) {
+  return dungeonTimeLimit(dungeon) * 1000;
 }
 
 // Identifiant de l'arme tenue en main (celle qui s'affiche dans le sprite),

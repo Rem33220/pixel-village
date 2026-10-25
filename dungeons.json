@@ -1,0 +1,42 @@
+[
+  {
+    "id": "crypte",
+    "level": 1,
+    "danger": "Calme",
+    "accent": "#7ee08a",
+    "decor": "crypte",
+    "intro": "Deux salles basses sous le village."
+  },
+  {
+    "id": "galerie",
+    "level": 2,
+    "danger": "Risqué",
+    "accent": "#8ff0f7",
+    "decor": "galerie",
+    "intro": "Un puits descend dans le noir."
+  },
+  {
+    "id": "antre",
+    "level": 3,
+    "danger": "Mortel",
+    "accent": "#f6d34d",
+    "decor": "antre",
+    "intro": "Trois salles de plus en plus profondes."
+  },
+  {
+    "id": "forge",
+    "level": 5,
+    "danger": "Mortel",
+    "accent": "#c0563b",
+    "decor": "forge",
+    "intro": "Lieu du maître forgeur."
+  },
+  {
+    "id": "trone",
+    "level": 6,
+    "danger": "Mortel",
+    "accent": "#ff5f7a",
+    "decor": "trone",
+    "intro": "La porte du trône."
+  }
+]
