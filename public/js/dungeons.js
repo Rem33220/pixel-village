@@ -37,14 +37,6 @@ export const SWING_TIME = 0.28;
 export const SPIN_TIME = 0.55;
 export const CONTACT_RANGE = 0.95;
 
-// Retourne la durée maximale d'un donjon en secondes.
-// Si pas de donjon, retourne 180s (3 min).
-// La durée diminue avec le niveau du donjon : niveau 1 = 180s, niveau 2 = 170s, etc.
-export function dungeonTimeLimit(dungeon) {
-  if (!dungeon) return 180;
-  return Math.max(120, 180 - (dungeon.level - 1) * 10);
-}
-
 // Dégâts de la ruade en passage : un coup modéré, mais qui peut tuer un
 // monstre faible et ouvrir le coffre de la salle si les deux sont présents.
 export const DASH_STRIDE_DAMAGE = 3;
@@ -1664,11 +1656,10 @@ export function createRun(dungeonId, seed = 1, relics = null) {  const dungeon =
     dashDir: null,
     specialCd: 0,
     invuln: 0,
-    reviveUsed: false,
-    sinceHit: REGEN_DELAY,
+    reviveUsed: false,sinceHit: REGEN_DELAY,
     floaters: [],
     dashKills: [],
-    timeLeft: dungeonTimeLimit(dungeon),
+    timeLeft: 180,
     message: dungeon.intro
   };
 
@@ -1680,7 +1671,7 @@ export function createRun(dungeonId, seed = 1, relics = null) {  const dungeon =
 // --- Progression entre salles ---------------------------------------------
 
 // Numéro affiché : les salles secrètes viennent après les salles ordinaires,
-// dans l'ordre où elles ont été ouvertes.
+// dans l'ordre où elles ont étéouvertes.
 export function roomNumber(run) {
   return run.inSecret ? run.rooms.length + run.secretIndex + 1 : run.roomIndex + 1;
 }
@@ -1954,17 +1945,6 @@ export function updateRun(run, player, dt, stats) {
 
   if (run.phase === 'dead') return events;
 
-  // Chronomètre : on ne décompte pas pendant la pause (panneaux ouverts) ni
-  // pendant le répit d'entrée, pour que le joueur ait le temps de se repérer.
-  if (run.grace <= 0) {
-    run.timeLeft = Math.max(0, run.timeLeft - dt);
-    if (run.timeLeft <= 0) {
-      events.timedOut = true;
-      events.dead = true;
-      return events;
-    }
-  }
-
   const defense = Math.max(0, stats?.defense ?? 0);
 
   // Régénération : elle ne démarre qu'après REGEN_DELAY secondes sans coup
@@ -2112,11 +2092,6 @@ export function unequipSlot(vault, slot) {
 
 export function isEquipped(vault, id) {
   return Object.values(vault.equipped).includes(id);
-}
-
-// Conversion secondes → millisecondes pour le chronomètre du donjon.
-export function dungeonTimeoutMs(dungeon) {
-  return dungeonTimeLimit(dungeon) * 1000;
 }
 
 // Identifiant de l'arme tenue en main (celle qui s'affiche dans le sprite),

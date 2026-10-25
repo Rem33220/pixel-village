@@ -1213,10 +1213,6 @@ function exitDungeon(reason = 'sortie') {
 
     playSound('fail');
     pushChat('Tu es tombé… le portail te ramène au village. Ton butin et ton équipement sont conservés.', 'system');
-  } else if (reason === 'timeout') {
-
-    playSound('fail');
-    pushChat(`Le chronomètre est écoulé : tu es expulsé du ${run.dungeon.name}.`, 'system');
   } else {
     playSound('click');
   }
@@ -1344,13 +1340,6 @@ function conquerDungeon(run) {
 function tickDungeon(dt) {
   const run = state.run;
   if (!run) return;
-  // Le chronomètre s'arrête quand un panneau est ouvert (donjon en pause).
-  if (inventory.isOpen() || settingsPanel.isOpen() || isPortalOpen()
-    || isShopOpen() || skillsPanel.isOpen()) {
-    run.timeLeft = Math.max(0, run.timeLeft || 0);
-    return;
-  }
-
   const me = state.players.get(state.selfId);
   if (!me) return;
 
@@ -1363,9 +1352,7 @@ function tickDungeon(dt) {
   }
   if (events.timedOut) {
     playSound('hurt');
-    pushChat('Le temps est écoulé ! Tu es expulsé du donjon.', 'system');
     exitDungeon('defeat');
-    return;
   }
   if (events.dead) {
     exitDungeon('defeat');
