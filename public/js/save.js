@@ -189,10 +189,19 @@ export function applySave(save) {
 
 // --- Export ----------------------------------------------------------------
 
-function fileStamp() {
-  const now = new Date();
-  const pad = (value) => String(value).padStart(2, '0');
-  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+// Nom du fichier : celui du personnage, débarrassé des caractères interdits
+// sous Windows et borné, pour qu'il reste lisible dans le dossier de
+// téléchargements. Pas de date : une nouvelle sauvegarde remplace la
+// précédente au lieu de laisser une copie par jour.
+export function saveFileName(name) {
+  const cleaned = String(name ?? '')
+    .replace(/[\u0000-\u001f<>:"/\\|?*]+/g, '-')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^[-.]+|[-.]+$/g, '')
+    .slice(0, 30)
+    .replace(/[-.]+$/g, '');
+  return `pixel-village-${cleaned || 'Aventurier'}.json`;
 }
 
 // Résumé lisible affiché avant de confirmer un import.
@@ -206,20 +215,49 @@ export function describeSave(save) {
   return `${name} · niveau ${level} · sauvegardé le ${when}`;
 }
 
-// Télécharge la sauvegarde courante sous forme de fichier .json.
-export function exportSave() {
+// Enregistre la sauvegarde courante dans un fichier .json.
+// Renvoie { save, fileName, cancelled } : « cancelled » quand la fenêtre
+// d'enregistrement a été fermée sans rien écrire.
+export async function exportSave() {
   const save = collectSave();
-  const blob = new Blob([`${JSON.stringify(save, null, 2)}\n`], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
+  const text = `${JSON.stringify(save, null, 2)}\n`;
+  const fileName = saveFileName(save.player.name);
 
+  // Chrome/Edge : la fenêtre « Enregistrer sous » propose le même nom, et
+  // confirmer remplace le fichier existant. C'est le seul moyen pour une page
+  // web d'écraser réellement une ancienne sauvegarde.
+  if (typeof window !== 'undefined' && typeof window.showSaveFilePicker === 'function') {
+    try {
+      const handle = await window.showSaveFilePicker({
+        suggestedName: fileName,
+        types: [
+          { description: 'Sauvegarde Pixel Village', accept: { 'application/json': ['.json'] } }
+        ]
+      });
+      const writable = await handle.createWritable();
+      await writable.write(text);
+      await writable.close();
+      return { save, fileName: handle.name || fileName, cancelled: false };
+    } catch (error) {
+      // Fenêtre fermée sans enregistrer : surtout pas de second fichier.
+      if (error?.name === 'AbortError') {
+        return { save, fileName, cancelled: true };
+      }
+      // API refusée (iframe, permissions) : on retombe sur le téléchargement.
+    }
+  }
+
+  // Repli : téléchargement classique. Le navigateur peut alors ajouter
+  // « (1) » si un fichier du même nom est déjà présent.
+  const blob = new Blob([text], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = `pixel-village-sauvegarde-${fileStamp()}.json`;
+  link.download = fileName;
   link.rel = 'noopener';
   document.body.append(link);
   link.click();
   link.remove();
-
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
-  return save;
+  return { save, fileName, cancelled: false };
 }

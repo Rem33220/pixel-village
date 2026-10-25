@@ -23,8 +23,13 @@ Sans Node, `public/index.html` s'ouvre aussi en double-clic, mais uniquement en 
 
 La progression (récompenses, butin, pièces, expérience, compétences, donjons
 conquis) est enregistrée automatiquement dans le navigateur. Pour la mettre à
-l'abri : **Paramètres → Sauvegarde → Exporter ma sauvegarde** télécharge un
-fichier `pixel-village-sauvegarde-AAAA-MM-JJ.json`.
+l'abri : **Paramètres → Sauvegarde → Exporter ma sauvegarde** enregistre un
+fichier portant le nom du personnage, par exemple
+`pixel-village-Aventurière.json`. Le nom ne change pas d'une fois sur l'autre :
+sur Chrome et Edge, la fenêtre d'enregistrement le propose déjà et confirmer
+remplace l'ancienne sauvegarde. Les autres navigateurs téléchargent une copie et
+peuvent ajouter un suffixe `(1)` ; il suffit alors d'écraser l'ancien fichier à
+la main.
 
 **Importer une sauvegarde** relit ce fichier, affiche le personnage qu'il
 contient, puis demande une confirmation avant de remplacer la progression en

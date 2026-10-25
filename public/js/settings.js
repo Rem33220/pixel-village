@@ -382,9 +382,16 @@ export function createSettingsPanel({ onToggle, onBindingsChanged } = {}) {
     playSound('click');
   });
 
-  exportBtn.addEventListener('click', () => {
-    const save = exportSave();
-    setSaveStatus(`${describeSave(save)} — fichier téléchargé.`);
+  exportBtn.addEventListener('click', async () => {
+    exportBtn.disabled = true;
+    const result = await exportSave();
+    exportBtn.disabled = false;
+
+    if (result.cancelled) {
+      setSaveStatus('Export annulé : l’ancienne sauvegarde n’a pas été modifiée.');
+      return;
+    }
+    setSaveStatus(`${describeSave(result.save)} — enregistré dans ${result.fileName}.`);
     playSound('success');
   });
 

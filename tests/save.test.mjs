@@ -7,7 +7,8 @@ import {
   applySave,
   collectSave,
   describeSave,
-  parseSave
+  parseSave,
+  saveFileName
 } from '../public/js/save.js';
 
 // localStorage minimal, comme celui d'un navigateur.
@@ -114,6 +115,36 @@ check(
   roundTrip.ok && roundTrip.save.character.skills.level === 3
     && roundTrip.save.player.name === 'Aventurière'
 );
+
+// --- Nom du fichier ---------------------------------------------------------
+
+const named = saveFileName('Aventurière');
+check(
+  'fichier: porte le nom du personnage',
+  named === 'pixel-village-Aventurière.json',
+  named
+);
+check(
+  'fichier: même nom à chaque sauvegarde (écrase l’ancienne)',
+  saveFileName('Aventurière') === named && !/\d{4}-\d{2}-\d{2}/.test(named)
+);
+check(
+  'fichier: sans nom, valeur par défaut',
+  saveFileName('') === 'pixel-village-Aventurier.json'
+);
+check(
+  'fichier: caractères interdits retirés',
+  saveFileName('a/b:c*?"<>|d') === 'pixel-village-a-b-c-d.json',
+  saveFileName('a/b:c*?"<>|d')
+);
+check(
+  'fichier: espaces et tirets compactés',
+  saveFileName('  Jean   Luc -- ') === 'pixel-village-Jean-Luc.json',
+  saveFileName('  Jean   Luc -- ')
+);
+const longFile = saveFileName('X'.repeat(60));
+check('fichier: nom borné', longFile.length === 'pixel-village-'.length + 30 + '.json'.length);
+check('fichier: toujours en .json', longFile.endsWith('.json') && !longFile.includes('..'));
 
 // --- Résumé -----------------------------------------------------------------
 
