@@ -3,7 +3,7 @@
 # Aucune dépendance : pas de « npm install », le build ne fait rien.
 services:
   - type: web
-    name: pixel-village
+    name: pixel-village2
     runtime: node
     plan: free
     region: frankfurt

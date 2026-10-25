@@ -4,14 +4,17 @@
 //
 // Le script refuse de publier si un fichier ne passe pas `node --check` ou si
 // un test échoue : le jeu officiel ne reçoit que du code vérifié. Il ne fait
-// jamais de `reset`, de `--force` ni de commit vide. Après le push, Render
-// redéploie tout seul (voir render.yaml).
+// jamais de `--force`, de `push` sans vérification ni de commit vide, et
+// n'efface jamais de fichier local. Si le dossier n'est pas encore un dépôt
+// Git, il l'initialise et demande l'adresse GitHub une seule fois. Après le
+// push, Render redéploie tout seul (voir render.yaml).
 //
 // Aucune dépendance : uniquement la bibliothèque standard de Node.
 
 import { spawnSync } from 'node:child_process';
 import { readdirSync } from 'node:fs';
 import path from 'node:path';
+import { createInterface } from 'node:readline';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -59,13 +62,105 @@ function walk(directory) {
   });
 }
 
-// --- 1. Dépôt Git exploitable -------------------------------------------
-if (gitText(['rev-parse', '--is-inside-work-tree']) !== 'true') {
-  stop('Ce dossier n’est pas un dépôt Git.');
+// --- 1. Dépôt Git relié à GitHub ----------------------------------------
+//
+// Le dossier peut venir d'un zip : sans .git, rien n'est poussable. Plutôt que
+// de refuser la publication, on initialise le dépôt et on demande une seule
+// fois l'adresse GitHub (elle reste enregistrée dans .git/config).
+
+function ask(question) {
+  return new Promise((resolve) => {
+    const rl = createInterface({ input: process.stdin, output: process.stdout });
+    let answered = false;
+    rl.question(question, (answer) => {
+      answered = true;
+      rl.close();
+      resolve((answer ?? '').trim());
+    });
+    rl.on('close', () => {
+      if (!answered) resolve('');
+    });
+  });
 }
-if (!gitText(['remote', 'get-url', 'origin'])) {
-  stop('Aucun dépôt distant « origin » : ajoute-le avec git remote add origin URL.');
+
+function githubOwner(url) {
+  const ssh = /^git@[\w.-]+:([\w.-]+)\//.exec(url);
+  if (ssh) return ssh[1];
+  const https = /^https?:\/\/[^/]+\/([\w.-]+)\//.exec(url);
+  return https ? https[1] : null;
 }
+
+// Accepte « compte/dépôt », une URL https ou une URL SSH.
+function normalizeRemote(value) {
+  const cleaned = value.trim().replace(/\/+$/, '').replace(/\.git$/i, '');
+  if (!cleaned) return null;
+  if (/^[\w.-]+\/[\w.-]+$/.test(cleaned)) return `https://github.com/${cleaned}.git`;
+  if (/^https?:\/\/[^\s]+\/[\w.-]+\/[\w.-]+$/i.test(cleaned)) return `${cleaned}.git`;
+  if (/^git@[\w.-]+:[\w.-]+\/[\w.-]+$/i.test(cleaned)) return `${cleaned}.git`;
+  return null;
+}
+
+async function prepareRepository() {
+  if (gitText(['rev-parse', '--is-inside-work-tree']) !== 'true') {
+    info('Initialisation du dépôt Git local…');
+    const init = git(['init'], { quiet: true });
+    if (init.status !== 0) {
+      console.error(`${init.stdout ?? ''}${init.stderr ?? ''}`);
+      stop('Impossible d’initialiser le dépôt Git dans ce dossier.');
+    }
+    git(['symbolic-ref', 'HEAD', 'refs/heads/main'], { quiet: true });
+    ok('Dépôt Git créé dans ce dossier.');
+  }
+
+  let origin = gitText(['remote', 'get-url', 'origin']);
+  if (!origin) {
+    console.log('');
+    console.log('  Adresse du dépôt GitHub de Pixel Village, par exemple :');
+    console.log('    https://github.com/moncompte/pixel-village.git');
+    console.log('  Dépôt pas encore créé ? https://github.com/new puis copier son adresse.');
+    while (!origin) {
+      const answer = await ask('  URL du dépôt : ');
+      if (!answer) {
+        stop(
+          'Aucune adresse fournie : rien n’a été envoyé. ' +
+            'Double-clique sur « Publier sur GitHub.bat » pour la saisir.'
+        );
+      }
+      const url = normalizeRemote(answer);
+      if (!url) {
+        console.log('  Adresse non reconnue — exemple : https://github.com/moncompte/pixel-village.git');
+        continue;
+      }
+      const added = git(['remote', 'add', 'origin', url], { quiet: true });
+      if (added.status !== 0) {
+        console.error(`${added.stdout ?? ''}${added.stderr ?? ''}`);
+        stop('Impossible d’enregistrer l’adresse du dépôt.');
+      }
+      origin = url;
+      ok(`Dépôt distant enregistré : ${url}`);
+    }
+  }
+
+  // Identité Git : sans elle, le tout premier commit échoue sur une machine neuve.
+  const owner = githubOwner(origin) ?? 'pixel-village';
+  if (!gitText(['config', 'user.email'])) {
+    git(['config', 'user.email', `${owner}@users.noreply.github.com`], { quiet: true });
+    ok(`E-mail Git local configuré (${owner}@users.noreply.github.com).`);
+  }
+  if (!gitText(['config', 'user.name'])) {
+    git(['config', 'user.name', owner], { quiet: true });
+    ok(`Nom Git local configuré (${owner}).`);
+  }
+
+  // GitHub attend la branche main : on s'y place avant de committer.
+  const branch = gitText(['branch', '--show-current']);
+  if (branch && branch !== 'main') {
+    const renamed = git(['branch', '-M', 'main'], { quiet: true });
+    if (renamed.status !== 0) stop('Impossible de placer la branche locale sur « main ».');
+  }
+}
+
+await prepareRepository();
 
 // --- 2. Syntaxe de tous les modules -------------------------------------
 info('Vérification de la syntaxe…');
@@ -144,13 +239,58 @@ function fetchOrigin() {
 
 const countCommits = (range) => Number(gitText(['rev-list', '--count', range]) ?? 0);
 
+// Sur un dépôt GitHub encore vide, origin/main n'existe pas : les commits
+// locaux sont alors tous à envoyer (sinon la première publication ne partirait
+// jamais).
+function aheadCount() {
+  if (!gitText(['rev-parse', '--verify', 'origin/main'])) return countCommits('HEAD');
+  return countCommits('origin/main..HEAD');
+}
+
+// Dossier déposé sur GitHub sans son historique (copie d'un zip) : aucun ancêtre
+// commun avec origin/main. On repart de origin/main sans toucher aux fichiers,
+// puis le contenu du dossier devient un nouveau commit par-dessus l'historique.
+function adoptRemoteHistory() {
+  info('Le dépôt GitHub a un historique séparé : rattachement des fichiers par-dessus…');
+  const reset = git(['reset', 'origin/main'], { quiet: true });
+  if (reset.status !== 0) {
+    console.error(`${reset.stdout ?? ''}${reset.stderr ?? ''}`);
+    stop('Impossible de rattacher ce dossier à l’historique de origin/main.');
+  }
+  git(['add', '-A'], { quiet: true });
+  const removed = (gitText(['diff', '--cached', '--name-status']) ?? '')
+    .split('\n')
+    .filter((line) => line.startsWith('D'))
+    .map((line) => line.split('\t')[1]);
+  if (removed.length > 0) {
+    console.log(`     ${removed.length} fichier(s) absents de ce dossier quitteront le jeu officiel :`);
+    for (const file of removed.slice(0, 10)) console.log(`       ${file}`);
+    if (removed.length > 10) console.log(`       … et ${removed.length - 10} autre(s)`);
+  }
+  if ((git(['diff', '--cached', '--quiet'], { quiet: true }).status ?? 0) === 0) {
+    ok('Le jeu officiel contient déjà exactement ces fichiers.');
+    return;
+  }
+  const commit = git(['commit', '-m', message], { quiet: true });
+  if (commit.status !== 0) {
+    console.error(`${commit.stdout ?? ''}${commit.stderr ?? ''}`);
+    stop('Le commit de rattachement a échoué : aucun fichier local n’a été modifié.');
+  }
+  ok('Fichiers rattachés à l’historique du dépôt GitHub.');
+}
+
 function syncWithOrigin() {
   fetchOrigin();
   if (!gitText(['rev-parse', '--verify', 'origin/main'])) return;
 
+  if (gitText(['merge-base', 'HEAD', 'origin/main']) === null) {
+    adoptRemoteHistory();
+    return;
+  }
+
   const behind = countCommits('HEAD..origin/main');
   if (behind === 0) return;
-  const ahead = countCommits('origin/main..HEAD');
+  const ahead = aheadCount();
 
   if (ahead === 0) {
     info(`origin/main a ${behind} commit(s) d’avance : mise à jour en avance rapide…`);
@@ -186,14 +326,14 @@ function pushFailureCause(output) {
 }
 
 function pushToOrigin() {
-  const push = git(['push', 'origin', 'main'], { quiet: true });
+  const push = git(['push', '-u', 'origin', 'main'], { quiet: true });
   return { ok: push.status === 0, output: `${push.stdout ?? ''}${push.stderr ?? ''}`.trim() };
 }
 
 info('Synchronisation avec origin…');
 syncWithOrigin();
 
-let ahead = countCommits('origin/main..HEAD');
+let ahead = aheadCount();
 if (ahead === 0) {
   ok('Le jeu officiel est déjà à jour.');
   console.log('\nAucun envoi nécessaire.');
@@ -208,14 +348,16 @@ if (!attempt.ok) {
     console.error(attempt.output);
     stop(
       cause === 'droits'
-        ? 'GitHub refuse l’envoi : vérifie l’URL du dépôt (git remote get-url origin) et tes droits d’écriture.'
+        ? 'GitHub refuse l’envoi : vérifie l’adresse du dépôt (git remote get-url origin) et tes droits ' +
+            'd’écriture. Si une fenêtre de connexion s’est fermée, relance et connecte-toi : le mot de ' +
+            'passe attendu est un jeton d’accès personnel GitHub (Settings → Developer settings → Tokens).'
         : 'Impossible de joindre GitHub : vérifie la connexion internet, puis relance.'
     );
   }
 
   info('origin/main a avancé pendant l’envoi : nouvelle synchronisation, puis nouvel essai…');
   syncWithOrigin();
-  ahead = countCommits('origin/main..HEAD');
+  ahead = aheadCount();
   attempt = ahead === 0 ? { ok: true, output: '' } : pushToOrigin();
   if (!attempt.ok) {
     console.error(attempt.output);
