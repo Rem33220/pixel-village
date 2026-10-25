@@ -26,15 +26,6 @@ import {
 
 export const BASE_STATS = { attack: 4, defense: 0, pv: 34 };
 
-// Durée limite d'une expédition, en secondes, selon le niveau du donjon.
-// Niveau 1 = 3 min, puis -10 s par niveau supplémentaire (donc 170 s à la
-// galerie, jusque 130 s au trône, 120 s au crépuscule). Le chronomètre reste
-// longue assez pour qu'une expédition calme soit réalisable.
-export function dungeonTimeLimit(dungeon) {
-  if (!dungeon) return 180;
-  return Math.max(120, 180 - (dungeon.level - 1) * 10);
-}
-
 export const PORTAL_RANGE = 1.7;
 export const CHEST_RANGE = 1.2;
 export const ATTACK_RANGE = 1.35;
@@ -45,6 +36,15 @@ export const SWING_TIME = 0.28;
 // personnage. Le rendu s'en sert pour l'animation, updateRun la décompte.
 export const SPIN_TIME = 0.55;
 export const CONTACT_RANGE = 0.95;
+
+// Retourne la durée maximale d'un donjon en secondes.
+// Si pas de donjon, retourne 180s (3 min).
+// La durée diminue avec le niveau du donjon : niveau 1 = 180s, niveau 2 = 170s, etc.
+export function dungeonTimeLimit(dungeon) {
+  if (!dungeon) return 180;
+  return Math.max(120, 180 - (dungeon.level - 1) * 10);
+}
+
 // Dégâts de la ruade en passage : un coup modéré, mais qui peut tuer un
 // monstre faible et ouvrir le coffre de la salle si les deux sont présents.
 export const DASH_STRIDE_DAMAGE = 3;
