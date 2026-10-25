@@ -1089,9 +1089,7 @@ function updateDungeonPanel(force = false) {
   const where = roomLabel(run);
   const timeStr = run.phase === 'won'
     ? ''
-    : run.timeLeft > 0
-      ? ` · ${Math.ceil(run.timeLeft)}s`
-      : '';
+    : '';
   const status = run.phase === 'won'
     ? `Donjon nettoyé (${where}) ! Sors par l'escalier (E) ou avec Échap.`
     : `${where} · ${opened}/${run.chests.length} coffre${run.chests.length > 1 ? 's' : ''} ouvert${
@@ -1110,7 +1108,7 @@ function refreshRunPanel(run = state.run) {
     ? `Salle secrète — ${run.dungeon.name}`
     : `${run.dungeon.name} — niveau ${run.dungeon.level}`;
   const limit = dungeonTimeLimit(run.dungeon);
-  const remain = run.phase !== 'won' && run.timeoutAt ? Math.max(0, Math.ceil((run.timeoutAt - performance.now()) / 1000)) : Math.ceil(limit);
+  const remain = Math.ceil(limit);
   els.challengeGoal.textContent = `${spec.name} (${roomLabel(run)}) — ${spec.intro}\n⏱ ${remain}s pour compléter le donjon`;
   dungeonStatus = '';
   updateDungeonPanel(true);
@@ -1144,7 +1142,6 @@ function enterDungeon(id) {
   refreshPortalList();
 
   const run = createRun(id, Math.floor(Math.random() * 0x7fffffff), state.relics);
-  run.timeoutAt = performance.now() + dungeonTimeoutMs(dungeon);
   prepareAbilities(state.skills, run);
   const stats = playerStats(state.vault, state.skills, state.relics);
   run.pvMax = stats.pvMax;
@@ -1231,11 +1228,6 @@ function handleRunInteract() {
   const run = state.run;
   const me = state.players.get(state.selfId);
   if (!run || !me) return;
-
-  if (run.timeoutAt && performance.now() > run.timeoutAt) {
-    exitDungeon('timeout');
-    return;
-  }
 
   if (nearRoomExit(run.room, me)) {
     const action = exitAction(run);
@@ -1363,11 +1355,6 @@ function tickDungeon(dt) {
 
   const me = state.players.get(state.selfId);
   if (!me) return;
-
-  if (run.timeoutAt && performance.now() > run.timeoutAt) {
-    exitDungeon('timeout');
-    return;
-  }
 
   const events = updateRun(run, me, dt, playerStats(state.vault, state.skills, state.relics));
   if (events.damage > 0) playSound('hurt');
