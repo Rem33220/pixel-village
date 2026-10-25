@@ -563,6 +563,8 @@ function grantLoot(id) {
   saveVault();
   updateGearHud();
   inventory.render();
+  // Mettre à jour la liste des loot du portail si elle est ouverte.
+  if (isPortalOpen()) refreshPortalList();
   return true;
 }
 
@@ -980,6 +982,7 @@ function dungeonCard(dungeon) {
 
   const loot = document.createElement('ul');
   loot.className = 'portal-loot';
+  const vault = state.vault;
   for (const id of dungeon.loot) {
     const item = LOOT[id];
     if (!item) continue;
@@ -987,6 +990,10 @@ function dungeonCard(dungeon) {
     li.className = `rarity-${item.rarity}`;
     const rarity = RARITIES[item.rarity]?.label ?? 'Commun';
     li.textContent = `${item.name} — ${rarity} · ${itemBonusLabel(item)}`;
+    if (vault && (ownsItem(vault, id) || itemCount(vault, id) > 0)) {
+      li.style.textDecoration = 'line-through';
+      li.style.opacity = '0.6';
+    }
     loot.append(li);
   }
 
@@ -1004,10 +1011,15 @@ function dungeonCard(dungeon) {
   return card;
 }
 
-function openPortal() {
-  if (isPortalOpen() || state.run || state.inside) return;
+function refreshPortalList() {
+  if (!isPortalOpen()) return;
   els.portalList.replaceChildren();
   for (const dungeon of DUNGEONS) els.portalList.append(dungeonCard(dungeon));
+}
+
+function openPortal() {
+  if (isPortalOpen() || state.run || state.inside) return;
+  refreshPortalList();
   els.portal.classList.remove('hidden');
   refreshInputState();
   els.portalClose.focus();
@@ -1030,11 +1042,16 @@ function updateDungeonPanel(force = false) {
   const opened = run.chests.filter((chest) => chest.opened).length;
   const alive = run.monsters.filter((monster) => monster.alive).length;
   const where = roomLabel(run);
+  const timeStr = run.phase === 'won'
+    ? ''
+    : run.timeLeft > 0
+      ? ` · ${Math.ceil(run.timeLeft)}s`
+      : '';
   const status = run.phase === 'won'
-    ? `Donjon nettoyé (${where}) ! Sors par l’escalier (E) ou avec Échap.`
+    ? `Donjon nettoyé (${where}) ! Sors par l'escalier (E) ou avec Échap.`
     : `${where} · ${opened}/${run.chests.length} coffre${run.chests.length > 1 ? 's' : ''} ouvert${
       opened > 1 ? 's' : ''
-    } · ${alive} monstre${alive > 1 ? 's' : ''} · PV ${Math.ceil(run.pv)}/${run.pvMax}`;
+    } · ${alive} monstre${alive > 1 ? 's' : ''} · PV ${Math.ceil(run.pv)}/${run.pvMax}${timeStr}`;
   if (!force && status === dungeonStatus) return;
   dungeonStatus = status;
   els.challengeStatus.textContent = status;
@@ -1047,7 +1064,8 @@ function refreshRunPanel(run = state.run) {
   els.challengeTitle.textContent = run.inSecret
     ? `Salle secrète — ${run.dungeon.name}`
     : `${run.dungeon.name} — niveau ${run.dungeon.level}`;
-  els.challengeGoal.textContent = `${spec.name} (${roomLabel(run)}) — ${spec.intro}`;
+  const limit = dungeonTimeLimit(run.dungeon);
+  els.challengeGoal.textContent = `${spec.name} (${roomLabel(run)}) — ${spec.intro}\n⏱ ${Math.ceil(limit)}s pour compléter le donjon`;
   dungeonStatus = '';
   updateDungeonPanel(true);
 }
@@ -1270,15 +1288,20 @@ function conquerDungeon(run) {
       `Nouveau donjon au portail : ${dungeon.name} (niveau ${dungeon.level}, ${dungeon.danger}).`,
       'system'
     );
+    // Ouvrir le portail pour que le joueur voie le nouveau donjon.
+    openPortal();
   }
 }
 
 function tickDungeon(dt) {
   const run = state.run;
   if (!run) return;
-  // Les panneaux mettent le donjon en pause : on ne meurt pas dans un menu.
+  // Le chronomètre s'arrête quand un panneau est ouvert (donjon en pause).
   if (inventory.isOpen() || settingsPanel.isOpen() || isPortalOpen()
-    || isShopOpen() || skillsPanel.isOpen()) return;
+    || isShopOpen() || skillsPanel.isOpen()) {
+    run.timeLeft = Math.max(0, run.timeLeft || 0);
+    return;
+  }
 
   const me = state.players.get(state.selfId);
   if (!me) return;
@@ -1289,6 +1312,12 @@ function tickDungeon(dt) {
     playSound('level');
     pushChat('Second souffle ! Tu te relèves, une fois par expédition.', 'system');
     updatePvHud(true);
+  }
+  if (events.timedOut) {
+    playSound('hurt');
+    pushChat('Le temps est écoulé ! Tu es expulsé du donjon.', 'system');
+    exitDungeon('defeat');
+    return;
   }
   if (events.dead) {
     exitDungeon('defeat');
@@ -1301,6 +1330,23 @@ function tickDungeon(dt) {
   if (events.finished) {
     pushChat('Tous les coffres du donjon sont ouverts ! Tu peux sortir par l’escalier.', 'system');
     conquerDungeon(run);
+  }
+  // Ruade : traiter les monstres tués en passant.
+  if (run.dashKills && run.dashKills.length > 0) {
+    const killed = run.dashKills;
+    run.dashKills = [];
+    for (const entry of killed) {
+      const { monster, drop } = entry;
+      const name = monster.name || 'monstre';
+      playSound('kill');
+      const xp = xpForKill(monster, run.dungeon.level);
+      grantXp(xp);
+      pushChat(`La ruade a tué un ${name} en passant !`, 'combat');
+      if (drop) grantLoot(drop);
+      grantKillXp(monster, run.dungeon.level);
+      updateDungeonPanel(true);
+      if (isPortalOpen()) refreshPortalList();
+    }
   }
   updateDungeonPanel();
   updatePvHud();

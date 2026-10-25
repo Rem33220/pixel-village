@@ -20,7 +20,14 @@ import {
 
 // --- Réglages --------------------------------------------------------------
 
-export const BASE_STATS = { attack: 4, defense: 0, pv: 30 };
+export const BASE_STATS = { attack: 4, defense: 0, pv: 36 };
+
+// Durée limite d'une expédition, en secondes, selon le niveau du donjon.
+// Niveau 1 = 3 min, puis -20 s par niveau supplémentaire, minimum 70 s.
+export function dungeonTimeLimit(dungeon) {
+  if (!dungeon) return 180;
+  return Math.max(70, 180 - (dungeon.level - 1) * 20);
+}
 
 export const PORTAL_RANGE = 1.7;
 export const CHEST_RANGE = 1.2;
@@ -723,27 +730,27 @@ export const ITEM_ICONS = {
 export const MONSTERS = {
   baveux: {
     name: 'Baveux',
-    pv: 14,
-    damage: 2,
-    xp: 10,
+    pv: 20,
+    damage: 3,
+    xp: 12,
     speed: 1.6,
     size: 12,
     tint: '#4fbf6a'
   },
   squelette: {
     name: 'Squelette',
-    pv: 24,
-    damage: 5,
-    xp: 16,
+    pv: 32,
+    damage: 6,
+    xp: 20,
     speed: 2.1,
     size: 13,
     tint: '#e8e4d0'
   },
   golem: {
     name: 'Golem',
-    pv: 55,
-    damage: 10,
-    xp: 36,
+    pv: 75,
+    damage: 12,
+    xp: 45,
     speed: 1.3,
     size: 15,
     tint: '#6d747c'
@@ -751,27 +758,27 @@ export const MONSTERS = {
   // Monstres des salles profondes et des passages secrets.
   araignee: {
     name: 'Araignée des fosses',
-    pv: 18,
-    damage: 3,
-    xp: 13,
+    pv: 24,
+    damage: 4,
+    xp: 16,
     speed: 2.7,
     size: 11,
     tint: '#8b5a9e'
   },
   spectre: {
     name: 'Spectre',
-    pv: 34,
-    damage: 7,
-    xp: 24,
+    pv: 48,
+    damage: 9,
+    xp: 30,
     speed: 1.8,
     size: 14,
     tint: '#9fe8f7'
   },
   ombre: {
     name: 'Ombre du gardien',
-    pv: 80,
-    damage: 13,
-    xp: 55,
+    pv: 110,
+    damage: 16,
+    xp: 70,
     speed: 1.9,
     size: 16,
     tint: '#7a5cd6'
@@ -779,27 +786,27 @@ export const MONSTERS = {
   // Créatures des expéditions avancées.
   noye: {
     name: 'Noyé des abysses',
-    pv: 42,
-    damage: 8,
-    xp: 30,
+    pv: 58,
+    damage: 10,
+    xp: 38,
     speed: 1.7,
     size: 14,
     tint: '#4f9ec0'
   },
   gargouille: {
     name: 'Gargouille',
-    pv: 46,
-    damage: 9,
-    xp: 34,
+    pv: 64,
+    damage: 11,
+    xp: 42,
     speed: 2.6,
     size: 13,
     tint: '#8d7f6a'
   },
   seigneur: {
     name: 'Seigneur du néant',
-    pv: 130,
-    damage: 16,
-    xp: 90,
+    pv: 180,
+    damage: 20,
+    xp: 110,
     speed: 1.6,
     size: 17,
     tint: '#ff5f7a'
@@ -1647,6 +1654,8 @@ export function createRun(dungeonId, seed = 1, relics = null) {
     reviveUsed: false,
     sinceHit: REGEN_DELAY,
     floaters: [],
+    dashKills: [],
+    timeLeft: dungeonTimeLimit(dungeon),
     message: dungeon.intro
   };
 
@@ -1695,6 +1704,7 @@ export function nextRoom(run) {
   const entry = run.rooms[run.roomIndex];
   activateEntry(run, entry);
   run.message = entry.spec.intro;
+  run.dashKills = [];
   return entry;
 }
 
@@ -1931,6 +1941,17 @@ export function updateRun(run, player, dt, stats) {
 
   if (run.phase === 'dead') return events;
 
+  // Chronomètre : on ne décompte pas pendant la pause (panneaux ouverts) ni
+  // pendant le répit d'entrée, pour que le joueur ait le temps de se repérer.
+  if (run.grace <= 0) {
+    run.timeLeft = Math.max(0, run.timeLeft - dt);
+    if (run.timeLeft <= 0) {
+      events.timedOut = true;
+      events.dead = true;
+      return events;
+    }
+  }
+
   const defense = Math.max(0, stats?.defense ?? 0);
 
   // Régénération : elle ne démarre qu'après REGEN_DELAY secondes sans coup
@@ -1989,6 +2010,22 @@ export function updateRun(run, player, dt, stats) {
         run.phase = 'dead';
         events.dead = true;
         break;
+      }
+    }
+
+    // Ruade : quand le joueur traverse un monstre, le frappe en passant.
+    if (run.dashTime > 0 && d <= CONTACT_RANGE && monster.cd <= 0) {
+      const dashDmg = Math.max(1, Math.round(stats?.attack ?? BASE_STATS.attack));
+      monster.pv = Math.max(0, monster.pv - dashDmg);
+      monster.flash = 0.16;
+      monster.cd = MONSTER_COOLDOWN;
+      addFloater(run, monster.x, monster.y - 1, `-${dashDmg}`, '#ffe9a8');
+      if (monster.pv <= 0) {
+        monster.alive = false;
+        monster.moving = false;
+        const drop = rollDrop(run, stats);
+        run.dashKills = run.dashKills || [];
+        run.dashKills.push({ monster, drop });
       }
     }
   }

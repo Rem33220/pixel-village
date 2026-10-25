@@ -977,8 +977,8 @@ function drawBubble(ctx, text, cx, bottomY) {
   const x = cx - width / 2;
   const y = bottomY - height;
 
-  ctx.fillStyle = 'rgba(16, 22, 32, 0.92)';
-  ctx.strokeStyle = 'rgba(232, 214, 164, 0.7)';
+  ctx.fillStyle = 'rgba(16, 22, 32, 0.72)';
+  ctx.strokeStyle = 'rgba(232, 214, 164, 0.5)';
   ctx.lineWidth = 1;
   roundRect(ctx, x, y, width, height, 4);
   ctx.fill();
@@ -989,10 +989,10 @@ function drawBubble(ctx, text, cx, bottomY) {
   ctx.lineTo(cx + 3, y + height);
   ctx.lineTo(cx, y + height + 4);
   ctx.closePath();
-  ctx.fillStyle = 'rgba(16, 22, 32, 0.92)';
+  ctx.fillStyle = 'rgba(16, 22, 32, 0.72)';
   ctx.fill();
 
-  ctx.fillStyle = '#f2f6fb';
+  ctx.fillStyle = 'rgba(242, 246, 251, 0.88)';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(label, cx, y + height / 2 + 1);
