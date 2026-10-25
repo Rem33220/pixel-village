@@ -8,6 +8,7 @@ import {
   setMuted as applyMuted,
   isMuted
 } from './audio.js';
+import { applySave, describeSave, exportSave, parseSave } from './save.js';
 
 const KEYS_STORAGE = 'pixel-village:keys';
 const SETTINGS_STORAGE = 'pixel-village:settings';
@@ -204,9 +205,16 @@ export function createSettingsPanel({ onToggle, onBindingsChanged } = {}) {
   const resetBtn = document.getElementById('settings-reset');
   const keysBox = document.getElementById('settings-keys');
   const statusLine = document.getElementById('settings-status');
+  const exportBtn = document.getElementById('settings-export');
+  const importBtn = document.getElementById('settings-import');
+  const importFile = document.getElementById('settings-import-file');
+  const saveLine = document.getElementById('settings-save-status');
 
   let listening = null;
   let note = '';
+  // Sauvegarde lue dans un fichier, en attente de confirmation.
+  let pendingSave = null;
+  let importTimer = 0;
 
   function isOpen() {
     return !root.classList.contains('hidden');
@@ -215,6 +223,19 @@ export function createSettingsPanel({ onToggle, onBindingsChanged } = {}) {
   function setNote(text) {
     note = text;
     statusLine.textContent = text;
+  }
+
+  function setSaveStatus(text) {
+    saveLine.textContent = text;
+  }
+
+  // Désarme un import en attente : rien n'a encore été écrit.
+  function disarmImport(message = '') {
+    pendingSave = null;
+    clearTimeout(importTimer);
+    importBtn.classList.remove('confirm');
+    importBtn.textContent = 'Importer une sauvegarde';
+    setSaveStatus(message);
   }
 
   function syncVolume() {
@@ -310,6 +331,7 @@ export function createSettingsPanel({ onToggle, onBindingsChanged } = {}) {
     root.classList.remove('hidden');
     listening = null;
     setNote('');
+    disarmImport();
     refresh();
     closeBtn.focus();
     onToggle?.(true);
@@ -358,6 +380,70 @@ export function createSettingsPanel({ onToggle, onBindingsChanged } = {}) {
     setNote('Réglages remis à zéro.');
     onBindingsChanged?.();
     playSound('click');
+  });
+
+  exportBtn.addEventListener('click', () => {
+    const save = exportSave();
+    setSaveStatus(`${describeSave(save)} — fichier téléchargé.`);
+    playSound('success');
+  });
+
+  // Deux temps : choisir un fichier affiche son contenu, un second clic
+  // remplace le personnage. Rien n'est écrasé par simple sélection.
+  importBtn.addEventListener('click', () => {
+    if (pendingSave) {
+      const save = pendingSave;
+      pendingSave = null;
+      clearTimeout(importTimer);
+      importBtn.classList.remove('confirm');
+      importBtn.textContent = 'Importer une sauvegarde';
+
+      if (!applySave(save)) {
+        setSaveStatus('Impossible d’écrire dans le stockage du navigateur : sauvegarde non restaurée (mode privé ?).');
+        playSound('fail');
+        return;
+      }
+      setSaveStatus('Sauvegarde restaurée. Rechargement du personnage…');
+      playSound('success');
+      setTimeout(() => window.location.reload(), 500);
+      return;
+    }
+    disarmImport();
+    importFile.value = '';
+    importFile.click();
+  });
+
+  importFile.addEventListener('change', async () => {
+    const file = importFile.files?.[0];
+    if (!file) return;
+
+    let text = '';
+    try {
+      text = await file.text();
+    } catch {
+      /* lecture refusée : traité comme un fichier illisible */
+    }
+
+    const result = parseSave(text);
+    if (!result.ok) {
+      disarmImport(result.error);
+      playSound('fail');
+      return;
+    }
+
+    pendingSave = result.save;
+    importBtn.classList.add('confirm');
+    importBtn.textContent = 'Remplacer mon personnage ?';
+    setSaveStatus(
+      `${describeSave(pendingSave)} — clique sur « Remplacer mon personnage ? » pour charger ce fichier.`
+    );
+    playSound('click');
+
+    clearTimeout(importTimer);
+    importTimer = setTimeout(
+      () => disarmImport('Import annulé : rien n’a été modifié.'),
+      30_000
+    );
   });
 
   closeBtn.addEventListener('click', close);

@@ -138,7 +138,9 @@ body:not(.playing) #challenge {
 #settings {
   position: fixed;
   inset: 0;
-  z-index: 95;
+  /* Au-dessus de l'écran de connexion : les paramètres (et la sauvegarde)
+     s'ouvrent aussi depuis le menu principal. */
+  z-index: 105;
   display: grid;
   place-items: center;
   padding: 18px;
@@ -648,6 +650,16 @@ body:not(.playing) #challenge {
 
 .mini-btn:hover {
   filter: brightness(1.08);
+}
+
+/* Import de sauvegarde armé : même signal que la réinitialisation. */
+.mini-btn.confirm {
+  color: #ffe9e2;
+  background: #7a3b34;
+}
+
+#settings-save-status:empty {
+  display: none;
 }
 
 /* --- Échoppe du colporteur ---------------------------------------------- */

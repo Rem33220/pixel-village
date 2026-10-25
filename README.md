@@ -19,6 +19,18 @@ Puis ouvrir <http://localhost:3000>.
 Sans Node, `public/index.html` s'ouvre aussi en double-clic, mais uniquement en solo
 (pas de chat ni de joueurs).
 
+## Sauvegarde du personnage
+
+La progression (récompenses, butin, pièces, expérience, compétences, donjons
+conquis) est enregistrée automatiquement dans le navigateur. Pour la mettre à
+l'abri : **Paramètres → Sauvegarde → Exporter ma sauvegarde** télécharge un
+fichier `pixel-village-sauvegarde-AAAA-MM-JJ.json`.
+
+**Importer une sauvegarde** relit ce fichier, affiche le personnage qu'il
+contient, puis demande une confirmation avant de remplacer la progression en
+cours. Un fichier abîmé ou d'une version plus récente est refusé sans rien
+effacer.
+
 ## Publier sur GitHub
 
 Double-cliquer sur `Publier sur GitHub.bat` (ou `npm run publier`). Le script

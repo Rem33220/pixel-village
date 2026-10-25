@@ -139,6 +139,21 @@
         </p>
       </section>
 
+      <section class="settings-section">
+        <h3>Sauvegarde</h3>
+        <p class="settings-note">
+          La progression est enregistrée automatiquement dans ce navigateur.
+          Exporte-la dans un fichier pour la mettre à l’abri, la reprendre sur
+          un autre appareil ou revenir en arrière après une fausse manipulation.
+        </p>
+        <div class="settings-row settings-actions">
+          <button type="button" id="settings-export" class="mini-btn">Exporter ma sauvegarde</button>
+          <button type="button" id="settings-import" class="mini-btn">Importer une sauvegarde</button>
+        </div>
+        <input id="settings-import-file" class="hidden" type="file" accept=".json,application/json" />
+        <p class="settings-note" id="settings-save-status" aria-live="polite"></p>
+      </section>
+
       <section class="settings-section settings-footer">
         <button type="button" id="settings-reset" class="btn ghost">Réinitialiser</button>
         <p class="settings-note" id="settings-status" aria-live="polite"></p>
